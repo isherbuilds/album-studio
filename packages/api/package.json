@@ -1,0 +1,30 @@
+{
+  "name": "@tsu-stack/api",
+  "type": "module",
+  "imports": {
+    "#@/*": "./src/*.ts"
+  },
+  "exports": {
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "dependencies": {
+    "@orpc/client": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/tanstack-query": "catalog:",
+    "@tanstack/react-start": "catalog:",
+    "@tsu-stack/auth": "workspace:*",
+    "@tsu-stack/core": "workspace:*",
+    "@tsu-stack/db": "workspace:*",
+    "@tsu-stack/env": "workspace:*",
+    "@tsu-stack/logger": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tsu-stack/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "hono": "catalog:",
+    "typescript": "catalog:"
+  }
+}

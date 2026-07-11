@@ -1,0 +1,3 @@
+{
+  "extends": "@tsu-stack/tsconfig/tsconfig.base.json"
+}

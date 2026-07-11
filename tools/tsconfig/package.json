@@ -1,0 +1,8 @@
+{
+  "name": "@tsu-stack/tsconfig",
+  "private": true,
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  }
+}

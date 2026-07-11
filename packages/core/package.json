@@ -1,0 +1,27 @@
+{
+  "name": "@tsu-stack/core",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#@/*": "./src/*.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./assets": "./src/assets/index.ts",
+    "./health": "./src/health/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test:unit": "vp test"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tsu-stack/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

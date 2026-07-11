@@ -1,0 +1,7 @@
+{
+  "extends": "@tsu-stack/tsconfig/tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true
+  }
+}
