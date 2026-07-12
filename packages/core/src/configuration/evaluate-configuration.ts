@@ -1,4 +1,5 @@
 import {
+  ComponentAvailabilityStatusSchema,
   type ConfigurationEvaluation,
   type ConfigurationIssue,
   type ConfigurationSelections,
@@ -8,13 +9,16 @@ import {
   type PriceBreakdownLine
 } from "@tsu-stack/contract/configuration";
 
+const recognizedAvailabilityStatuses = new Set<string>(ComponentAvailabilityStatusSchema.options);
+
 /**
  * Evaluates a configuration against its authoritative Product definition.
  *
  * `input.availability` MUST contain an own entry for every Component referenced
- * by any Option Value in any group — including values that are not selected.
- * A missing entry throws, because availability is authoritative and a silently
- * absent Component must never be treated as orderable.
+ * by any Option Value in any group — including values that are not selected —
+ * and every entry MUST be a recognized availability status. A missing or
+ * unrecognized entry throws, because availability is authoritative and a
+ * silently absent or malformed Component must never be treated as orderable.
  */
 export function evaluateConfiguration(input: EvaluateConfigurationInput): ConfigurationEvaluation {
   const selectionEntries = Object.entries(input.selections);
@@ -147,7 +151,11 @@ export function evaluateConfiguration(input: EvaluateConfigurationInput): Config
         if (!Object.hasOwn(input.availability, componentId)) {
           throw new Error(`Missing availability for Component ${componentId}`);
         }
-        if (input.availability[componentId] === "out") {
+        const status = input.availability[componentId];
+        if (!recognizedAvailabilityStatuses.has(status)) {
+          throw new Error(`Invalid availability "${String(status)}" for Component ${componentId}`);
+        }
+        if (status === "out") {
           reasons.push({
             code: "component_unavailable",
             params: { componentId }

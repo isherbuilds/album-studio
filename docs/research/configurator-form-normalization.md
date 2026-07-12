@@ -35,7 +35,7 @@ retains only issues/no issues.
 
 - [TanStack Form validation guide](https://tanstack.com/form/v1/docs/framework/react/guides/validation)
 - [TanStack Form submission guide](https://tanstack.com/form/v1/docs/framework/react/guides/submission-handling)
-- [TanStack Form Standard Schema validator source](https://github.com/TanStack/form/blob/main/packages/form-core/src/standardSchemaValidator.ts#L73-L109)
+- [TanStack Form Standard Schema validator source](https://github.com/TanStack/form/blob/808f158b62c08f69689a7b652c35989d717f9014/packages/form-core/src/standardSchemaValidator.ts#L73-L109)
 
 Linked fields only trigger revalidation. They do not reset or replace another
 field. TanStack's own country/province example uses a listener and an explicit

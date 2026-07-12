@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const IdSchema = z.string().min(1);
+const NonEmptyStringSchema = z.string().min(1);
 const supportedCurrencyCodes =
   typeof Intl.supportedValuesOf === "function"
     ? new Set(Intl.supportedValuesOf("currency"))
@@ -15,11 +16,7 @@ export const CurrencyCodeSchema = z
   )
   .brand<"CurrencyCode">();
 
-export const MinorUnitAmountSchema = z
-  .number()
-  .int()
-  .min(Number.MIN_SAFE_INTEGER)
-  .max(Number.MAX_SAFE_INTEGER);
+export const MinorUnitAmountSchema = z.number().int();
 
 export const MoneySchema = z.object({
   amountMinor: MinorUnitAmountSchema,
@@ -37,16 +34,20 @@ export const OptionValueRequirementSchema = z.object({
 
 export const ProductOptionValueSchema = z.object({
   id: IdSchema,
-  label: IdSchema,
+  label: NonEmptyStringSchema,
   priceAdjustmentMinor: MinorUnitAmountSchema.nonnegative(),
   requirements: z.array(OptionValueRequirementSchema),
   componentIds: z.array(IdSchema)
 });
 
-const DiscreteOptionGroupFields = {
+const CommonOptionGroupFields = {
   key: IdSchema,
-  label: IdSchema,
-  required: z.boolean(),
+  label: NonEmptyStringSchema,
+  required: z.boolean()
+};
+
+const DiscreteOptionGroupFields = {
+  ...CommonOptionGroupFields,
   values: z.array(ProductOptionValueSchema).min(1)
 };
 
@@ -62,13 +63,11 @@ export const ProductOptionGroupSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("number"),
-    key: IdSchema,
-    label: IdSchema,
-    required: z.boolean(),
-    minimum: z.number().int().safe().nonnegative(),
-    maximum: z.number().int().safe().nonnegative(),
-    step: z.number().int().safe().positive(),
-    included: z.number().int().safe().nonnegative(),
+    ...CommonOptionGroupFields,
+    minimum: z.number().int().nonnegative(),
+    maximum: z.number().int().nonnegative(),
+    step: z.number().int().positive(),
+    included: z.number().int().nonnegative(),
     additionalUnitPriceMinor: MinorUnitAmountSchema.nonnegative()
   })
 ]);
@@ -276,8 +275,8 @@ export const PriceBreakdownLineSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("number"),
     groupKey: IdSchema,
-    selected: z.number().int().safe(),
-    additionalUnits: z.number().int().safe().nonnegative(),
+    selected: z.number().int(),
+    additionalUnits: z.number().int().nonnegative(),
     unitPriceMinor: MinorUnitAmountSchema.nonnegative(),
     amountMinor: MinorUnitAmountSchema
   })

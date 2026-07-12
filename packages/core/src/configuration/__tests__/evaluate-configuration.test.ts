@@ -537,6 +537,16 @@ describe("evaluateConfiguration", () => {
 
       expect(() => evaluateConfiguration(input)).toThrow(/Missing availability/);
     });
+
+    it.each([
+      { name: "an unrecognized status string", status: "unknown" },
+      { name: "an entry explicitly set to undefined", status: undefined }
+    ])("throws for $name", ({ status }) => {
+      const input = createInput();
+      (input.availability as Record<string, unknown>)["linen-material"] = status;
+
+      expect(() => evaluateConfiguration(input)).toThrow(/Invalid availability/);
+    });
   });
 
   describe("safe integer arithmetic", () => {
