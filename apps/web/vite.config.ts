@@ -27,7 +27,6 @@ const ROUTES_TO_PRERENDER: FileRouteTypes["fullPaths"][] = [
   "/{-$locale}/playground/",
   "/{-$locale}/privacy-policy/",
   "/{-$locale}/sign-in/",
-  "/{-$locale}/create-an-account/",
   "/sitemap.xml",
   "/robots.txt"
 ];

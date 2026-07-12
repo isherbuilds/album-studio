@@ -1,7 +1,5 @@
 import { defineConfig } from "vite-plus";
 
-import { tanstackStartFsdLint } from "./tools/vite-plus/tanstack-start-fsd.lint.ts";
-
 /**
  * Defines top-level Vite+ configurations for the different tools in its ecosystem.
  * @see {@link https://viteplus.dev/config}
@@ -43,37 +41,12 @@ export default defineConfig({
         {
           elementNamePattern: ["@tsu-stack/**"],
           groupName: "@tsu-stack"
-        },
-        {
-          elementNamePattern: ["@/pages/**"],
-          groupName: "pages"
-        },
-        {
-          elementNamePattern: ["@/widgets/**"],
-          groupName: "widgets"
-        },
-        {
-          elementNamePattern: ["@/features/**"],
-          groupName: "features"
-        },
-        {
-          elementNamePattern: ["@/entities/**"],
-          groupName: "entities"
-        },
-        {
-          elementNamePattern: ["@/shared/**"],
-          groupName: "shared"
         }
       ],
       groups: [
         "builtin",
         "external",
         "@tsu-stack",
-        "shared",
-        "entities",
-        "features",
-        "widgets",
-        "pages",
         ["internal", "subpath"],
         ["parent", "sibling", "index"],
         "style",
@@ -137,15 +110,6 @@ export default defineConfig({
       "promise",
       "jest",
       "unicorn"
-    ],
-    // #endregion
-
-    // #region App-specific lint overrides
-    overrides: [
-      {
-        files: ["apps/web/src/**/*.ts", "apps/web/src/**/*.tsx"],
-        ...tanstackStartFsdLint
-      }
     ],
     // #endregion
 

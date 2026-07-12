@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 
-import { RootLayout } from "@/widgets/layouts";
+import { RootLayout } from "@/components/layout/root-layout";
 
 export const Route = createFileRoute("/{-$locale}/(root-layout)")({
   component: () => (

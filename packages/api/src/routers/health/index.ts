@@ -8,7 +8,7 @@ import {
   HealthReadyOutputSchema,
   type HealthCheckResult,
   type HealthStatus
-} from "@tsu-stack/core/health";
+} from "@tsu-stack/contract/health";
 import { checkIsDbReady } from "@tsu-stack/db";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
 

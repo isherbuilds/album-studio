@@ -1,5 +1,5 @@
-import { defineRelationsPart } from "drizzle-orm";
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { defineRelationsPart, sql } from "drizzle-orm";
+import { boolean, check, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -87,7 +87,7 @@ export const organization = pgTable(
     logo: text("logo"),
     metadata: text("metadata"),
     name: text("name").notNull(),
-    slug: text("slug").notNull().unique()
+    slug: text("slug").notNull()
   },
   (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]
 );
@@ -100,14 +100,16 @@ export const member = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    role: text("role").default("member").notNull(),
+    role: text("role").default("customer").notNull(),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" })
   },
   (table) => [
     index("member_organizationId_idx").on(table.organizationId),
-    index("member_userId_idx").on(table.userId)
+    index("member_userId_idx").on(table.userId),
+    uniqueIndex("member_organizationId_userId_uidx").on(table.organizationId, table.userId),
+    check("member_role_check", sql`${table.role} in ('owner', 'manager', 'customer')`)
   ]
 );
 
@@ -124,12 +126,20 @@ export const invitation = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    role: text("role"),
+    role: text("role").notNull(),
     status: text("status").default("pending").notNull()
   },
   (table) => [
     index("invitation_organizationId_idx").on(table.organizationId),
-    index("invitation_email_idx").on(table.email)
+    index("invitation_email_idx").on(table.email),
+    uniqueIndex("invitation_pending_organization_email_uidx")
+      .on(table.organizationId, sql`lower(${table.email})`)
+      .where(sql`${table.status} = 'pending'`),
+    check(
+      "invitation_status_check",
+      sql`${table.status} in ('pending', 'accepted', 'rejected', 'canceled')`
+    ),
+    check("invitation_role_check", sql`${table.role} in ('owner', 'manager', 'customer')`)
   ]
 );
 

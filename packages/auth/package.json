@@ -21,6 +21,7 @@
   "peerDependencies": {
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-start": "catalog:",
+    "@tsu-stack/contract": "workspace:*",
     "@tsu-stack/db": "workspace:*"
   }
 }

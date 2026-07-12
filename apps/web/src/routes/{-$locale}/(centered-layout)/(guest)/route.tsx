@@ -42,7 +42,7 @@ export const Route = createFileRoute("/{-$locale}/(centered-layout)/(guest)")({
     }
 
     return {
-      // We pass this as context so that it can be used in the sign-in/sign-up pages to redirect after successful authentication
+      // The sign-in page uses this to redirect after successful authentication.
       redirectTo
     };
   }

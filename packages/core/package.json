@@ -9,13 +9,16 @@
     ".": "./src/index.ts",
     "./assets": "./src/assets/index.ts",
     "./health": "./src/health/index.ts",
+    "./organization": "./src/organization/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {
     "test:unit": "vp test"
   },
   "dependencies": {
-    "zod": "catalog:"
+    "@tsu-stack/contract": "workspace:*",
+    "@tsu-stack/db": "workspace:*",
+    "drizzle-orm": "catalog:"
   },
   "devDependencies": {
     "@tsu-stack/tsconfig": "workspace:*",

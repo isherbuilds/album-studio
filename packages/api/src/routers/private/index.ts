@@ -9,7 +9,7 @@ export const privateRouter = {
     .handler(({ context }) => {
       return {
         message: "This is private",
-        user: context.session.user
+        user: context.authSession.user
       };
     })
 };

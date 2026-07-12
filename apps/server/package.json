@@ -12,6 +12,7 @@
     "build": "cross-env IS_BUILD=true vp pack",
     "compile": "cross-env IS_BUILD=true BUILD_EXE=true pnpm dotenvx run -f ../../packages/env/.env -- vp pack",
     "dev": "pnpm dotenvx run -f ../../packages/env/.env -- node --import tsx --watch src/index.ts",
+    "seed:platform-admin": "pnpm dotenvx run -f ../../packages/env/.env -- node --import tsx scripts/seed-platform-admin.ts",
     "start": "pnpm dotenvx run -f ../../packages/env/.env -- node .output/index.mjs"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "@tsu-stack/db": "workspace:*",
     "@tsu-stack/env": "workspace:*",
     "@tsu-stack/logger": "workspace:*",
+    "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "zod": "catalog:"
   },

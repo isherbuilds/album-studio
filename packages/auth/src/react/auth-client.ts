@@ -3,6 +3,8 @@ import { createAuthClient } from "better-auth/react";
 
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 
+import { organizationAccessControl, organizationRoles } from "#@/access-control";
+
 export const API_AUTH_URL = `${ENV_WEB_ISOMORPHIC.VITE_SERVER_URL}/auth`;
 
 /**
@@ -11,7 +13,10 @@ export const API_AUTH_URL = `${ENV_WEB_ISOMORPHIC.VITE_SERVER_URL}/auth`;
  */
 export const authClient = createAuthClient({
   baseURL: API_AUTH_URL,
-  plugins: [adminClient(), organizationClient()]
+  plugins: [
+    adminClient(),
+    organizationClient({ ac: organizationAccessControl, roles: organizationRoles })
+  ]
 });
 
 export type AuthSession = typeof authClient.$Infer.Session;

@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { generateAppSeo } from "@/shared/lib/seo";
-
-import { SignInForm } from "@/features/auth";
-
+import { SignInForm } from "@/components/auth/sign-in-form";
 import { appConfig } from "@/config/app.config";
+import { generateAppSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/{-$locale}/(centered-layout)/(guest)/sign-in/")({
   head: ({ params }) =>

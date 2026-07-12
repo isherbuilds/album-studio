@@ -23,6 +23,10 @@ export const db = drizzle({
   relations: { ...relations, ...authRelations }
 });
 
+export type Database = typeof db;
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type DatabaseOrTransaction = Database | Transaction;
+
 export async function checkIsDbReady(): Promise<boolean> {
   try {
     await db.execute(sql`SELECT 1`);
@@ -40,6 +44,10 @@ const MIGRATION_RETRY_DELAY_MS = 3_000;
  * Runs pending database migrations on startup.
  * Safe to call every time the server starts since Drizzle tracks applied migrations
  * in the __drizzle_migrations table and skips anything already applied.
+ *
+ * TODO(post-MVP): Migration files are intentionally squashable while every environment
+ * is disposable. After the first production deployment, treat applied migrations as
+ * append-only and verify upgrades from the last released schema.
  */
 export async function migrateDatabase(): Promise<void> {
   if (migrationFnCalled) {

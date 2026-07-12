@@ -1,104 +1,48 @@
-# TanStack Patterns
+# TanStack patterns
 
-Use this when working with TanStack Start routes, route structure, `beforeLoad`, and route-level React Query preloading.
+Use this for TanStack Start routes, guards, params, and React Query preload.
 
-This guide is intentionally focused on TanStack Router and TanStack Start. For other concerns, use the more specific docs:
+## Route ownership
 
-- [API fetching patterns](./api-fetching-patterns.md)
-- [oRPC patterns](./orpc.md)
-- [i18n patterns](./i18n.md)
+`apps/web/src/routes` owns navigation state: route paths, params/search
+validation, `beforeLoad`, redirects, metadata, and query preload. A small page may
+be composed directly in its route. Larger product sections delegate to
+`components/<capability>`.
 
-## Docs Lookup
+The web structure is:
 
-Use `vp run tanstack ... --json` for TanStack documentation lookup.
-
-```sh
-vp run tanstack libraries --json
-vp run tanstack doc router framework/react/guide/data-loading --json
-vp run tanstack doc query framework/react/overview --docs-version v5 --json
-vp run tanstack search-docs "server functions" --library start --json
-vp run tanstack search-docs "loaders" --library router --framework react --json
+```text
+apps/web/src/
+  components/<capability>/
+  hooks/use-<capability>.ts
+  lib/
+  routes/
 ```
 
-## Routing
+The locale and pathless layout conventions remain:
 
-The web app uses TanStack Start file-based routing. In this codebase, `routes/` acts as the FSD app layer.
+- `{-$locale}/` — optional locale prefix;
+- `(root-layout)/` — navbar/footer shell;
+- `(centered-layout)/` — centered public shell;
+- `(auth)/` — authenticated guard;
+- `(guest)/` — guest-only guard.
 
-### FSD Layers
+## Preload
 
-| Layer    | Dir         | Purpose                                              |
-| -------- | ----------- | ---------------------------------------------------- |
-| app      | `routes/`   | Thin wrappers: loaders, guards, component references |
-| pages    | `pages/`    | Full page UI                                         |
-| widgets  | `widgets/`  | Composite UI (layouts)                               |
-| features | `features/` | User-facing capabilities (forms, navbar)             |
-| entities | `entities/` | Domain objects                                       |
-| shared   | `shared/`   | Utilities, providers, hooks — no business logic      |
-
-Imports only go downward.
-
-### Segment Structure
-
-```
-segment-name/
-  index.ts       → Barrel (public API, only re-exports)
-  ui/            → React components
-  lib/           → Business logic, integrations
-  utils/         → Pure helpers
-  types/         → Zod schemas + inferred types
-  hooks/         → Custom React hooks
-  stores/        → Zustand stores
-  api/           → Slice-local TanStack Query wrappers
-    get-thing.query.ts
-    create-thing.mutation.ts
-```
-
-### Route Hierarchy
-
-- `{-$locale}/` — i18n locale prefix (optional param, base locale omits it)
-- `(root-layout)/` — Navbar + Footer wrapper
-- `(centered-layout)/` — Centered content wrapper
-- `(auth)/` — Protected routes (auto-redirects to sign-in)
-- `(guest)/` — Guest-only routes (auto-redirects authenticated users)
-
-### Adding a Route
-
-1. Create page component in `pages/<name>/ui/<name>-page.tsx`, export via `pages/<name>/index.ts`
-2. Create route in `routes/{-$locale}/(layout-group)/<name>/index.tsx`
-3. Route file imports the page component and wires `beforeLoad` with React Query preloading
-4. Keep route files thin: route metadata, guards, preloading, and component wiring only
-
-## Route Files Stay Thin
-
-- Put page UI in `pages/`
-- Put business logic in slice modules
-- Put query and mutation wiring in slice-local `api/` files
-- When route params or search state depend on shared enums or defaults, import the schema and defaults from `packages/core` instead of recreating `z.enum([...])` arrays in the route file
-- Avoid business logic directly in route files
-
-Typical route responsibilities:
-
-- auth or guest redirects
-- `ensureQueryData(...)`
-- not-found handling
-- passing preloaded data into route context
-
-## React Query Preloading
-
-All caching is via React Query, not the router loader cache. `defaultPreloadStaleTime: 0` is intentional in this repo.
-
-Use `ensureQueryData(...)` in `beforeLoad`:
+Use option factories from the capability hook and `ensureQueryData(...)` in
+`beforeLoad`. React Query owns caching; `defaultPreloadStaleTime: 0` is
+intentional. Route guards protect navigation only—every oRPC/server surface must
+authorize independently.
 
 ```ts
-await context.queryClient.ensureQueryData(getThingQueryOptions(id));
+export const Route = createFileRoute("/.../products/$productSlug/")({
+  beforeLoad: ({ context, params }) =>
+    context.queryClient.ensureQueryData(
+      getProductQueryOptions(params.organizationSlug, params.productSlug)
+    ),
+  component: ProductPage
+});
 ```
 
-Use exported query option factories from slice modules. Do not inline query wiring in routes.
-
-## Gotchas
-
-- `defaultPreloadStaleTime: 0` is deliberate
-- Caching lives in React Query, not the router cache
-- Route files should stay thin
-- Barrel files (`index.ts`) are the public API
-- Pathless layout routes (parenthesized dirs) group routes without changing URLs
+Use `vp run tanstack ... --json` for TanStack documentation lookup and load the
+matching Intent skill before changing unfamiliar router behavior.
