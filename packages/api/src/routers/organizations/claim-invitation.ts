@@ -36,13 +36,22 @@ export async function claimInvitation(
     ) {
       throw errors.INVITATION_INVALID();
     }
-    await tx.insert(member).values({
-      createdAt: new Date(),
-      id: crypto.randomUUID(),
-      organizationId: record.invitation.organizationId,
-      role: record.invitation.role,
-      userId: input.userId
-    });
+    const insertedMembers = await tx
+      .insert(member)
+      .values({
+        createdAt: new Date(),
+        id: crypto.randomUUID(),
+        organizationId: record.invitation.organizationId,
+        role: record.invitation.role,
+        userId: input.userId
+      })
+      .onConflictDoNothing({
+        target: [member.organizationId, member.userId]
+      })
+      .returning({ id: member.id });
+    if (insertedMembers.length === 0) {
+      throw errors.INVITATION_INVALID();
+    }
     await tx
       .update(invitation)
       .set({ status: "accepted" })

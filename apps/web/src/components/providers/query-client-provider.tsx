@@ -5,6 +5,15 @@ import {
 } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 
+function hasNumericStatus(error: unknown): error is { status: number } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    typeof error.status === "number"
+  );
+}
+
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -15,11 +24,7 @@ function createQueryClient() {
         refetchOnReconnect: false,
         refetchOnWindowFocus: false,
         retry: (failureCount, error: unknown) => {
-          if (
-            error instanceof Error &&
-            "status" in error &&
-            [401, 403].includes((error as { status: number }).status)
-          ) {
+          if (hasNumericStatus(error) && [401, 403].includes(error.status)) {
             return false;
           }
           return failureCount < 2;

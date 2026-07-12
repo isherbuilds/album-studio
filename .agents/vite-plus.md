@@ -32,8 +32,8 @@ Contains the unified config for:
 
 - **Staged hooks**: `"*": "vp check --fix"` — auto-formats + lints on commit
 - **Vitest**: test includes, global config
-- **Oxfmt**: ignore patterns, import sorting (by FSD layer), Tailwind class sorting
-- **Oxlint**: ESLint plugin integration (`eslint-plugin-fsd-lint`, `@tanstack/eslint-plugin-query`, `eslint-plugin-react-hooks`)
+- **Oxfmt**: ignore patterns, package/internal import sorting, Tailwind class sorting
+- **Oxlint**: Vite Plus, TanStack Query/Router, React hooks, and accessibility rules
 
 ## Mental Model
 

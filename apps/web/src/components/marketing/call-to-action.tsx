@@ -32,7 +32,7 @@ export function CallToAction() {
             </Link>
           </Button>
           <Button asChild light="skeuomorphic">
-            <Link target="_blank" href="https://github.com/tsu-moe/tsu-stack">
+            <Link target="_blank" href="https://github.com/tsu-moe/tsu-stack/wiki">
               {m.home_page__cta_documentation()}
             </Link>
           </Button>

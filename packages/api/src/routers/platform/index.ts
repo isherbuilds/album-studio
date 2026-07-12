@@ -7,7 +7,7 @@ import { member, organization, user } from "@tsu-stack/db/schema";
 import { platformAdminProcedure } from "#@/lib/procedures/factory";
 
 const organizationSummarySchema = z.object({
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
   id: z.string(),
   name: z.string(),
   slug: z.string()
@@ -52,14 +52,16 @@ export const platformRouter = {
         })
         .from(member);
 
+      if (!stats) throw new Error("Dashboard aggregate query returned no row");
+
       return {
-        organizations: stats?.organizations ?? 0,
+        organizations: stats.organizations,
         roles: {
-          customers: stats?.customers ?? 0,
-          managers: stats?.managers ?? 0,
-          owners: stats?.owners ?? 0
+          customers: stats.customers,
+          managers: stats.managers,
+          owners: stats.owners
         },
-        users: stats?.users ?? 0
+        users: stats.users
       };
     }),
   organizations: {
@@ -94,6 +96,7 @@ export const platformRouter = {
       .input(createOrganizationInputSchema)
       .output(
         organizationSummarySchema.extend({
+          ownerCreated: z.boolean(),
           owner: z.object({
             email: z.email(),
             id: z.string(),
@@ -118,6 +121,7 @@ export const platformRouter = {
           .where(eq(user.email, input.ownerEmail))
           .limit(1);
         let ownerUser = existingUsers[0];
+        let ownerCreated = false;
 
         if (!ownerUser) {
           try {
@@ -130,6 +134,7 @@ export const platformRouter = {
               }
             });
             ownerUser = created.user;
+            ownerCreated = true;
           } catch (error) {
             const racedUsers = await context.db
               .select({ email: user.email, id: user.id, name: user.name })
@@ -152,6 +157,10 @@ export const platformRouter = {
             }
           });
         } catch (error) {
+          if (ownerCreated) {
+            await auth.api.removeUser({ body: { userId: ownerUser.id } });
+          }
+
           const racedOrganizations = await context.db
             .select({ id: organization.id })
             .from(organization)
@@ -166,6 +175,7 @@ export const platformRouter = {
           id: createdOrganization.id,
           name: createdOrganization.name,
           owner: ownerUser,
+          ownerCreated,
           slug: createdOrganization.slug
         };
       })

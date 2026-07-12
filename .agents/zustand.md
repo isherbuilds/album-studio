@@ -19,9 +19,9 @@ When adding the first Zustand store to a package, make sure the package declares
 
 ## Goals
 
-- Keep state owned by the smallest FSD slice that needs it.
+- Keep state owned by the smallest capability that needs it.
 - Put state transitions in store actions, not inline in components.
-- Put React-facing hook wrappers in the owning slice's `hooks/` directory.
+- Put React-facing hook wrappers in `apps/web/src/hooks` under the owning capability name.
 - Subscribe with selectors so components re-render only for the fields they use.
 - Use global composed stores only when explicitly needed.
 
@@ -40,28 +40,24 @@ Examples:
 
 ## Placement
 
-Follow the FSD segment structure from [TanStack patterns](./tanstack-patterns.md).
+Follow the layer-sliced feature-keyed structure from [TanStack patterns](./tanstack-patterns.md).
 
 ```text
-features/example/
-  stores/
-    filters.store.ts
-  hooks/
-    use-filter-state.hook.ts
+components/example/
+  filters.store.ts
+hooks/
+  use-example.ts
   index.ts
 ```
 
-Use the layer that owns the behavior:
+Use the capability that owns the behavior:
 
-- `pages/<slice>/stores/` for page-owned local UI state.
-- `widgets/<slice>/stores/` for widget coordination state.
-- `features/<slice>/stores/` for user-facing feature state.
-- `entities/<slice>/stores/` for reusable entity-local state.
-- `apps/web/src/shared/stores/` only for app-wide generic state with no business ownership.
-- `apps/web/src/shared/hooks/` only for hooks around shared generic stores.
+- colocate a store in `components/<capability>/` when only that component family uses it;
+- expose shared React selectors/actions from `hooks/use-<capability>.ts`;
+- put genuinely app-wide integration state under `components/providers`;
 - `packages/ui` component folders may keep colocated stores only for reusable component-family state.
 
-Do not create `src/stores/` or a global `stores.ts`.
+Do not create a global `src/stores/` dumping ground.
 
 ## Store Shape
 
@@ -95,7 +91,7 @@ setSelection: (params: { itemId: string; groupId: string }) => void;
 
 ## Hook Wrappers
 
-Export store hook wrappers from the slice's `hooks/` directory, not from component files.
+Export cross-component store wrappers from the capability hook, not from arbitrary component files.
 
 ```ts
 import { useShallow } from "zustand/react/shallow";
@@ -216,7 +212,7 @@ Do not persist loading flags, modal state, request-scoped data, auth secrets, or
 
 ## Slice Composition
 
-Do not create centralized slice creators by default. Most Zustand stores should be isolated stores in the owning FSD slice.
+Do not create centralized slice creators by default. Most Zustand stores should be isolated in the owning capability.
 
 Use `*.slice.ts` and a composed global local-data store only when one of these is true:
 
@@ -224,7 +220,7 @@ Use `*.slice.ts` and a composed global local-data store only when one of these i
 - The app needs to export, import, reset, or persist multiple local-data domains at once.
 - Local-data domains need coordinated actions or cross-slice reads.
 
-Keep business slice creators in their owning FSD slices. Put only the app-wide composition shell in `apps/web/src/shared/stores/` when composition is necessary.
+Keep business slice creators in their owning capability. Put only a genuinely app-wide composition shell in `components/providers` when composition is necessary.
 
 ```ts
 import type { StateCreator } from "zustand";
@@ -262,7 +258,7 @@ Zustand stores are module state. In SSR-capable apps, never put request-specific
 - Introducing `React.useContext()` or a new React context provider when the user did not explicitly ask for Context.
 - Using React Context for shared mutable client state.
 - Creating a global store because two components share state once.
-- Putting business state in `shared/` when a page, widget, feature, or entity owns it.
+- Putting business state in a generic global directory when a capability owns it.
 - Calling Zustand hooks in route `beforeLoad`, loaders, server functions, or non-React utilities.
 - Subscribing to the whole store from large components.
 - Mutating store collections in place.

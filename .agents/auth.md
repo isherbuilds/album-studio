@@ -6,6 +6,10 @@
 - **Client**: `authClient` from `@tsu-stack/auth` (nanostore-based, client-side only)
 - **SSR**: `$getUser` server function resolves session from request headers, forwards `Set-Cookie` for refresh
 - **Cookies**: Prefer Better Auth defaults for reusable projects — `SameSite=Lax` supports OAuth and other redirect-based flows without custom per-project overrides
+- **Signup**: Public signup stays disabled; Platform Admin and invite-first flows create users through Better Auth server APIs
+- **Organizations**: Better Auth owns normal User/Account/Organization/Member/Invitation lifecycle mutations; oRPC adds Album Studio slug policy and audited orchestration where required, with one documented direct-table adapter for invite-first account creation
+- **Authorization**: `packages/auth/src/access-control.ts` exports the fixed roles and shared `can(action, { role })` seam
+- **Platform Admin**: oRPC platform middleware must re-read the session with `disableCookieCache: true`; never authorize installation-wide mutations from a cookie-cached role
 
 ## Query Pattern
 

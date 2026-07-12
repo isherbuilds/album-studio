@@ -2,6 +2,15 @@ import { createAccessControl } from "better-auth/plugins/access";
 
 import { type OrganizationRole } from "@tsu-stack/contract/organization";
 
+export function hasAdminRole(role: string | null | undefined): boolean {
+  return (
+    role
+      ?.split(",")
+      .map((entry) => entry.trim())
+      .includes("admin") ?? false
+  );
+}
+
 export const organizationAccessControl = createAccessControl({
   invitation: ["create", "cancel", "read"],
   member: ["create", "update", "delete", "read"],

@@ -11,6 +11,7 @@ import { platformRouter } from "#@/routers/platform/index";
 
 let adminId = "";
 const ownerId = crypto.randomUUID();
+const ownerEmail = `${ownerId}@example.com`;
 const adminEmail = `${crypto.randomUUID()}@example.com`;
 const nonAdminEmail = `${crypto.randomUUID()}@example.com`;
 const provisionedOwnerEmail = `${crypto.randomUUID()}@example.com`;
@@ -71,7 +72,7 @@ beforeAll(async () => {
   ]);
   adminId = adminUser.user.id;
   await db.insert(user).values({
-    email: `${ownerId}@example.com`,
+    email: ownerEmail,
     emailVerified: true,
     id: ownerId,
     name: "Initial Owner",
@@ -142,51 +143,83 @@ describe("platform router authorization", () => {
     });
     const slug = `platform-${crypto.randomUUID()}`;
 
-    const created = await client.organizations.create({
-      name: "Platform Organization",
-      ownerEmail: provisionedOwnerEmail,
-      ownerName: "Provisioned Owner",
-      ownerPassword: "a-secure-temporary-password",
-      slug
-    });
-
-    expect(created).toMatchObject({
-      owner: {
-        email: provisionedOwnerEmail,
-        name: "Provisioned Owner"
-      },
-      slug
-    });
-    await expect(
-      client.organizations.create({
-        name: "Duplicate Platform Organization",
+    try {
+      const created = await client.organizations.create({
+        name: "Platform Organization",
         ownerEmail: provisionedOwnerEmail,
         ownerName: "Provisioned Owner",
         ownerPassword: "a-secure-temporary-password",
         slug
-      })
-    ).rejects.toMatchObject({ code: "ORGANIZATION_SLUG_TAKEN" });
-    await expect(
-      db
-        .select({ role: member.role })
-        .from(member)
-        .innerJoin(organization, eq(organization.id, member.organizationId))
-        .where(eq(organization.slug, slug))
-    ).resolves.toEqual([{ role: "owner" }]);
-    await expect(
-      db
-        .select({ email: user.email, name: user.name, providerId: account.providerId })
-        .from(user)
-        .innerJoin(account, eq(account.userId, user.id))
-        .where(eq(user.email, provisionedOwnerEmail))
-    ).resolves.toEqual([
-      {
-        email: provisionedOwnerEmail,
-        name: "Provisioned Owner",
-        providerId: "credential"
-      }
-    ]);
+      });
 
-    await db.delete(organization).where(eq(organization.slug, slug));
+      expect(created).toMatchObject({
+        owner: {
+          email: provisionedOwnerEmail,
+          name: "Provisioned Owner"
+        },
+        ownerCreated: true,
+        slug
+      });
+      await expect(
+        client.organizations.create({
+          name: "Duplicate Platform Organization",
+          ownerEmail: provisionedOwnerEmail,
+          ownerName: "Provisioned Owner",
+          ownerPassword: "a-secure-temporary-password",
+          slug
+        })
+      ).rejects.toMatchObject({ code: "ORGANIZATION_SLUG_TAKEN" });
+      await expect(
+        db
+          .select({ role: member.role })
+          .from(member)
+          .innerJoin(organization, eq(organization.id, member.organizationId))
+          .where(eq(organization.slug, slug))
+      ).resolves.toEqual([{ role: "owner" }]);
+      await expect(
+        db
+          .select({ email: user.email, name: user.name, providerId: account.providerId })
+          .from(user)
+          .innerJoin(account, eq(account.userId, user.id))
+          .where(eq(user.email, provisionedOwnerEmail))
+      ).resolves.toEqual([
+        {
+          email: provisionedOwnerEmail,
+          name: "Provisioned Owner",
+          providerId: "credential"
+        }
+      ]);
+    } finally {
+      await db.delete(organization).where(eq(organization.slug, slug));
+    }
+  });
+
+  it("reuses an existing user as the initial owner", async () => {
+    const client = createRouterClient(platformRouter, {
+      context: createContext(adminHeaders, "admin")
+    });
+    const slug = `platform-existing-owner-${crypto.randomUUID()}`;
+
+    try {
+      const created = await client.organizations.create({
+        name: "Existing Owner Organization",
+        ownerEmail,
+        ownerName: "Ignored Owner Name",
+        ownerPassword: "ignored-owner-password",
+        slug
+      });
+
+      expect(created).toMatchObject({
+        owner: {
+          email: ownerEmail,
+          id: ownerId,
+          name: "Initial Owner"
+        },
+        ownerCreated: false,
+        slug
+      });
+    } finally {
+      await db.delete(organization).where(eq(organization.slug, slug));
+    }
   });
 });

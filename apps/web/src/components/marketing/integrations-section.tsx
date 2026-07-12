@@ -64,7 +64,7 @@ const tiles: TileData[] = [
     row: 0
   },
 
-  // Row 1
+  // Row 4
   { col: 0, row: 1 }, // Empty
   {
     col: 3,
@@ -271,7 +271,7 @@ const tiles: TileData[] = [
     row: 3
   },
 
-  // Row 4
+  // Row 1
   {
     col: 1,
     logo: {
@@ -366,7 +366,7 @@ function IntegrationCard({ row, col, logo }: TileData) {
             logo.isInvertable && "dark:invert"
           )}
         >
-          {cloneElement(logo.svg, { "aria-label": logo.alt })}
+          {cloneElement(logo.svg, { "aria-label": logo.alt, role: "img" })}
         </div>
       )}
     </div>

@@ -4,14 +4,14 @@ Use this when implementing a feature that spans data model, shared domain contra
 
 This file defines implementation order. For package-specific rules, follow the linked docs instead of repeating them here.
 
-When a feature introduces shared contracts that should drive both API and frontend behavior, this workflow also includes `packages/core`.
+When a feature introduces shared contracts that should drive both API and frontend behavior, this workflow includes `packages/contract`; domain behavior belongs in `packages/core`.
 
 ## Default Order
 
 1. If the feature needs new data or persisted fields, update `packages/db` first.
-2. If the feature introduces shared enums, schemas, formatters, or defaults consumed across packages, update `packages/core` next.
+2. Add shared input schemas and enums to `packages/contract`, then domain behavior to `packages/core`.
 3. Define or extend the oRPC contract in `packages/api`.
-4. Add slice-local TanStack Query wrappers in `apps/web`.
+4. Extend the capability facade in `apps/web/src/hooks/use-<capability>.ts`.
 5. Handle user-visible client errors using the typed oRPC client pattern.
 6. Wire route preloading, guards, and UI composition in `apps/web`.
 7. Run fixes and relevant validation according to [Workflow](./workflow.md), using [Choice flows](./choice-flows.md) only when a human decision is needed.
@@ -22,12 +22,11 @@ When a feature introduces shared contracts that should drive both API and fronte
 - Follow [Workflow](./workflow.md) for migration generation, localhost `DATABASE_URL` safety, and migration application.
 - Keep schema and migration work complete before defining API output shapes that depend on it.
 
-## Step 2: Shared Domain Contract
+## Step 2: Boundary Contract And Domain
 
-- Use `packages/core` for shared Zod schemas, enums, normalizers, formatters, option builders, and defaults consumed by more than one package.
-- Follow [Core package patterns](./core.md).
-- Unless explicitly told not to, if a change should propagate automatically into both API and frontend behavior, centralize it in `packages/core` instead of duplicating literals in app code.
-- Route validators, frontend filters, and shared API input or output schemas should import core contracts when they represent the same domain surface.
+- Use `packages/contract` for shared Zod inputs, commands, and enums. Follow [Contract package patterns](./contract.md).
+- Use `packages/core` for domain behavior and reusable operations. Follow [Core package patterns](./core.md).
+- Route validators, web hooks, and API inputs should import the same contract instead of duplicating literals.
 
 ## Step 3: API Contract
 
@@ -39,7 +38,7 @@ When a feature introduces shared contracts that should drive both API and fronte
 
 - Use oRPC's TanStack Query integration from `@tsu-stack/api/client/tanstack-start/orpc`.
 - Follow [API fetching patterns](./api-fetching-patterns.md) for `*.query.ts`, `*.mutation.ts`, query keys, query options, and hook wrappers.
-- Keep `orpc` and TanStack Query wiring inside slice-local `api/` files, not inline in page components.
+- Keep oRPC, Better Auth client mutations, and TanStack Query policy inside the capability hook, not inline in components.
 
 ## Step 5: Client Error Handling
 

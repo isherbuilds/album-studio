@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { Suspense, lazy } from "react";
+import { Component, Suspense, lazy, type ReactNode } from "react";
 
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
@@ -10,6 +10,18 @@ const Dithering = lazy(() =>
   })
 );
 
+class ShaderErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    return this.state.hasError ? null : this.props.children;
+  }
+}
+
 export function HeroSection() {
   return (
     <section
@@ -18,29 +30,31 @@ export function HeroSection() {
     >
       <div className="relative w-full">
         <div className="relative -top-[calc(var(--navbar-height)+1.75rem)] flex min-h-svh flex-col items-center justify-center overflow-hidden bg-background pt-(--navbar-height)">
-          <Suspense fallback={null}>
-            <div className="pointer-events-none absolute inset-0 z-0 animate-in opacity-40 mix-blend-multiply duration-700 ease-out will-change-[opacity] fade-in dark:opacity-60 dark:mix-blend-screen">
-              <Dithering
-                style={{
-                  WebkitMaskComposite: "source-in",
-                  maskComposite: "intersect",
-                  maskImage: `
-                    linear-gradient(to top, transparent 4%, black 30%, black 100%),
-                    linear-gradient(to bottom, transparent 12%, black 30%, black 100%),
-                    linear-gradient(to right, transparent 0%, black 10%, black 75%, transparent 100%),
-                    linear-gradient(to left, transparent 0%, black 10%, black 75%, transparent 100%)
-                  `
-                }}
-                colorBack="#00000000"
-                colorFront="#EC4E02"
-                shape="warp"
-                type="4x4"
-                speed={0.2}
-                className="size-full"
-                minPixelRatio={1}
-              />
-            </div>
-          </Suspense>
+          <ShaderErrorBoundary>
+            <Suspense fallback={null}>
+              <div className="pointer-events-none absolute inset-0 z-0 animate-in opacity-40 mix-blend-multiply duration-700 ease-out will-change-[opacity] fade-in dark:opacity-60 dark:mix-blend-screen">
+                <Dithering
+                  style={{
+                    WebkitMaskComposite: "source-in",
+                    maskComposite: "intersect",
+                    maskImage: `
+                      linear-gradient(to top, transparent 4%, black 30%, black 100%),
+                      linear-gradient(to bottom, transparent 12%, black 30%, black 100%),
+                      linear-gradient(to right, transparent 0%, black 10%, black 75%, transparent 100%),
+                      linear-gradient(to left, transparent 0%, black 10%, black 75%, transparent 100%)
+                    `
+                  }}
+                  colorBack="#00000000"
+                  colorFront="#EC4E02"
+                  shape="warp"
+                  type="4x4"
+                  speed={0.2}
+                  className="size-full"
+                  minPixelRatio={1}
+                />
+              </div>
+            </Suspense>
+          </ShaderErrorBoundary>
 
           <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
             <div className="duraton-500 mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all">
@@ -57,10 +71,10 @@ export function HeroSection() {
               {m.home_page__hero_beta_badge()}
             </div>
 
-            <h2 className="font-display mb-8 text-7xl leading-[0.95] font-medium -tracking-[0.005em] text-balance text-foreground sm:text-8xl 2xl:text-[108px]">
+            <h1 className="font-display mb-8 text-7xl leading-[0.95] font-medium -tracking-[0.005em] text-balance text-foreground sm:text-8xl 2xl:text-[108px]">
               {m.home_page__hero_title_line_1()} <br />
               <span className="text-foreground">{m.home_page__hero_title_line_2()}</span>
-            </h2>
+            </h1>
 
             <p className="mb-12 max-w-2xl text-lg leading-relaxed text-balance text-muted-foreground md:text-xl">
               {m.home_page__hero_description()}

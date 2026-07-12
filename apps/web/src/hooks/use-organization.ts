@@ -91,15 +91,7 @@ export function useRemoveMemberMutation(organizationSlug: string) {
     },
     onError: () => toast.error(m.organization__remove_member_failed()),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: orpc.organizations.members.list.key({ input: { organizationSlug } })
-        }),
-        queryClient.invalidateQueries({
-          queryKey: orpc.organizations.bySlug.key({ input: { organizationSlug } })
-        }),
-        queryClient.invalidateQueries({ queryKey: orpc.organizations.list.key() })
-      ]);
+      await queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
     }
   });
 }
@@ -121,7 +113,7 @@ export function useRevokeInvitationMutation(organizationSlug: string) {
   });
 }
 
-export function useUpdateMemberRoleMutation(organizationSlug: string) {
+export function useUpdateMemberRoleMutation() {
   const queryClient = useQueryClient();
   return useMutation(
     orpc.organizations.members.updateRole.mutationOptions({
@@ -136,14 +128,7 @@ export function useUpdateMemberRoleMutation(organizationSlug: string) {
         toast.error(m.organization__update_role_failed());
       },
       onSuccess: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: orpc.organizations.members.list.key({ input: { organizationSlug } })
-          }),
-          queryClient.invalidateQueries({
-            queryKey: orpc.organizations.bySlug.key({ input: { organizationSlug } })
-          })
-        ]);
+        await queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
       }
     })
   );
@@ -155,12 +140,6 @@ export function useAcceptInvitationMutation() {
     mutationFn: async (input: { invitationId: string }) => {
       const result = await authClient.organization.acceptInvitation(input);
       if (result.error) throw new Error(result.error.message);
-      const organizations = await orpc.organizations.list.call();
-      const organization = organizations.find(
-        (item) => item.id === result.data?.member.organizationId
-      );
-      if (!organization) throw new Error(m.auth__invitation_membership_missing());
-      return { organizationSlug: organization.slug };
     },
     onError: showAcceptInvitationError,
     onSuccess: async () => {

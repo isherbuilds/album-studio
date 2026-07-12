@@ -6,6 +6,7 @@ import React, { Suspense } from "react";
 import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
+import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Portal, PortalBackdrop } from "@tsu-stack/ui/components/portal";
@@ -99,7 +100,7 @@ function MobileNavAuth({ onNavigate }: { onNavigate: () => void }) {
       <div className="mt-12 flex flex-col gap-2">
         <Button onClick={onNavigate} asChild className="w-full" variant="outline">
           <Link to="/sign-in" search={redirect ? { redirect } : undefined}>
-            Sign In
+            {m.navbar__sign_in()}
           </Link>
         </Button>
       </div>
@@ -114,7 +115,7 @@ function MobileNavAuth({ onNavigate }: { onNavigate: () => void }) {
       </div>
       <Button className="w-full" variant="destructive" onClick={handleSignOut}>
         <LogOut aria-hidden="true" size={16} />
-        Logout
+        {m.user_dropdown__logout()}
       </Button>
     </div>
   );

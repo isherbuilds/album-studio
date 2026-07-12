@@ -1,14 +1,22 @@
-import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
-import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 
 import { Container } from "@/components/common/container";
 import { useListMyOrganizationsQuery } from "@/hooks/use-organization";
 
+function getRoleLabel(role: "owner" | "manager" | "customer") {
+  switch (role) {
+    case "owner":
+      return m.organization__role_owner();
+    case "manager":
+      return m.organization__role_manager();
+    case "customer":
+      return m.organization__role_customer();
+  }
+}
+
 export function OrganizationSelectorPage() {
   const organizations = useListMyOrganizationsQuery();
-  const navigate = useNavigate();
   return (
     <Container className="py-12">
       <p className="mb-3 font-mono text-xs tracking-[0.22em] text-muted-foreground uppercase">
@@ -21,16 +29,6 @@ export function OrganizationSelectorPage() {
             <Link
               className="grid grid-cols-[3rem_1fr_auto] items-center gap-4 border-b p-4 last:border-0 hover:bg-muted/60"
               key={item.id}
-              onClick={async (event) => {
-                event.preventDefault();
-                const result = await authClient.organization.setActive({ organizationId: item.id });
-                if (!result.error) {
-                  await navigate({
-                    params: { organizationSlug: item.slug },
-                    to: "/org/$organizationSlug"
-                  });
-                }
-              }}
               params={{ organizationSlug: item.slug }}
               to="/org/$organizationSlug"
             >
@@ -39,7 +37,7 @@ export function OrganizationSelectorPage() {
               </span>
               <span>
                 <strong className="block">{item.name}</strong>
-                <span className="text-sm text-muted-foreground">{item.role}</span>
+                <span className="text-sm text-muted-foreground">{getRoleLabel(item.role)}</span>
               </span>
               <span aria-hidden>→</span>
             </Link>

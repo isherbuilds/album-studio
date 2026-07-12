@@ -71,9 +71,12 @@ export const files = new Files({
 If storage is introduced here, use this default split unless the task requires something more specific:
 
 ```text
-packages/core/src/media-asset/
+packages/contract/src/media-asset/
   constants.ts
   types.ts
+  index.ts
+
+packages/core/src/media-asset/
   utils.ts
   index.ts
 
@@ -87,26 +90,26 @@ packages/api/src/lib/storage/
 
 Default responsibilities:
 
-- `packages/core/src/media-asset/constants.ts`: MIME lists, size limits, upload expiry durations, and other shared storage constants
-- `packages/core/src/media-asset/types.ts`: `mediaAssetSchema`, upload request and response schemas, and inferred types
+- `packages/contract/src/media-asset/constants.ts`: MIME lists, size limits, upload expiry durations, and other shared boundary constants
+- `packages/contract/src/media-asset/types.ts`: `mediaAssetSchema`, upload request and response schemas, and inferred types
 - `packages/core/src/media-asset/utils.ts`: pure key, prefix, and schema-derived helpers only
 - `packages/db/src/schema/media-asset.schema.ts`: persistence schema, indexes, and persisted enums when needed
 - `packages/api/src/lib/storage/index.ts`: configured `files` client only
 - `packages/api/src/lib/storage/media-asset/index.ts`: `createMediaAssetUpload`, `completeMediaAssetUpload`, `deleteMediaAssetObject`, and other infrastructure-level storage helpers
 - oRPC procedures: keep them in the owning slice router per [oRPC patterns](./orpc.md); do not create routers under `lib/storage`
-- `apps/web`: keep upload mutations and UI in the owning feature slice; extract shared browser helpers only when more than one slice uses them
+- `apps/web`: keep upload mutations in the capability hook and UI in `components/<capability>`; extract browser helpers into `lib` only at a real second call site
 
 ## Implementation Order
 
 When implementing storage for the first time, prefer this order unless the task explicitly requires divergence:
 
-1. Add shared constants, schemas, and pure helpers under `packages/core/src/media-asset/` following [Core package patterns](./core.md).
+1. Add shared constants and schemas under `packages/contract/src/media-asset/`, then pure behavior under `packages/core/src/media-asset/`.
 2. Add `packages/db/src/schema/media-asset.schema.ts`, then generate and apply the migration following [Workflow](./workflow.md).
 3. Add storage env validation and runtime config following [Environment variables](./environment-variables.md).
 4. Add the configured `files` client in `packages/api/src/lib/storage/index.ts`.
 5. Add storage lifecycle helpers in `packages/api/src/lib/storage/media-asset/index.ts`.
 6. Wire the owning oRPC procedures from the nearest slice router instead of inventing a new global storage router.
-7. Add the web upload mutation and UI in the owning feature slice.
+7. Add the web upload mutation to `hooks/use-<capability>.ts` and UI to `components/<capability>`.
 
 If the actual implementation needs a different path or split, update this file in the same change.
 
@@ -140,7 +143,7 @@ export type MediaAssetStatus = z.infer<typeof mediaAssetStatusSchema>;
 export type MediaAsset = z.infer<typeof mediaAssetSchema>;
 ```
 
-Put the asset schema and upload contract schemas in `packages/core/src/media-asset/types.ts`. Keep URL resolution and other storage-client calls out of `packages/core` because they depend on runtime config.
+Put the asset schema and upload contract schemas in `packages/contract/src/media-asset/types.ts`. Keep URL resolution and other storage-client calls out of `packages/core` because they depend on runtime config.
 
 Use the record schema for server-side and DB-adjacent code. If an API response needs a URL, derive it at read time from the current storage policy instead of adding URL fields to the persisted asset shape.
 

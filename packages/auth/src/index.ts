@@ -54,7 +54,6 @@ export const auth = betterAuth({
       allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
       invitationExpiresIn: ORGANIZATION_INVITATION_TTL_SECONDS,
-      requireEmailVerificationOnInvitation: false,
       roles: organizationRoles
     }),
     openAPI({

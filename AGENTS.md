@@ -18,7 +18,7 @@ Respond like smart caveman. Cut all filler, keep technical substance.
 - Treat one-off helpers, wrappers, option factories, hooks, providers, contexts, and component abstractions as suspect. Remove or inline them unless they have at least two real call sites or carry non-trivial policy.
 - Do not add defensive `try/catch`, fallback defaults, graceful degradation, compatibility redirects, or "just in case" branches to hide uncertainty. Fix root cause or fail loud, especially for auth, tenant scope, money, config, and data integrity.
 - Do not catch query/database errors in routers or query helpers to convert them into transport codes. Typed `.errors()` belongs only to router-owned failures that clients must branch on. Query, domain, cursor, and database failures fail fast so root causes stay visible and no duplicate error policy grows across layers.
-- Do not bypass TypeScript with `any`, broad casts, non-null assertions, or duplicated local types. Narrow at the source, derive from schemas, or move shared contracts into `packages/core`.
+- Do not bypass TypeScript with `any`, broad casts, non-null assertions, or duplicated local types. Narrow at the source, derive from schemas, or move shared contracts into `packages/contract`.
 - Prefer fewer layers on hot paths. Avoid extra render state, effects, providers, stores, query wrappers, and memoization unless there is a measured need or a real dependency boundary.
 - Use composition patterns only when a reusable component API needs flexibility. For one screen or one call site, prefer plain props, local state, and direct JSX.
 - Before handoff, remove AI slop: unnecessary comments, speculative abstraction, unused indirection, broad error handling, and helpers that only rename another call.

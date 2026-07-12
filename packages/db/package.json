@@ -7,8 +7,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts",
-    "./queries": "./src/queries/index.ts"
+    "./schema": "./src/schema/index.ts"
   },
   "scripts": {
     "db": "pnpm dotenvx run -f ../env/.env -- drizzle-kit",

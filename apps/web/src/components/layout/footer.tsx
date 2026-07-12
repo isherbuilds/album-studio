@@ -1,5 +1,6 @@
 import { FaGithub } from "react-icons/fa";
 
+import { resolvePublicAssetUrl } from "@tsu-stack/core/assets";
 import { m } from "@tsu-stack/i18n/messages";
 import { type LinkProps } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
@@ -94,9 +95,9 @@ export function Footer({
         <p className="inline-flex items-center gap-1">
           <span>{m.footer__built_by()}</span>
           <Link
-            aria-label="x/twitter"
+            aria-label={appConfig.site.author}
             className="inline-flex items-center gap-1 text-foreground/80 hover:text-foreground hover:underline"
-            href="https://github.com/tsu-moe"
+            href={appConfig.site.url}
             rel="noreferrer"
             target="_blank"
           >
@@ -105,7 +106,7 @@ export function Footer({
               height={32}
               alt={appConfig.site.author}
               className="size-4 rounded-full"
-              src="https://github.com/tsu-moe.png"
+              src={resolvePublicAssetUrl(appConfig.site.url, "/logo192.png")}
             />
             {appConfig.site.author}
           </Link>

@@ -98,10 +98,11 @@ export const organizationsRouter = {
         ) {
           throw errors.INVITATION_INVALID();
         }
+        const normalizedEmail = initialRecord.invitation.email.toLowerCase();
         const existing = await context.db
           .select({ id: user.id })
           .from(user)
-          .where(eq(user.email, initialRecord.invitation.email.toLowerCase()))
+          .where(eq(user.email, normalizedEmail))
           .limit(1);
         if (existing.length > 0) {
           throw errors.ACCOUNT_EXISTS();
@@ -109,18 +110,23 @@ export const organizationsRouter = {
 
         const created = await auth.api.createUser({
           body: {
-            email: initialRecord.invitation.email,
+            email: normalizedEmail,
             name: input.name,
             password: input.password,
             role: "user"
           }
         });
 
-        return claimInvitation(
-          context.db,
-          { invitationId: input.invitationId, userId: created.user.id },
-          errors
-        );
+        try {
+          return await claimInvitation(
+            context.db,
+            { invitationId: input.invitationId, userId: created.user.id },
+            errors
+          );
+        } catch (error) {
+          await context.db.delete(user).where(eq(user.id, created.user.id));
+          throw error;
+        }
       }),
     list: organizationActionProcedure(OrgSlugInputSchema, "invitation.read")
       .route({ description: "List organization invitations", method: "GET" })

@@ -1,12 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { Building2, Images, LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
+import { useState } from "react";
 
 import { can } from "@tsu-stack/auth/access-control";
 import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
+import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Separator } from "@tsu-stack/ui/components/separator";
 import {
@@ -24,10 +26,12 @@ import { NavbarAvatar } from "@/components/navigation/navbar-avatar";
 type WorkspaceNavigationProps = {
   organizationSlug?: string;
   showMemberNavigation: boolean;
+  onNavigate?: () => void;
   showPlatformNavigation: boolean;
 };
 
 function WorkspaceNavigation({
+  onNavigate,
   organizationSlug,
   showMemberNavigation,
   showPlatformNavigation
@@ -43,12 +47,13 @@ function WorkspaceNavigation({
     <nav aria-label={m.app_shell__workspace()} className="flex flex-col gap-1">
       {showPlatformNavigation ? (
         <>
-          <Link className={itemClass(pathname.endsWith("/admin"))} to="/admin">
+          <Link className={itemClass(pathname.endsWith("/admin"))} onClick={onNavigate} to="/admin">
             <LayoutDashboard />
             {m.app_shell__overview()}
           </Link>
           <Link
             className={itemClass(pathname.includes("/admin/organizations"))}
+            onClick={onNavigate}
             to="/admin/organizations"
           >
             <Building2 />
@@ -60,6 +65,7 @@ function WorkspaceNavigation({
         <>
           <Link
             className={itemClass(!pathname.includes("/members"))}
+            onClick={onNavigate}
             params={{ organizationSlug }}
             to="/org/$organizationSlug"
           >
@@ -69,6 +75,7 @@ function WorkspaceNavigation({
           {showMemberNavigation ? (
             <Link
               className={itemClass(pathname.includes("/members"))}
+              onClick={onNavigate}
               params={{ organizationSlug }}
               to="/org/$organizationSlug/members"
             >
@@ -82,20 +89,23 @@ function WorkspaceNavigation({
   );
 }
 
-function SidebarContent() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const queryClient = useQueryClient();
-  const router = useRouter();
+  const navigate = useNavigate();
   const matches = useRouterState({ select: (state) => state.matches });
   const user = matches.find((match) => match.context.user)?.context.user;
-  const organizationSlug = matches.find((match) => "organizationSlug" in match.params)?.params
-    .organizationSlug;
-  const membership = matches.find((match) => "membership" in match.context)?.context.membership;
+  const membershipMatch = matches.find((match) => "membership" in match.context);
+  const membership = membershipMatch?.context.membership;
+  const organizationSlug =
+    membershipMatch && membership && "organizationSlug" in membershipMatch.params
+      ? membershipMatch.params.organizationSlug
+      : undefined;
   const showMemberNavigation = membership ? can("member.read", { role: membership.role }) : false;
   const showPlatformNavigation = matches.some((match) => match.routeId.includes("/(auth)/admin"));
 
   return (
     <div className="flex h-full flex-col p-3">
-      <Link className="flex h-12 items-center gap-3 px-2" to="/dashboard">
+      <Link className="flex h-12 items-center gap-3 px-2" onClick={onNavigate} to="/dashboard">
         <span className="grid size-8 place-items-center rounded-lg bg-foreground text-sm font-semibold text-background">
           AS
         </span>
@@ -108,6 +118,7 @@ function SidebarContent() {
       </Link>
       <Separator className="my-3" />
       <WorkspaceNavigation
+        onNavigate={onNavigate}
         organizationSlug={organizationSlug}
         showMemberNavigation={showMemberNavigation}
         showPlatformNavigation={showPlatformNavigation}
@@ -122,7 +133,8 @@ function SidebarContent() {
           onClick={async () => {
             await authClient.signOut();
             await queryClient.invalidateQueries(getAuthUserQueryOptions());
-            await router.navigate({ to: "/sign-in" });
+            await navigate({ to: "/sign-in" });
+            onNavigate?.();
           }}
           variant="ghost"
         >
@@ -135,6 +147,7 @@ function SidebarContent() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   return (
     <div className="min-h-screen bg-muted/30 lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
       <aside className="fixed inset-y-0 hidden w-62 border-r bg-background lg:block">
@@ -142,7 +155,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="lg:col-start-2">
         <header className="sticky top-0 flex h-14 items-center border-b bg-background/95 px-4 backdrop-blur lg:hidden">
-          <Sheet>
+          <Sheet onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>
             <SheetTrigger asChild>
               <Button aria-label={m.app_shell__open_navigation()} size="icon" variant="ghost">
                 <Menu />
@@ -153,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SheetTitle>{m.app_shell__navigation_title()}</SheetTitle>
                 <SheetDescription>{m.app_shell__navigation_description()}</SheetDescription>
               </SheetHeader>
-              <SidebarContent />
+              <SidebarContent onNavigate={() => setMobileNavigationOpen(false)} />
             </SheetContent>
           </Sheet>
           <span className="ml-2 text-sm font-semibold">Album Studio</span>

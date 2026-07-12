@@ -3,9 +3,17 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
 import { AcceptInvitationPage } from "@/components/organization/accept-invitation-page";
+import { generateAppSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/{-$locale}/(centered-layout)/accept-invitation/")({
   validateSearch: zodValidator(z.object({ id: z.string().min(1) })),
+  head: () =>
+    generateAppSeo({
+      robots: {
+        follow: false,
+        index: false
+      }
+    }),
   component: RouteComponent
 });
 

@@ -2,6 +2,7 @@ import { Copy, Search, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { type OrganizationRole, OrganizationRoleSchema } from "@tsu-stack/contract/organization";
 import { m } from "@tsu-stack/i18n/messages";
 import { Badge } from "@tsu-stack/ui/components/badge";
@@ -33,13 +34,23 @@ import {
   useUpdateMemberRoleMutation
 } from "@/hooks/use-organization";
 
+const ROLE_OPTIONS: ReadonlyArray<{
+  label: () => string;
+  value: OrganizationRole;
+}> = [
+  { label: m.organization__role_customer, value: "customer" },
+  { label: m.organization__role_manager, value: "manager" },
+  { label: m.organization__role_owner, value: "owner" }
+];
+
 export function OrganizationMembersPage({ organizationSlug }: { organizationSlug: string }) {
   const members = useListMembersQuery(organizationSlug);
   const invitations = useListInvitationsQuery(organizationSlug);
   const createInvitation = useCreateInvitationMutation(organizationSlug);
   const revokeInvitation = useRevokeInvitationMutation(organizationSlug);
   const removeMember = useRemoveMemberMutation(organizationSlug);
-  const updateMemberRole = useUpdateMemberRoleMutation(organizationSlug);
+  const updateMemberRole = useUpdateMemberRoleMutation();
+  const { isPending: isAuthPending, user } = useAuth();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<OrganizationRole>("customer");
   const [search, setSearch] = useState("");
@@ -108,14 +119,21 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
                             }}
                             value={item.role}
                           >
-                            <option value="customer">{m.organization__role_customer()}</option>
-                            <option value="manager">{m.organization__role_manager()}</option>
-                            <option value="owner">{m.organization__role_owner()}</option>
+                            {ROLE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label()}
+                              </option>
+                            ))}
                           </select>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            onClick={() => removeMember.mutate({ memberId: item.id })}
+                            disabled={isAuthPending || item.userId === user?.id}
+                            onClick={() => {
+                              if (window.confirm(m.organization__confirm_remove_member())) {
+                                removeMember.mutate({ memberId: item.id });
+                              }
+                            }}
                             size="sm"
                             type="button"
                             variant="ghost"
@@ -154,8 +172,12 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
                       <Button
                         aria-label={m.organization__copy_invitation_link()}
                         onClick={async () => {
-                          await navigator.clipboard.writeText(item.invitationUrl);
-                          toast.success(m.organization__link_copied());
+                          try {
+                            await navigator.clipboard.writeText(item.invitationUrl);
+                            toast.success(m.organization__link_copied());
+                          } catch {
+                            toast.error(m.organization__copy_link_failed());
+                          }
                         }}
                         size="icon-sm"
                         type="button"
@@ -165,7 +187,11 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
                       </Button>
                       {item.status === "pending" ? (
                         <Button
-                          onClick={() => revokeInvitation.mutate({ invitationId: item.id })}
+                          onClick={() => {
+                            if (window.confirm(m.organization__confirm_revoke_invitation())) {
+                              revokeInvitation.mutate({ invitationId: item.id });
+                            }
+                          }}
                           size="sm"
                           type="button"
                           variant="ghost"
@@ -229,9 +255,11 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
                     onChange={(event) => setRole(OrganizationRoleSchema.parse(event.target.value))}
                     value={role}
                   >
-                    <option value="customer">{m.organization__role_customer()}</option>
-                    <option value="manager">{m.organization__role_manager()}</option>
-                    <option value="owner">{m.organization__role_owner()}</option>
+                    {ROLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label()}
+                      </option>
+                    ))}
                   </select>
                 </Field>
                 <Button disabled={createInvitation.isPending} type="submit">

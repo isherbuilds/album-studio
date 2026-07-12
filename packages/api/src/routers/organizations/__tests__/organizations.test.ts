@@ -336,6 +336,20 @@ describe("organization boundaries", () => {
     });
   });
 
+  it("surfaces LAST_OWNER when demoting the organization's only owner", async () => {
+    const ownerClient = createRouterClient(organizationsRouter, {
+      context: createContext(fixture.ownerId, fixture.ownerEmail)
+    });
+
+    await expect(
+      ownerClient.members.updateRole({
+        memberId: fixture.ownerMemberId,
+        organizationSlug: fixture.slug,
+        role: "manager"
+      })
+    ).rejects.toMatchObject({ code: "LAST_OWNER" });
+  });
+
   it("hides members from another organization behind NOT_FOUND", async () => {
     const ownerClient = createRouterClient(organizationsRouter, {
       context: createContext(fixture.ownerId, fixture.ownerEmail)

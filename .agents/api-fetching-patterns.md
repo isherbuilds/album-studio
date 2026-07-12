@@ -25,6 +25,10 @@ read/write policies make the facade genuinely hard to navigate.
 Export query key helpers, an options factory, and a hook from the same facade.
 
 ```ts
+import { useQuery } from "@tanstack/react-query";
+
+import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
+
 export const productQueryKeys = {
   bySlug(organizationSlug: string, productSlug: string) {
     return orpc.products.bySlug.key({ input: { organizationSlug, productSlug } });

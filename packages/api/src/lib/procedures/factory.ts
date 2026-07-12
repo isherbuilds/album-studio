@@ -96,7 +96,7 @@ export function organizationProcedure<TInput extends OrgSlugInput>(inputSchema: 
   return protectedProcedure.input(inputSchema).use(requireOrganization());
 }
 
-/** Organization member whose role is one of `allowedRoles`; otherwise FORBIDDEN. */
+/** Organization member authorized for `action`; otherwise FORBIDDEN. */
 export function organizationActionProcedure<TInput extends OrgSlugInput>(
   inputSchema: z.ZodType<TInput>,
   action: OrganizationAction

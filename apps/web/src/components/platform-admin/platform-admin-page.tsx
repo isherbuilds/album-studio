@@ -3,6 +3,7 @@ import { Building2, BriefcaseBusiness, Crown, UserRound } from "lucide-react";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@tsu-stack/ui/components/card";
+import { Skeleton } from "@tsu-stack/ui/components/skeleton";
 
 import { useGetPlatformDashboardQuery } from "@/hooks/use-platform-admin";
 
@@ -45,25 +46,31 @@ export function PlatformAdminPage() {
         </p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map(({ icon: Icon, label, value }) => (
-          <Link
-            className="rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-            key={label}
-            to="/admin/organizations"
-          >
-            <Card className="h-full transition-colors hover:bg-muted/40" size="sm">
-              <CardHeader>
-                <CardDescription className="flex items-center gap-2">
-                  <Icon />
-                  {label}
-                </CardDescription>
-                <CardTitle className="text-3xl tabular-nums">{value ?? "—"}</CardTitle>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
-      </section>
+      {dashboard.isError ? (
+        <p className="text-sm text-destructive">{m.platform_admin__load_failed()}</p>
+      ) : (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map(({ icon: Icon, label, value }) => (
+            <Link
+              className="rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+              key={label}
+              to="/admin/organizations"
+            >
+              <Card className="h-full transition-colors hover:bg-muted/40" size="sm">
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <Icon />
+                    {label}
+                  </CardDescription>
+                  <CardTitle className="text-3xl tabular-nums">
+                    {dashboard.isPending ? <Skeleton className="h-9 w-16" /> : value}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

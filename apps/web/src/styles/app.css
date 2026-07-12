@@ -1,8 +1,7 @@
 @import "@tsu-stack/ui/styles/globals.css";
-@source "./";
-
 @import "./fonts.css";
 @import "./theme.css";
+@source "./";
 
 :root {
   /**

@@ -15,13 +15,13 @@ import {
 } from "@/hooks/use-organization";
 
 export function AcceptInvitationPage({ invitationId }: { invitationId: string }) {
-  const { user } = useAuth();
+  const { isPending: isAuthPending, user } = useAuth();
   const navigate = useNavigate();
   const accept = useAcceptInvitationMutation();
   const acceptNewUser = useAcceptNewUserInvitationMutation();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const isPending = accept.isPending || acceptNewUser.isPending;
+  const isPending = isAuthPending || accept.isPending || acceptNewUser.isPending;
 
   return (
     <Container className="flex max-w-md flex-col gap-6 py-12">
@@ -36,22 +36,34 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
         className="space-y-5 rounded-xl border bg-card p-6 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
-          const onSuccess = async (result: { organizationSlug: string }) => {
-            toast.success(m.auth__invitation_accepted());
-            await navigate({
-              params: { organizationSlug: result.organizationSlug },
-              to: "/org/$organizationSlug"
-            });
-          };
-
+          if (isAuthPending) return;
           if (user) {
-            accept.mutate({ invitationId }, { onSuccess });
+            accept.mutate(
+              { invitationId },
+              {
+                onSuccess: async () => {
+                  toast.success(m.auth__invitation_accepted());
+                  await navigate({ to: "/dashboard" });
+                }
+              }
+            );
           } else {
-            acceptNewUser.mutate({ invitationId, name, password }, { onSuccess });
+            acceptNewUser.mutate(
+              { invitationId, name, password },
+              {
+                onSuccess: async (result) => {
+                  toast.success(m.auth__invitation_accepted());
+                  await navigate({
+                    params: { organizationSlug: result.organizationSlug },
+                    to: "/org/$organizationSlug"
+                  });
+                }
+              }
+            );
           }
         }}
       >
-        {user ? (
+        {isAuthPending ? null : user ? (
           <p className="text-sm text-muted-foreground">
             {m.auth__signed_in_as()} {user.email}
           </p>

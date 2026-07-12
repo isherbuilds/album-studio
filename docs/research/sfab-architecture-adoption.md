@@ -85,12 +85,12 @@ delegates
 [core](https://github.com/sfab-oss/sfab-starter/blob/96ddbed0223824af57bb6a28458c37f9dae738bc/packages/core/src/catalog/products.ts),
 [surface](https://github.com/sfab-oss/sfab-starter/blob/96ddbed0223824af57bb6a28458c37f9dae738bc/apps/web/src/hono/org-protected/catalog/products.ts)).
 
-**Inference:** Album Studio's current `packages/core` already behaves more like
-SFAB's `contract`, because its only runtime dependency is Zod
-(`packages/core/package.json:17-19`). A clean adoption therefore renames/moves
-that package to `packages/contract` and creates a new `packages/core` for domain
-behavior. Keeping the old package meaning would preserve a vocabulary collision
-with the architecture being adopted.
+**Inference:** Album Studio's current `packages/core` already occupies SFAB's
+domain layer: its runtime dependencies are `@tsu-stack/contract`, `@tsu-stack/db`,
+and `drizzle-orm` (`packages/core/package.json:18-22`). The package dependency
+direction therefore reflects the intended `contract → core → db` collaboration,
+and adoption should preserve `packages/core` as the home for domain behavior
+rather than rename or replace it.
 
 ### 2. The stack can remain intact
 
@@ -160,10 +160,9 @@ The current implementation has useful counterexamples:
   [invite form](https://github.com/sfab-oss/sfab-starter/blob/96ddbed0223824af57bb6a28458c37f9dae738bc/apps/web/src/components/organization/members/invite-member-form.tsx#L31-L38)). Album Studio should allow route composition without allowing routes or forms to become new business-schema owners.
 
 Album Studio can delete `apps/web/src/pages`, `features`, `widgets`, `entities`,
-and `shared`, move product composites under `components`, move provider adapters
-under `components/providers` or `lib`, and remove `eslint-plugin-fsd-lint`
-(`package.json:39-40`). Because compatibility is explicitly not required, no FSD
-shim barrels should be introduced.
+and `shared`, move product composites under `components`, and move provider
+adapters under `components/providers` or `lib`. Because compatibility is
+explicitly not required, no FSD shim barrels should be introduced.
 
 ### 4. What is good in SFAB's organization handling
 
@@ -298,11 +297,11 @@ transplanted:
 SFAB defines a durable knowledge model: a thin `AGENTS.md`, one architecture map,
 significant ADRs, code-anchored guides, and on-demand skills
 ([ADR-005 lines 21-78](https://github.com/sfab-oss/sfab-starter/blob/96ddbed0223824af57bb6a28458c37f9dae738bc/docs/decisions/005-documentation-and-knowledge-layer.md#L21-L78)).
-This is worth adopting along with the code structure, because the current
-`.agents/tanstack-patterns.md` and `.agents/api-fetching-patterns.md` explicitly
-teach FSD (`.agents/tanstack-patterns.md:18-69`,
-`.agents/api-fetching-patterns.md:1-38`). Leaving those documents in place would
-cause the deleted architecture to regrow.
+This is worth adopting along with the code structure. The current
+`.agents/tanstack-patterns.md` and `.agents/api-fetching-patterns.md` already
+describe the flatter `components`/`hooks`/`routes` structure, and the API guide
+explicitly says not to recreate FSD slices. Those documents should remain aligned
+with that target so the deleted architecture does not regrow.
 
 SFAB is MIT-licensed and permits copying/modification provided the copyright and
 permission notice is retained in substantial copies

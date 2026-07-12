@@ -45,8 +45,8 @@ export function PlatformOrganizationsPage() {
   const filteredOrganizations = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return organizations.data ?? [];
-    return organizations.data?.filter(
-      (item) => item.name.toLowerCase().includes(query) || item.slug.includes(query)
+    return (organizations.data ?? []).filter(
+      (item) => item.name.toLowerCase().includes(query) || item.slug.toLowerCase().includes(query)
     );
   }, [organizations.data, search]);
 
@@ -94,7 +94,13 @@ export function PlatformOrganizationsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrganizations?.length ? (
+                  {organizations.isPending ? (
+                    <TableRow>
+                      <TableCell className="h-24 text-center text-muted-foreground" colSpan={3}>
+                        <span className="inline-block h-4 w-32 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredOrganizations.length > 0 ? (
                     filteredOrganizations.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.name}</TableCell>
@@ -116,7 +122,9 @@ export function PlatformOrganizationsPage() {
                   ) : (
                     <TableRow>
                       <TableCell className="h-24 text-center text-muted-foreground" colSpan={3}>
-                        {search ? m.platform_admin__no_search_results() : m.platform_admin__empty()}
+                        {search.trim()
+                          ? m.platform_admin__no_search_results()
+                          : m.platform_admin__empty()}
                       </TableCell>
                     </TableRow>
                   )}
