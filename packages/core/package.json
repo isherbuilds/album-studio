@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./assets": "./src/assets/index.ts",
+    "./configuration": "./src/configuration/index.ts",
     "./health": "./src/health/index.ts",
     "./organization": "./src/organization/index.ts",
     "./*": "./src/*.ts"

@@ -35,7 +35,7 @@ retains only issues/no issues.
 
 - [TanStack Form validation guide](https://tanstack.com/form/v1/docs/framework/react/guides/validation)
 - [TanStack Form submission guide](https://tanstack.com/form/v1/docs/framework/react/guides/submission-handling)
-- [TanStack Form Standard Schema validator source](https://github.com/TanStack/form/blob/main/packages/form-core/src/standardSchemaValidator.ts#L789-L847)
+- [TanStack Form Standard Schema validator source](https://github.com/TanStack/form/blob/808f158b62c08f69689a7b652c35989d717f9014/packages/form-core/src/standardSchemaValidator.ts#L73-L109)
 
 Linked fields only trigger revalidation. They do not reset or replace another
 field. TanStack's own country/province example uses a listener and an explicit
@@ -115,8 +115,8 @@ variant ID and quantity.
 - Native `required`, `min`, `max`, `step`, and `valueAsNumber` for UI affordance.
 - Explicit TanStack Form listener or change handler applying cleared selections.
 - Server-side re-evaluation with current Product, prices, and Component status.
-- Deterministic fingerprint because approved checkout requires price-change
-  acceptance (`docs/specs/album-studio-mvp.md:87-94`).
+- Deterministic evaluation output; checkout separately accepts buyer-facing Order
+  total as `Money`.
 
 ### Cut
 
@@ -135,24 +135,34 @@ variant ID and quantity.
    clearing through `setFieldValue`.
 3. Zod validates transport and Product-definition shape.
 4. Configuration evaluator owns compatibility, effective availability, numeric
-   pricing, invalidated selections, totals, issues, and fingerprint.
-5. Server reloads current data and reruns evaluator before Order creation.
+   pricing, invalidated selections, totals, and issues.
+5. Catalog loads one complete curated selected-Product definition for local
+   evaluation across all steps; images remain independent/lazy. Group-per-step
+   fetching is not normal Product behavior.
+6. Draft coordinator stores latest complete state snapshot, not field events:
+   evaluate immediately, debounce about 400 ms, allow one request in flight, retain
+   one latest dirty snapshot for follow-up or retry, and flush before step/checkout.
+7. Draft server reloads current Product/availability, evaluates, and CAS-saves
+   normalized JSONB selections plus informative summary. Incomplete state remains
+   saveable; conflict returns latest safe Draft without merge.
+8. Order server independently reloads current data and reruns evaluator before
+   Order creation; Draft price and availability remain non-authoritative.
 
 ## Slice boundaries and user flow
 
 Slice 1 itself adds no route, screen, click, API, or database table. Customers,
 Platform Admins, Organization Owners, and Managers see no new UI. It produces
-the contract and pure engine consumed later (`docs/specs/album-studio-mvp.md:138-142`).
+the contract and pure engine consumed later.
 
-- Slice 4 adds private catalog, Product view, configurator UI, and live local
-  evaluation (`docs/specs/album-studio-mvp.md:156-160`).
-- Slice 5 adds Draft creation, autosave, resume, and revision conflicts
-  (`docs/specs/album-studio-mvp.md:162-166`).
-- Slice 6 adds server-authoritative Order placement and fingerprint acceptance
-  (`docs/specs/album-studio-mvp.md:168-172`).
-- Slice 8 supplies current inventory state (`docs/specs/album-studio-mvp.md:180-184`).
+- Slice 4 adds lightweight catalog summaries, one complete curated selected-Product
+  definition, Product view, configurator UI, and live local evaluation.
+- Slice 5 adds complete-snapshot Draft creation/autosave, resume, and revision
+  conflicts through compare-and-swap.
+- Slice 6 adds server-authoritative Order placement and buyer-outcome total
+  acceptance.
+- Slice 8 supplies current inventory state.
 - Slice 9 adds Owner/Manager Product editing and evaluator-backed preview
-  (`docs/specs/album-studio-mvp.md:186-190`).
+  functionality.
 
 ## Sources
 

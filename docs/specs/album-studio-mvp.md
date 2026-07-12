@@ -28,7 +28,7 @@ The first demonstrable path uses a realistic seeded album. The same generic doma
 12. As a Customer, I want earlier changes to clear newly invalid later selections and update the estimate so that my configuration stays valid.
 13. As a Customer, I want bounded, stepped numeric choices such as sheet count so that construction and pricing constraints are enforced.
 14. As a Customer, I want live estimated pricing while I configure so that I understand the effect of each choice.
-15. As a Customer, I want every meaningful change and step transition autosaved so that disconnecting or leaving the page does not lose my work.
+15. As a Customer, I want my latest complete configuration autosaved after meaningful changes and flushed before step transitions so that disconnecting or leaving the page does not lose my work.
 16. As a Customer, I want multiple Drafts for the same Product and an optional Project Name so that I can prepare work for different clients.
 17. As a Customer, I want the server to recheck configuration, price, and availability before Order placement so that the submitted amount is authoritative.
 18. As a Customer, I want to see the previous and current totals and explicitly accept a changed price so that price fluctuations are transparent.
@@ -75,8 +75,9 @@ The first demonstrable path uses a realistic seeded album. The same generic doma
 - Option Value requirements express compatibility. Requirements targeting values in the same prerequisite group use OR semantics; requirements across different groups use AND semantics. A value with unmet requirements remains visible but disabled with an explanation.
 - Components are Organization-scoped and include a unit, current decimal quantity, low-stock threshold, and availability override of `automatic`, `available`, `low`, or `out`. Under `automatic`, quantity at or below zero is out, quantity at or below the threshold is low, and higher quantity is available. An Option Value may reference multiple Components and a Component may support multiple values; the least-available linked Component controls whether that value can be ordered.
 - Inventory Movements are append-only decimal deltas with reason, actor, and timestamp. Component quantity is updated transactionally with a Movement. Checkout uses the effective availability state but does not reserve or deduct material.
-- A Configuration Draft belongs to Customer, Organization, and Product and stores Project Name, quantity, current step, selections, last evaluation summary, revision, conversion state, and timestamps. Multiple active Drafts per Customer and Product are allowed.
-- Draft writes use compare-and-swap revision numbers. A stale writer receives the latest revision rather than silently overwriting work from another tab.
+- A Configuration Draft belongs to Customer, Organization, and Product and stores its latest complete state snapshot: selections as JSONB, quantity, Project Name, current step, last informative evaluation summary, revision, conversion state, and timestamps. Selections remain keyed by immutable Option Group machine key; entries contain an Option Value ID or numeric value. Labels and ordering may change without changing key/ID identity. Draft persistence is not an event/click log.
+- Draft writes use compare-and-swap revision numbers. A stale writer receives `DRAFT_CONFLICT` with the latest safe Draft rather than silent overwrite or automatic merge. Incomplete or invalid configurations remain normal saveable Draft state; Order placement blocks them later.
+- Product revision tracks lifecycle and editor concurrency only. It does not participate in configuration evaluation or checkout price acceptance.
 - An Order belongs to Customer and Organization, contains one configured Product and quantity, and stores an immutable JSON snapshot of product labels, chosen options, component references, unit adjustments, calculation breakdown, total, and currency. It also stores an immutable generated Order Number and a correctable Project Name.
 - Order status is `placed`, `confirmed`, `in_production`, `completed`, or `cancelled`. Cancellation request state is separately `none`, `pending`, `approved`, or `rejected`. A Customer may create one pending request only while `placed`; an Owner or Manager approves or rejects it, and approval moves the Order to `cancelled`. Customers never directly edit submitted Orders.
 - Offline Payment records are append-only positive receipts or negative reversals with amount, method, note, actor, and timestamp. A reversal references an earlier receipt. Derived payment state is `unpaid`, `partially_paid`, or `paid`; cumulative receipts may be neither negative nor greater than the Order total unless a future refund or overpayment policy is introduced.
@@ -85,11 +86,14 @@ The first demonstrable path uses a realistic seeded album. The same generic doma
 ### Configuration and checkout contract
 
 - The primary domain seam is `evaluateConfiguration(input: EvaluateConfigurationInput): ConfigurationEvaluation`.
-- `EvaluateConfigurationInput` contains an authoritative Product definition, selected Option Value IDs and numeric values keyed by Option Group key, Order quantity, effective component availability, currency, and evaluation revision.
-- `ConfigurationEvaluation` is a discriminated result. A valid result contains normalized selections, per-unit breakdown, per-unit total, Order total, currency, disabled-value explanations, and a deterministic evaluation fingerprint. An invalid result contains stable issue codes, affected group keys, human-display parameters, disabled-value explanations, and the fingerprint of the evaluated source state.
+- `EvaluateConfigurationInput` contains an authoritative Product definition, selected Option Value IDs and numeric values keyed by Option Group key, Order quantity, effective component availability, and currency.
+- `ConfigurationEvaluation` is a discriminated result. A valid result contains normalized selections, per-unit breakdown, per-unit total, Order total, currency, and disabled-value explanations. An invalid result contains stable issue codes, affected group keys, human-display parameters, and disabled-value explanations.
 - Total calculation is `(base price + fixed option adjustments + numeric additional-unit adjustments) × Order quantity`. Numeric additional units are `max(0, selected - included)` and must respect the configured step.
 - The web may run the evaluator against the last public Product definition for immediate feedback. The server always reloads current Product, pricing, requirements, and Component availability and reruns it before submission.
-- Draft estimates are informative and do not lock price. Order placement includes the fingerprint last accepted by the Customer. If the current valid fingerprint or total differs, the API returns `PRICE_CHANGED` with the prior and current breakdowns and the new fingerprint. Resubmission with that fingerprint constitutes explicit acceptance, subject to another current server evaluation.
+- `catalog.list` returns only lightweight Product summaries and never all Product definitions. `catalog.bySlug` returns one selected Product's complete curated public evaluator/display definition in one response: ordered groups and values, immutable machine identifiers, labels, pricing rules, compatibility requirements, Component references, effective availability statuses, currency, and image URLs. It excludes raw stock quantities, thresholds and overrides, movement history, internal/admin metadata, and image binaries. Images load independently and lazily.
+- One complete selected definition supports local evaluation for every step; ordinary Products do not fetch a group per step. Revisit progressive definition loading only after a measured compressed-payload or option-count threshold, not cache assumptions. Server catalog loading uses a fixed query count and no group/value N+1.
+- The local evaluator runs immediately on every meaningful Draft change. Draft estimates and saved summaries remain informative; neither locks price or availability.
+- Draft estimates are informative and do not lock price. Order placement includes `acceptedOrderTotal` as `Money` (`amountMinor` and `currency`). The server always reloads authoritative data and reevaluates. An invalid current evaluation returns `CONFIGURATION_INVALID`. Only a valid current Order total differing from `acceptedOrderTotal` returns `PRICE_CHANGED`, with previous and current breakdowns plus the current total. Resubmission with the current `acceptedOrderTotal` constitutes explicit acceptance, subject to another fresh server reload and reevaluation.
 - Invalid or unavailable server evaluation returns `CONFIGURATION_INVALID` with stable issue codes and affected group keys so the UI can navigate to the first failing step. Unknown resource IDs are not echoed across tenant boundaries.
 - Order creation and Draft conversion occur in one database transaction after successful evaluation. A converted Draft cannot create a second Order; idempotency uses the Draft ID and conversion state.
 
@@ -98,7 +102,8 @@ The first demonstrable path uses a realistic seeded album. The same generic doma
 - oRPC exposes cohesive routers for platform administration, Organizations/membership, catalog/products, Drafts, Orders, inventory, payments, and dashboards. Every procedure has explicit Zod input/output and defined expected errors.
 - Permission failures use typed `FORBIDDEN`; tenant/resource ambiguity returns `NOT_FOUND` where revealing existence would leak data. Invitation expiry, Draft conflict, configuration invalidity, changed price, invalid status transition, and payment overage have dedicated typed errors.
 - Product and Draft queries use slice-local TanStack Query option factories. Mutations invalidate only affected Organization, Product, Draft, Order, inventory, payment, and dashboard keys.
-- Autosave is debounced after meaningful changes and forced before step navigation or page exit where the platform permits. Offline/network failures preserve local form state and visibly report that server save is pending; a successful retry reconciles the server revision.
+- Draft autosave coalesces full snapshots with an approximately 400 ms debounce. Exactly one request may be in flight. Edits during a save replace one latest pending snapshot, mark state dirty, and trigger one follow-up after the returned revision. Failures retain that one latest snapshot and expose pending/error state; they do not create an event queue or fallback defaults. Flush the latest save before Next/step transition and before `orders.place`.
+- `drafts.save` sends the full snapshot plus `expectedRevision`. Server authenticates and scopes Customer, Organization, Draft, and Product; loads current Product and effective availability; evaluates; then stores normalized selections and informative summary with CAS revision. Draft saving never locks price or availability.
 - The configurator is a multi-step form with a persistent price summary on desktop and a bottom summary on mobile. Disabled options explain their prerequisite or stock reason. Price changes show old and new breakdowns before acceptance.
 - UI copy remains in Paraglide. MVP catalog content uses the Organization's default language; translated catalog authoring is deferred.
 - The Owner product editor edits generic Product, Option Group, Option Value, numeric pricing, requirement, Component link, and publication contracts. Managers may create a draft Product shell and edit non-price content, configuration, Component links, and publication state, but cannot supply or mutate any monetary field. A Manager-created Product cannot publish until an Owner has supplied valid pricing. Manager screens omit and the server rejects all pricing and membership mutations.
@@ -108,7 +113,7 @@ The first demonstrable path uses a realistic seeded album. The same generic doma
 
 ### 1. Configuration engine
 
-Unit tests call `evaluateConfiguration` through the core package's public domain export. Table-driven cases verify valid totals, zero-cost options, included and additional sheets, range and step errors, missing required choices, requirement OR/AND semantics, selection invalidation, unavailable Components, quantity boundaries, integer-money arithmetic, deterministic fingerprints, and changed source revisions. Existing core tests establish the package-local Vite+ convention.
+Unit tests call `evaluateConfiguration` through the core package's public domain export. Table-driven cases verify valid totals, zero-cost options, included and additional sheets, range and step errors, missing required choices, requirement OR/AND semantics, selection invalidation, unavailable Components, quantity boundaries, integer-money arithmetic, and deterministic evaluation output. Order tests verify buyer-outcome total acceptance independently from Draft compare-and-swap revision and Product lifecycle/editor revision. Catalog tests verify lightweight list output, complete curated single-Product output, excluded inventory/admin data, and fixed query count without group/value N+1.
 
 ### 2. Authenticated oRPC contracts
 
@@ -135,8 +140,8 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Verify: repository search for stale FSD paths plus workspace formatting/checks.
   - Depends on: Architecture migration B.
 
-- [ ] Slice 1: Authoritative configuration engine (riskiest first)
-  - Acceptance: A public pure evaluator represents Product groups, values, numeric rules, requirements, component availability, integer-money pricing, issue locations, and deterministic fingerprints; the agreed table-driven cases pass.
+- [x] Slice 1: Authoritative configuration engine (riskiest first)
+  - Acceptance: A public pure evaluator represents Product groups, values, numeric rules, requirements, component availability, integer-money pricing, issue locations, and deterministic evaluation output; the agreed table-driven cases pass.
   - Verify: `cd packages/core && vp run test:unit` followed by `vp check --fix`.
   - Depends on: none.
   - Interfaces: Produces `evaluateConfiguration(input: EvaluateConfigurationInput): ConfigurationEvaluation` plus exported Zod schemas for Product definitions, selections, issues, price breakdowns, statuses, money, and inventory availability.
@@ -154,22 +159,22 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Interfaces: Consumes Organization capability context; produces `organizations.members.list`, `organizations.invitations.list`, native Better Auth invitation/member mutations in `use-organization.ts`, the invite-first `organizations.invitations.acceptNewUser` adapter, and the invitation-acceptance route contract.
 
 - [ ] Slice 4: Seeded private catalog and live configuration
-  - Acceptance: A realistic album fixture is seeded through an idempotent demo-data command; Customers see it only through a valid Membership; the responsive multi-step configurator handles required choices, sheet count, requirements, disabled explanations, selection clearing, quantity, and live integer-money totals.
+  - Acceptance: A realistic album fixture is seeded through an idempotent demo-data command; Customers see lightweight Product summaries only through valid Membership; selecting one Product loads its complete curated public evaluator/display definition once, with images lazy and independent; all steps evaluate locally without group-per-step fetching; server reads use fixed query count without group/value N+1; configurator handles required choices, sheet count, requirements, disabled explanations, selection clearing, quantity, and live integer-money totals.
   - Verify: core evaluator tests, catalog/API Organization-isolation tests, focused browser configuration journey, and `vp run -w fix`.
   - Depends on: Slice 1 and Slice 2.
-  - Interfaces: Consumes core Product/evaluation contracts; produces `catalog.list`, `catalog.bySlug`, `catalog.evaluate`, public Product-definition output, catalog query factories, and configurator form state keyed by Option Group key.
+  - Interfaces: Consumes core Product/evaluation contracts; produces lightweight `catalog.list`, complete curated `catalog.bySlug` public Product-definition output with effective availability, catalog query factories, and local configurator evaluation/form state keyed by Option Group key.
 
 - [ ] Slice 5: Resumable Configuration Drafts
-  - Acceptance: Customers can create multiple Drafts for one Product, optionally name them, autosave meaningful changes, force-save on step transitions, resume after a fresh session, see pending-save failures, and receive a safe conflict when a stale tab writes an old revision.
+  - Acceptance: Customers can create multiple Drafts for one Product and optionally name them; every meaningful change evaluates locally immediately; approximately 400 ms debounce coalesces full snapshots with one request in flight and one latest dirty follow-up; Next transitions flush; incomplete/invalid state saves normally; failures retain one latest pending snapshot with visible status; stale revisions return the latest safe Draft without overwrite or merge; fresh sessions resume.
   - Verify: Draft oRPC contract tests including Organization isolation and revision conflicts, browser disconnect/resume journey, then package-local tests and `vp check --fix`.
   - Depends on: Slice 4.
-  - Interfaces: Produces `drafts.list`, `drafts.byId`, `drafts.create`, `drafts.save(input including expectedRevision)`, `drafts.remove`, Draft query/mutation factories, and typed `DRAFT_CONFLICT` carrying the latest safe Draft representation.
+  - Interfaces: Produces `drafts.list`, `drafts.byId`, `drafts.create`, `drafts.save(full snapshot plus expectedRevision)`, `drafts.remove`, Draft query/mutation factories, and typed `DRAFT_CONFLICT` carrying the latest safe Draft representation. Save scopes Customer/Organization/Draft/Product, reloads current definition and effective availability, evaluates, and CAS-writes normalized JSONB selections plus informative summary.
 
 - [ ] Slice 6: Server-reconciled Order placement
-  - Acceptance: Checkout reloads current authoritative data; invalid availability points to the affected group; changed totals return old/current breakdowns and require resubmission with the new fingerprint; one transaction converts a Draft into exactly one immutable Order; repeated submission is idempotent.
+  - Acceptance: Latest Draft save flushes before checkout; checkout independently reloads current authoritative data and reevaluates regardless of Draft summary; invalid configuration or availability returns `CONFIGURATION_INVALID` and points to the affected group; only a valid current Order total differing from `acceptedOrderTotal` returns `PRICE_CHANGED` with previous/current breakdowns and current total; resubmission with that current total explicitly accepts it subject to fresh reevaluation; one transaction converts a Draft into exactly one immutable Order; repeated submission is idempotent.
   - Verify: evaluator regression cases, Order oRPC tests for price/stock races and cross-Organization access, successful and failure browser journeys, then `vp run -w fix`.
   - Depends on: Slice 4 and Slice 5.
-  - Interfaces: Produces `orders.place({ organizationSlug, draftId, acceptedFingerprint })`, typed `PRICE_CHANGED` and `CONFIGURATION_INVALID`, immutable `OrderSnapshot`, `orders.byNumber`, `orders.list`, and Order query keys.
+  - Interfaces: Produces `orders.place({ organizationSlug, draftId, acceptedOrderTotal })`, where `acceptedOrderTotal` is `Money`, typed `PRICE_CHANGED` and `CONFIGURATION_INVALID`, immutable `OrderSnapshot`, `orders.byNumber`, `orders.list`, and Order query keys.
 
 - [ ] Slice 7: Order follow-up and offline payments
   - Acceptance: Owners and Managers progress valid Order states, correct Project Names with audit history, record partial receipts and reversals without overpayment, and approve placed cancellation requests; Customers view, duplicate, and request cancellation but cannot edit submitted Orders.
@@ -181,7 +186,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Acceptance: Owners and Managers create/edit Components, append stock Movements, set availability overrides, and see low/out stock; Customers see only derived availability; no Order path reserves or deducts material; every movement updates quantity atomically.
   - Verify: inventory oRPC tests for decimal deltas, effective status, permissions, and Organization isolation; checkout availability regression; then `vp run -w fix`.
   - Depends on: Slice 2 and Slice 6.
-  - Interfaces: Produces `inventory.list`, `inventory.componentById`, `inventory.createComponent`, `inventory.editComponent`, `inventory.recordMovement`, `inventory.setAvailability`, and effective availability consumed by `catalog.evaluate` and `orders.place`.
+  - Interfaces: Produces `inventory.list`, `inventory.componentById`, `inventory.createComponent`, `inventory.editComponent`, `inventory.recordMovement`, `inventory.setAvailability`, and effective availability consumed by the `catalog.bySlug` public definition and `orders.place`.
 
 - [ ] Slice 9: Generic Owner Product editor
   - Acceptance: Owners can create and edit Products, ordered groups, values, numeric rules, requirements, Component links, and prices; preview uses the same evaluator as Customers; publishing rejects incomplete or internally invalid definitions; Managers can create draft shells and edit non-price content, configuration, Component links, and publication state, but every pricing mutation is denied server-side and an unpriced Product cannot publish; referenced Products archive rather than delete.
@@ -203,6 +208,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
 - Online payment gateways, webhooks, refunds, and payment-provider reconciliation.
 - Automatic component reservation, bill-of-materials consumption, and stock deduction from Orders.
 - Real-time notes, presence, WebSockets, or server-sent events.
+- Share codes or public Draft/configuration sharing.
 - Carts or Orders containing multiple differently configured Products.
 - Customer editing of submitted Order configuration or Project Name.
 - Translated catalog authoring, machine translation, and translation approval workflows.
