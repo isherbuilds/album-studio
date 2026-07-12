@@ -164,4 +164,14 @@ describe("ProductDefinitionSchema invariants", () => {
     });
     expect(ProductDefinitionSchema.safeParse(value).success).toBe(false);
   });
+
+  it("accepts a valid product definition", () => {
+    expect(ProductDefinitionSchema.safeParse(product()).success).toBe(true);
+  });
+
+  it("rejects a negative numeric minimum", () => {
+    const value = product();
+    numeric(value).minimum = -2;
+    expect(ProductDefinitionSchema.safeParse(value).success).toBe(false);
+  });
 });

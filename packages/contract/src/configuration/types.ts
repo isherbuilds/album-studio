@@ -1,12 +1,18 @@
 import { z } from "zod";
 
 const IdSchema = z.string().min(1);
-const SupportedCurrencyCodes = new Set(Intl.supportedValuesOf("currency"));
+const supportedCurrencyCodes =
+  typeof Intl.supportedValuesOf === "function"
+    ? new Set(Intl.supportedValuesOf("currency"))
+    : undefined;
 
 export const CurrencyCodeSchema = z
   .string()
   .regex(/^[A-Z]{3}$/)
-  .refine((currency) => SupportedCurrencyCodes.has(currency), "Unsupported ISO 4217 currency code")
+  .refine(
+    (currency) => supportedCurrencyCodes === undefined || supportedCurrencyCodes.has(currency),
+    "Unsupported ISO 4217 currency code"
+  )
   .brand<"CurrencyCode">();
 
 export const MinorUnitAmountSchema = z
@@ -59,8 +65,8 @@ export const ProductOptionGroupSchema = z.discriminatedUnion("type", [
     key: IdSchema,
     label: IdSchema,
     required: z.boolean(),
-    minimum: z.number().int().safe(),
-    maximum: z.number().int().safe(),
+    minimum: z.number().int().safe().nonnegative(),
+    maximum: z.number().int().safe().nonnegative(),
     step: z.number().int().safe().positive(),
     included: z.number().int().safe().nonnegative(),
     additionalUnitPriceMinor: MinorUnitAmountSchema.nonnegative()

@@ -528,6 +528,15 @@ describe("evaluateConfiguration", () => {
       expect(result.status).toBe("valid");
       expect(result.normalizedSelections.cover).toBe("leather");
     });
+
+    it("throws when a Component named like a prototype property lacks availability", () => {
+      const input = createInput();
+      const cover = input.product.groups[0];
+      if (cover.type === "number") throw new Error("Expected discrete cover group");
+      cover.values[0].componentIds = ["toString"];
+
+      expect(() => evaluateConfiguration(input)).toThrow(/Missing availability/);
+    });
   });
 
   describe("safe integer arithmetic", () => {
@@ -561,6 +570,26 @@ describe("evaluateConfiguration", () => {
 
       expect(result.issues).toContainEqual(
         expect.objectContaining({ code: "money_overflow", location })
+      );
+    });
+
+    it("rejects number-price multiplication overflow before summation", () => {
+      const input = createInput();
+      const sheets = input.product.groups.find((group) => group.key === "sheets");
+      if (!sheets || sheets.type !== "number") throw new Error("Expected numeric sheets group");
+      sheets.additionalUnitPriceMinor = Number.MAX_SAFE_INTEGER;
+
+      const result = evaluateConfiguration(input);
+
+      expect(result.status).toBe("invalid");
+      if (result.status !== "invalid") return;
+
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          code: "money_overflow",
+          location: { kind: "group", groupKey: "sheets" },
+          params: { operation: "number_price" }
+        })
       );
     });
   });

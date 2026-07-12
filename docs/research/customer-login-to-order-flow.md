@@ -211,7 +211,7 @@ for immediate feedback").
 
 ```mermaid
 flowchart LR
-  sel["selection change (option IDs / numbers)"] --> ev["evaluateConfiguration(product, selections, availability, qty, currency)"]
+  sel["selection change (option IDs / numbers)"] --> ev["evaluateConfiguration({ product, selections, availability, quantity, currency })"]
   ev --> price["total + breakdown → price summary"]
   ev --> dis["disabledExplanations → grey out incompatible/out-of-stock"]
   ev --> clr["normalizedSelections → drop newly-invalid picks"]

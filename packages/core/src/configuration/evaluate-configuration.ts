@@ -8,6 +8,14 @@ import {
   type PriceBreakdownLine
 } from "@tsu-stack/contract/configuration";
 
+/**
+ * Evaluates a configuration against its authoritative Product definition.
+ *
+ * `input.availability` MUST contain an own entry for every Component referenced
+ * by any Option Value in any group — including values that are not selected.
+ * A missing entry throws, because availability is authoritative and a silently
+ * absent Component must never be treated as orderable.
+ */
 export function evaluateConfiguration(input: EvaluateConfigurationInput): ConfigurationEvaluation {
   const selectionEntries = Object.entries(input.selections);
   selectionEntries.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
@@ -136,10 +144,10 @@ export function evaluateConfiguration(input: EvaluateConfigurationInput): Config
       }
 
       for (const componentId of value.componentIds) {
-        const availability = input.availability[componentId];
-        if (availability === undefined) {
+        if (!Object.hasOwn(input.availability, componentId)) {
           throw new Error(`Missing availability for Component ${componentId}`);
-        } else if (availability === "out") {
+        }
+        if (input.availability[componentId] === "out") {
           reasons.push({
             code: "component_unavailable",
             params: { componentId }
