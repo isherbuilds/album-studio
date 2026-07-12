@@ -64,7 +64,7 @@ const tiles: TileData[] = [
     row: 0
   },
 
-  // Row 4
+  // Row 1
   { col: 0, row: 1 }, // Empty
   {
     col: 3,
@@ -271,7 +271,7 @@ const tiles: TileData[] = [
     row: 3
   },
 
-  // Row 1
+  // Row 4
   {
     col: 1,
     logo: {

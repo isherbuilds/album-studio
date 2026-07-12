@@ -12,7 +12,8 @@ export const Route = createFileRoute("/{-$locale}/(centered-layout)/accept-invit
       robots: {
         follow: false,
         index: false
-      }
+      },
+      title: "Accept Invitation"
     }),
   component: RouteComponent
 });

@@ -218,6 +218,13 @@ describe("platform router authorization", () => {
         ownerCreated: false,
         slug
       });
+      await expect(
+        db
+          .select({ role: member.role })
+          .from(member)
+          .innerJoin(organization, eq(organization.id, member.organizationId))
+          .where(eq(organization.slug, slug))
+      ).resolves.toEqual([{ role: "owner" }]);
     } finally {
       await db.delete(organization).where(eq(organization.slug, slug));
     }

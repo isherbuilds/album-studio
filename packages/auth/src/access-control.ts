@@ -2,6 +2,11 @@ import { createAccessControl } from "better-auth/plugins/access";
 
 import { type OrganizationRole } from "@tsu-stack/contract/organization";
 
+/**
+ * Checks Better Auth's admin-plugin platform role (`user.role`, a
+ * comma-separated string, e.g. "admin"), NOT the organization RBAC
+ * {@link OrganizationRole}. Used to gate platform-admin routes.
+ */
 export function hasAdminRole(role: string | null | undefined): boolean {
   return (
     role

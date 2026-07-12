@@ -7,6 +7,9 @@ import { auth } from "@tsu-stack/auth/index";
 import { db } from "@tsu-stack/db";
 import { user } from "@tsu-stack/db/schema";
 
+const SEED_SKIPPED_MESSAGE =
+  "Platform Admin seed skipped: the email already exists and was not changed.\n";
+
 const input = z
   .object({
     SEED_ADMIN_EMAIL: z.email().transform((email) => email.toLowerCase()),
@@ -22,9 +25,7 @@ const existing = await db
   .limit(1);
 
 if (existing.length > 0) {
-  process.stdout.write(
-    "Platform Admin seed skipped: the email already exists and was not changed.\n"
-  );
+  process.stdout.write(SEED_SKIPPED_MESSAGE);
   process.exit(0);
 }
 
@@ -45,9 +46,7 @@ try {
     .limit(1);
   if (raced.length === 0) throw error;
 
-  process.stdout.write(
-    "Platform Admin seed skipped: the email already exists and was not changed.\n"
-  );
+  process.stdout.write(SEED_SKIPPED_MESSAGE);
   process.exit(0);
 }
 
