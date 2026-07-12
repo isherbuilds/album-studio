@@ -1,3 +1,4 @@
+export { auditEvent } from "#@/schema/audit.schema";
 export {
   account,
   invitation,

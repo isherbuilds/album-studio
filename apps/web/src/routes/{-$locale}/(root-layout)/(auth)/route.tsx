@@ -10,10 +10,11 @@ import { redirect } from "@tsu-stack/i18n/tanstack-start/lib/redirect";
 import { stripLocalePrefix } from "@tsu-stack/i18n/tanstack-start/lib/strip-locale-prefix";
 import { validateNavigateTo } from "@tsu-stack/i18n/tanstack-start/lib/validate-navigate-to";
 
+import { AppShell } from "@/components/layout/app-shell";
 import { routeTree } from "@/routeTree.gen";
 
 /**
- * Checks if a given pathname is a guest route (sign-in, create-an-account, etc.)
+ * Checks if a given pathname is a guest route (for example, sign-in).
  * We add this because the useEffect may run after the beforeLoad redirect when navigating to a (guest) route
  * which would cause the redirect param to be set to the default since it performs a brand new navigation in /sign-in
  */
@@ -80,5 +81,9 @@ function RequiresAuthLayout() {
     }
   }, [user, navigate, location.href, location.pathname]);
 
-  return <Outlet />;
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 }

@@ -13,16 +13,15 @@ export const appConfig = Object.freeze({
     locales
   },
   site: {
-    author: "tsu!moe",
+    author: "Album Studio",
     basePath: new URL(ENV_WEB_ISOMORPHIC.VITE_WEB_URL).pathname,
     baseUrl: new URL(ENV_WEB_ISOMORPHIC.VITE_WEB_URL).origin,
-    description:
-      "An opinionated Vite Plus (Vite+) monorepo featuring TanStack Start, Paraglide.js (i18n), Hono, oRPC, drizzle-orm, better-auth, and more.",
+    description: "Configure, price, and order professional albums and studio products.",
     emailSupport,
     jurisdictionCountry: "the Republic of the Philippines",
-    longName: "Batteries-Included TanStack Start Monorepo Boilerplate Template | tsu!stack",
+    longName: "Album Studio",
     serverLocation: "Japan",
-    shortName: "tsu!stack",
+    shortName: "Album Studio",
     url: ENV_WEB_ISOMORPHIC.VITE_WEB_URL,
     version: __BUILD_SOURCE_COMMIT__
   }

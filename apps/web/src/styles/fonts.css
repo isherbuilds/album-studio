@@ -1,0 +1,15 @@
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(@fontsource-variable/inter/files/inter-latin-wght-normal.woff2)
+    format("woff2-variations");
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", Inter, Helvetica, Arial, sans-serif;
+  --font-display: "Inter Variable", Inter, Helvetica, Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+}

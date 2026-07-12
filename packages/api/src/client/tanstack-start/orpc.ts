@@ -6,6 +6,7 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
 import { auth } from "@tsu-stack/auth/index";
+import { db } from "@tsu-stack/db";
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 import { createLogger } from "@tsu-stack/logger/server";
 
@@ -16,10 +17,12 @@ const getORPCClient = createIsomorphicFn()
     createRouterClient(appRouter, {
       context: async () => {
         const headers = getRequestHeaders();
-        const session = await auth.api.getSession({ headers });
+        const authSession = await auth.api.getSession({ headers });
         return {
-          logger: createLogger({ operation: "web__client__orpc" }),
-          session
+          authSession,
+          db,
+          headers,
+          logger: createLogger({ operation: "web__client__orpc" })
         };
       }
     })
@@ -41,3 +44,6 @@ const getORPCClient = createIsomorphicFn()
 export const client = getORPCClient();
 
 export const orpc = createTanstackQueryUtils(client);
+
+export { isDefinedError } from "@orpc/client";
+export { ORPCError } from "@orpc/server";

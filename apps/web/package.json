@@ -12,9 +12,7 @@
   },
   "dependencies": {
     "@bprogress/react": "catalog:",
-    "@fontsource-variable/geist": "catalog:",
-    "@fontsource-variable/geist-mono": "catalog:",
-    "@fontsource/instrument-serif": "catalog:",
+    "@fontsource-variable/inter": "catalog:",
     "@lonik/oh-image": "catalog:",
     "@paper-design/shaders-react": "catalog:",
     "@tanstack/react-form": "catalog:",
@@ -25,6 +23,7 @@
     "@tanstack/zod-adapter": "catalog:",
     "@tsu-stack/api": "workspace:*",
     "@tsu-stack/auth": "workspace:*",
+    "@tsu-stack/contract": "workspace:*",
     "@tsu-stack/core": "workspace:*",
     "@tsu-stack/db": "workspace:*",
     "@tsu-stack/env": "workspace:*",

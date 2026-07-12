@@ -2,7 +2,7 @@
 
 Use this for repo-wide TypeScript structure, import boundaries, and schema placement.
 
-For shared cross-package domain contracts in `packages/core`, follow [Core package patterns](./core.md).
+For shared cross-package boundary contracts in `packages/contract`, follow [Contract package patterns](./contract.md). For behavior, follow [Core package patterns](./core.md).
 
 ## Shared Schema Pattern
 
@@ -16,13 +16,13 @@ src/<domain>/
 	index.ts
 ```
 
-For app-local or slice-local code, keep schemas next to the owning route, feature, or package instead of creating a global type folder.
+For app-local code, keep schemas next to the owning hook, component, route, or package instead of creating a global type folder.
 
 ## Schema Placement
 
-- Keep schemas close to the owning slice or package.
+- Keep schemas close to the owning capability or package.
 - For app-local or package-local schemas, the default pattern is `types/thing.type.ts`.
-- When the same schema, enum, or default is consumed across packages, move it into `packages/core` instead of recreating literal unions in `apps/web` or `packages/api`.
+- When the same schema or enum is consumed across packages, move it into `packages/contract` instead of recreating literal unions in `apps/web` or `packages/api`.
 
 Example package-local schema:
 
@@ -50,7 +50,7 @@ If the frontend needs labels, options, or defaults for a shared enum, derive the
 | `lib/`    | Business logic, library integrations, API clients |
 | `utils/`  | Pure stateless helper functions                   |
 
-In `packages/core`, keep shared schemas in domain `types.ts` files and pure domain helpers in `utils.ts`. Do not move router, DB, or React logic there.
+In `packages/contract`, keep shared schemas in capability `types.ts` files. In `packages/core`, keep behavior in capability modules. Do not move router or React logic into either package.
 
 ## Linting (Oxlint)
 
@@ -71,4 +71,4 @@ ESLint-style comments (`eslint-disable-*`) also work for compatibility.
 
 ## Import Sorting (auto-enforced by Oxfmt)
 
-Order: builtins → external → `@tsu-stack/*` → `@/pages` → `@/widgets` → `@/features` → `@/entities` → `@/shared` → relative → styles
+Order: builtins → external → `@tsu-stack/*` → internal app/package aliases → relative → styles

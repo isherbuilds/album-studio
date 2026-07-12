@@ -1,10 +1,3 @@
-import geistMonoCyrillic from "@fontsource-variable/geist-mono/files/geist-mono-cyrillic-wght-normal.woff2?url";
-import geistMonoLatinExt from "@fontsource-variable/geist-mono/files/geist-mono-latin-ext-wght-normal.woff2?url";
-import geistMonoLatin from "@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url";
-import geistVariableCyrillic from "@fontsource-variable/geist/files/geist-cyrillic-wght-normal.woff2?url";
-import geistVariableLatinExt from "@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2?url";
-import geistVariableLatin from "@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url";
-import instrumentSerifLatin400 from "@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2?url";
 import { a11yDevtoolsPlugin } from "@tanstack/devtools-a11y/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
@@ -24,12 +17,12 @@ import {
 } from "@tsu-stack/i18n/tanstack-start/components/locale-provider";
 import { Toaster } from "@tsu-stack/ui/components/sonner";
 
-import { generateAppSeo } from "@/shared/lib/seo";
-import { ProgressProvider } from "@/shared/providers/progress.provider";
-import appCss from "@/shared/styles/app.css?url";
-import { ThemeProvider } from "@/shared/ui/theme-switcher";
+import { ThemeProvider } from "@/components/common/theme-switcher";
+import { ProgressProvider } from "@/components/providers/progress-provider";
+import { DefaultErrorPage } from "@/components/system/default-error-page";
+import { generateAppSeo } from "@/lib/seo";
 
-import { DefaultErrorPage } from "@/pages/default-error";
+import appCss from "@/styles/app.css?url";
 
 // Root route with shared context for the entire app, inject them in router.tsx
 type RouterAppContext = {
@@ -40,8 +33,6 @@ type RouterAppContext = {
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   errorComponent: DefaultErrorPage,
   shellComponent: RootDocument,
-  // Consider removing this if you don't need the auth state everywhere
-  // An example of when to KEEP it is when you conditionally display a sign-up button in the header based on the auth state
   beforeLoad: ({ context, preload }) => {
     // Don't prefetch during preload to prevent spamming the server with getSession requests
     if (!preload) {
@@ -67,55 +58,6 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           href: sitemapHref,
           rel: "sitemap",
           type: "application/xml"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: instrumentSerifLatin400,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: geistVariableLatin,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: geistVariableLatinExt,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: geistVariableCyrillic,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: geistMonoLatin,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: geistMonoLatinExt,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: geistMonoCyrillic,
-          crossOrigin: "anonymous"
         },
         { href: appCss, rel: "stylesheet" }
       ],

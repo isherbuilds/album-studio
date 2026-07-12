@@ -1,144 +1,63 @@
-# API Fetching Patterns
+# API fetching patterns
 
-Use this when adding or refactoring TanStack Query code in `apps/web` slices.
+Use this when adding or refactoring TanStack Query code in `apps/web`.
 
-## Goals
+## Ownership
 
-- Keep route files thin.
-- Keep `orpc` and TanStack Query wiring inside slice-local `api/` modules.
-- Keep page and feature components consuming hooks, not raw `useQuery(orpc...)` or `useMutation(orpc...)` calls.
-
-## File Naming
-
-- Queries use `*.query.ts`.
-- Mutations use `*.mutation.ts`.
-- Prefer one operation per file.
-- Match the filename to the exported hook name.
-
-Examples:
-
-- `get-profile.query.ts` → `useGetProfileQuery`
-- `search-profiles.query.ts` → `useSearchProfilesQuery`
-- `create-profile.mutation.ts` → `useCreateProfileMutation`
-
-## Placement
-
-Put these files in the slice that owns the behavior.
+Keep one cohesive domain facade in `apps/web/src/hooks/use-<capability>.ts`. It
+owns that capability's query keys/options, React hooks, mutations, invalidation,
+and UI-safe error policy. Components consume the facade; routes import option
+factories for preload.
 
 ```text
-pages/profile/
-  api/
-    get-profile.query.ts
-  ui/
-    profile-id-page.tsx
-  index.ts
+apps/web/src/
+  hooks/use-organization.ts
+  components/organization/
+  routes/.../org/
 ```
 
-Do not centralize app queries in a global `queries.ts` or `mutations.ts` file when the behavior belongs to one page or feature slice.
+Do not recreate per-operation `api/` folders, pass-through wrappers, or FSD
+slices. Start with one file. Split into `hooks/<capability>/` only when distinct
+read/write policies make the facade genuinely hard to navigate.
 
-When a filter, category, sort, or other domain type is shared across packages, import it from `packages/core`. Do not redefine the same literal union locally. Follow [Core package patterns](./core.md) when introducing that shared contract.
+## Query shape
 
-## Query Module Shape
-
-Each query file should usually export:
-
-- query keys object
-- query options factory
-- hook wrapper
-- result type when useful
+Export query key helpers, an options factory, and a hook from the same facade.
 
 ```ts
 import { useQuery } from "@tanstack/react-query";
 
-import { type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
+import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 
-export const profileQueryKeys = {
-  byId(id: string) {
-    return orpc.profile.byId.key({ input: { id } });
+export const productQueryKeys = {
+  bySlug(organizationSlug: string, productSlug: string) {
+    return orpc.products.bySlug.key({ input: { organizationSlug, productSlug } });
   }
 };
 
-export function getProfileQueryOptions(id: string) {
-  return orpc.profile.byId.queryOptions({
-    input: { id }
-  });
+export function getProductQueryOptions(organizationSlug: string, productSlug: string) {
+  return orpc.products.bySlug.queryOptions({ input: { organizationSlug, productSlug } });
 }
 
-export function useGetProfileQuery(id: string) {
-  return useQuery(getProfileQueryOptions(id));
+export function useProduct(organizationSlug: string, productSlug: string) {
+  return useQuery(getProductQueryOptions(organizationSlug, productSlug));
 }
-
-export type ProfileQueryResult = Awaited<ReturnType<typeof client.profile.byId>>;
 ```
 
-## Mutation Module Shape
+Routes call `ensureQueryData(getProductQueryOptions(...))`; components call
+`useProduct(...)`. React Query owns caching, not the router loader cache.
 
-Each mutation file should usually export:
+## Mutations
 
-- mutation options factory
-- hook wrapper
-- any helper invalidation logic or key helpers the slice needs
+- Keep invalidation next to the mutation.
+- Invalidate only affected capability keys.
+- Use `isDefinedError` for typed oRPC errors.
+- Native Better Auth lifecycle mutations may use `authClient.organization`
+  directly inside `use-organization.ts`.
+- Do not inline oRPC or Better Auth mutation wiring in components.
 
-```ts
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+## Contract imports
 
-import { type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
-
-import { profileQueryKeys } from "@/pages/profile/api/get-profile.query";
-
-export function createProfileMutationOptions() {
-  return orpc.profile.create.mutationOptions();
-}
-
-export function useCreateProfileMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation(
-    orpc.profile.create.mutationOptions({
-      onSuccess: async (profile) => {
-        await queryClient.invalidateQueries({
-          queryKey: profileQueryKeys.byId(profile.id)
-        });
-      }
-    })
-  );
-}
-
-export type CreateProfileMutationResult = Awaited<ReturnType<typeof client.profile.create>>;
-```
-
-## Route Integration
-
-Route files should import query option factories from the slice barrel and preload them in `beforeLoad`.
-
-```ts
-export const Route = createFileRoute("/{-$locale}/(root-layout)/profile/$id/")({
-  beforeLoad: ({ context, params }) => {
-    void context.queryClient.ensureQueryData(getProfileQueryOptions(params.id));
-  },
-  component: ProfileIdPage
-});
-```
-
-Use React Query for caching. Do not rely on the router loader cache.
-
-## Component Usage
-
-- Use the exported hook in the page, feature, or widget component.
-- Do not call `useQuery(orpc...)` or `useMutation(orpc...)` inline in app UI code.
-- Keep invalidation logic using exported query key helpers.
-
-```ts
-const profileQuery = useGetProfileQuery(profileId);
-
-await queryClient.invalidateQueries({
-  queryKey: profileQueryKeys.byId(profileId)
-});
-```
-
-## Naming Rules
-
-- `get-*` query files export `useGet*Query`.
-- Non-`get` query files keep the same verb in the hook name.
-- Mutation hooks use `use<CreateVerb><Entity>Mutation`.
-- Query option factories should read naturally from the operation name: `getProfileQueryOptions`, `searchProfilesQueryOptions`, `getArticlesQueryOptions`.
+Shared input schemas and enums come from `@tsu-stack/contract/<capability>`.
+Domain behavior comes from `@tsu-stack/core/<capability>`. Never duplicate a
+literal union in the hook when the contract owns it.

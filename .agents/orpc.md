@@ -149,9 +149,9 @@ Use sibling files for helpers that are only used by that router.
 
 ## Shared Contracts
 
-When an oRPC input or output schema represents a shared domain contract, source it from `packages/core` instead of redefining it locally.
+When an oRPC input schema or enum represents a shared boundary contract, source it from `packages/contract` instead of redefining it locally.
 
-- Follow [Core package patterns](./core.md) for shared enums, filters, categories, transport-safe shapes, and defaults consumed outside one router.
+- Follow [Contract package patterns](./contract.md) for shared commands, enums, and transport-safe boundary shapes. Follow [Core package patterns](./core.md) for reusable behavior.
 - Keep router-local helper queries and transport-only shapes next to the router.
 - Keep cross-router or infrastructure helpers in `lib/` only when that reuse is real.
 
