@@ -2,19 +2,13 @@ CREATE TYPE "configuration_draft_status" AS ENUM('active', 'converted');--> stat
 CREATE TABLE "configuration_draft" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"customer_id" text NOT NULL,
-	"evaluation_summary" jsonb NOT NULL,
 	"id" text PRIMARY KEY,
 	"organization_id" text NOT NULL,
 	"product_id" text NOT NULL,
-	"project_name" text,
-	"quantity" double precision NOT NULL,
 	"revision" integer DEFAULT 1 NOT NULL,
-	"selections" jsonb NOT NULL,
+	"snapshot" jsonb NOT NULL,
 	"status" "configuration_draft_status" DEFAULT 'active'::"configuration_draft_status" NOT NULL,
-	"step" jsonb NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "configuration_draft_project_name_check" CHECK ("project_name" IS NULL OR (char_length("project_name") >= 1 AND char_length("project_name") <= 120)),
-	CONSTRAINT "configuration_draft_quantity_safe_number_check" CHECK ("quantity" >= -9007199254740991 AND "quantity" <= 9007199254740991),
 	CONSTRAINT "configuration_draft_revision_check" CHECK ("revision" > 0)
 );
 --> statement-breakpoint

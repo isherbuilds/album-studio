@@ -76,6 +76,46 @@ function clientFor(userId: string) {
   return createRouterClient(appRouter, { context: createContext(userId) }).drafts;
 }
 
+function createGate() {
+  const controller = new AbortController();
+  return {
+    promise: new Promise<void>((resolve) => {
+      controller.signal.addEventListener("abort", () => resolve(), { once: true });
+    }),
+    release: () => controller.abort()
+  };
+}
+
+function databaseTrackingTransactionPid(
+  setPid: (pid: number) => void
+): Pick<Database, "transaction"> {
+  return {
+    transaction: (callback, config) =>
+      db.transaction(async (tx) => {
+        const rows = await tx.execute(sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`);
+        const pid = Number(rows[0]?.pid);
+        if (!Number.isInteger(pid) || pid <= 0) {
+          throw new Error("Transaction has no PostgreSQL backend PID");
+        }
+        setPid(pid);
+        return callback(tx);
+      }, config)
+  };
+}
+
+async function waitForDatabaseLock(pid: () => number) {
+  await expect
+    .poll(async () => {
+      const activity = await db.execute(sql<{ waiting: boolean }>`
+        SELECT wait_event_type = 'Lock' AS waiting
+        FROM pg_stat_activity
+        WHERE pid = ${pid()}
+      `);
+      return activity[0]?.waiting;
+    })
+    .toBe(true);
+}
+
 beforeAll(async () => {
   await db.insert(user).values(
     [fixture.customerId, fixture.secondCustomerId, fixture.ownerId, fixture.otherCustomerId].map(
@@ -306,10 +346,12 @@ describe("drafts router", () => {
   });
 
   it("creates against a locked Product snapshot inside one transaction", async () => {
+    let isolationLevel: string | undefined;
     let transactionCalls = 0;
     const transactionalDb: Pick<Database, "transaction"> = {
       transaction: async (callback, config) => {
         transactionCalls += 1;
+        isolationLevel = config?.isolationLevel;
         return db.transaction(callback, config);
       }
     };
@@ -327,9 +369,57 @@ describe("drafts router", () => {
       revision: 1
     });
     expect(transactionCalls).toBe(1);
+    expect(isolationLevel).toBe("repeatable read");
+  });
+
+  it("retries a serialization conflict when Product lifecycle change wins the lock", async () => {
+    const productId = crypto.randomUUID();
+    const productSlug = `create-lock-${crypto.randomUUID()}`;
+    await db.insert(product).values({
+      basePriceMinor: 10_000,
+      id: productId,
+      name: "Create Lock Album",
+      organizationId: fixture.organizationId,
+      slug: productSlug,
+      status: "published"
+    });
+
+    const lifecycleGate = createGate();
+    const state = { createPid: 0, productUpdated: false };
+    const lifecycleUpdate = db.transaction(async (tx) => {
+      await tx.update(product).set({ status: "archived" }).where(eq(product.id, productId));
+      state.productUpdated = true;
+      await lifecycleGate.promise;
+    });
+    const operations: Promise<unknown>[] = [lifecycleUpdate];
+    try {
+      await expect.poll(() => state.productUpdated).toBe(true);
+
+      const create = createConfigurationDraft(
+        databaseTrackingTransactionPid((pid) => {
+          state.createPid = pid;
+        }),
+        {
+          customerId: fixture.customerId,
+          organizationId: fixture.organizationId,
+          productSlug,
+          projectName: null
+        }
+      );
+      operations.push(create);
+      await expect.poll(() => state.createPid).toBeGreaterThan(0);
+      await waitForDatabaseLock(() => state.createPid);
+
+      lifecycleGate.release();
+      await expect(create).resolves.toBeUndefined();
+    } finally {
+      lifecycleGate.release();
+      await Promise.allSettled(operations);
+    }
   });
 
   it("blocks Product lifecycle writes while a Draft snapshot transaction is active", async () => {
+    const snapshotGate = createGate();
     const state = { productLocked: false, updaterPid: 0 };
     const snapshotTransaction = db.transaction(async (tx) => {
       const snapshot = await loadPublicProductDefinition(tx, {
@@ -339,38 +429,88 @@ describe("drafts router", () => {
       });
       if (!snapshot) throw new Error("Expected published Product snapshot");
       state.productLocked = true;
-      await tx.execute(sql`SELECT pg_sleep(2)`);
+      await snapshotGate.promise;
     });
-    await expect.poll(() => state.productLocked).toBe(true);
-
-    const lifecycleUpdate = db.transaction(async (tx) => {
-      const pidRows = await tx.execute(sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`);
-      const pid = Number(pidRows[0]?.pid);
-      if (!Number.isInteger(pid) || pid <= 0) {
-        throw new Error("Product updater has no PostgreSQL backend PID");
-      }
-      state.updaterPid = pid;
-      await tx.update(product).set({ status: "archived" }).where(eq(product.id, fixture.productId));
-    });
-    await expect.poll(() => state.updaterPid).toBeGreaterThan(0);
-
+    const operations: Promise<unknown>[] = [snapshotTransaction];
     try {
-      await expect
-        .poll(async () => {
-          const activity = await db.execute(sql<{ waiting: boolean }>`
-            SELECT wait_event_type = 'Lock' AS waiting
-            FROM pg_stat_activity
-            WHERE pid = ${state.updaterPid}
-          `);
-          return activity[0]?.waiting;
-        })
-        .toBe(true);
+      await expect.poll(() => state.productLocked).toBe(true);
+      const lifecycleDb = databaseTrackingTransactionPid((pid) => {
+        state.updaterPid = pid;
+      });
+      const lifecycleUpdate = lifecycleDb.transaction((tx) =>
+        tx.update(product).set({ status: "archived" }).where(eq(product.id, fixture.productId))
+      );
+      operations.push(lifecycleUpdate);
+      await expect.poll(() => state.updaterPid).toBeGreaterThan(0);
+      await waitForDatabaseLock(() => state.updaterPid);
     } finally {
-      await Promise.all([snapshotTransaction, lifecycleUpdate]);
+      snapshotGate.release();
+      await Promise.allSettled(operations);
       await db
         .update(product)
         .set({ status: "published" })
         .where(eq(product.id, fixture.productId));
+    }
+  });
+
+  it("does not deadlock a Draft save against Product cascade deletion", async () => {
+    const productId = crypto.randomUUID();
+    const productSlug = `deletion-lock-${crypto.randomUUID()}`;
+    await db.insert(product).values({
+      basePriceMinor: 10_000,
+      id: productId,
+      name: "Deletion Lock Album",
+      organizationId: fixture.organizationId,
+      slug: productSlug,
+      status: "published"
+    });
+    const created = await createConfigurationDraft(db, {
+      customerId: fixture.customerId,
+      organizationId: fixture.organizationId,
+      productSlug,
+      projectName: null
+    });
+    if (!created) throw new Error("Expected Draft for deletion lock test");
+
+    const deletionGate = createGate();
+    const state = { productLocked: false, savePid: 0 };
+    const deletion = db.transaction(async (tx) => {
+      await tx
+        .select({ id: product.id })
+        .from(product)
+        .where(eq(product.id, productId))
+        .for("update");
+      state.productLocked = true;
+      await deletionGate.promise;
+      await tx.delete(product).where(eq(product.id, productId));
+    });
+    const operations: Promise<unknown>[] = [deletion];
+    try {
+      await expect.poll(() => state.productLocked).toBe(true);
+
+      const saveDb = databaseTrackingTransactionPid((pid) => {
+        state.savePid = pid;
+      });
+      const save = saveConfigurationDraft(saveDb, {
+        customerId: fixture.customerId,
+        draftId: created.draft.id,
+        expectedRevision: created.draft.revision,
+        organizationId: fixture.organizationId,
+        projectName: created.draft.projectName,
+        quantity: created.draft.quantity,
+        selections: created.draft.selections,
+        step: created.draft.step
+      });
+      operations.push(save);
+      await expect.poll(() => state.savePid).toBeGreaterThan(0);
+      await waitForDatabaseLock(() => state.savePid);
+
+      deletionGate.release();
+      const [, result] = await Promise.all([deletion, save]);
+      expect(result).toEqual({ kind: "not_found" });
+    } finally {
+      deletionGate.release();
+      await Promise.allSettled(operations);
     }
   });
 
@@ -590,7 +730,15 @@ describe("drafts router", () => {
     });
     await db
       .update(configurationDraft)
-      .set({ step: { kind: "group", groupKey: "removed-group" } })
+      .set({
+        snapshot: {
+          evaluationSummary: created.draft.evaluationSummary,
+          projectName: created.draft.projectName,
+          quantity: created.draft.quantity,
+          selections: created.draft.selections,
+          step: { kind: "group", groupKey: "removed-group" }
+        }
+      })
       .where(eq(configurationDraft.id, created.draft.id));
 
     await expect(
@@ -624,10 +772,10 @@ describe("drafts router", () => {
       step: resumed.draft.step
     });
     const rows = await db
-      .select({ step: configurationDraft.step })
+      .select({ snapshot: configurationDraft.snapshot })
       .from(configurationDraft)
       .where(eq(configurationDraft.id, created.draft.id));
-    expect(rows[0]?.step).toEqual({ kind: "group", groupKey: "cover" });
+    expect(rows[0]?.snapshot.step).toEqual({ kind: "group", groupKey: "cover" });
   });
 
   it("hides inactive Drafts while keeping unpublished Drafts listed and removable", async () => {
@@ -782,7 +930,7 @@ describe("drafts router", () => {
   });
 
   it("rejects unknown Customer and cross-Organization Product at database boundary", async () => {
-    const draft = {
+    const snapshot = {
       evaluationSummary: {
         status: "invalid" as const,
         issues: [
@@ -793,26 +941,27 @@ describe("drafts router", () => {
           }
         ]
       },
+      projectName: null,
       quantity: 1,
       selections: {},
       step: { kind: "review" as const }
     };
     await expect(
       db.insert(configurationDraft).values({
-        ...draft,
         customerId: crypto.randomUUID(),
         organizationId: fixture.organizationId,
-        productId: fixture.productId
+        productId: fixture.productId,
+        snapshot
       })
     ).rejects.toMatchObject({
       cause: { code: "23503" }
     });
     await expect(
       db.insert(configurationDraft).values({
-        ...draft,
         customerId: fixture.customerId,
         organizationId: fixture.organizationId,
-        productId: fixture.otherProductId
+        productId: fixture.otherProductId,
+        snapshot
       })
     ).rejects.toMatchObject({
       cause: { constraint_name: "configuration_draft_product_organization_fkey" }

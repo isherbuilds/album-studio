@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "b045379b-9278-452b-a780-4f27c28fa2ed",
+  "id": "a0f19331-fcca-4e00-8c41-671512b9242a",
   "prevIds": [
     "daa9a0ab-9e37-4d98-a0a3-e038bb15ecec"
   ],
@@ -553,19 +553,6 @@
       "table": "configuration_draft"
     },
     {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "evaluation_summary",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_draft"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -605,32 +592,6 @@
       "table": "configuration_draft"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "project_name",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_draft"
-    },
-    {
-      "type": "double precision",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "quantity",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_draft"
-    },
-    {
       "type": "integer",
       "typeSchema": null,
       "notNull": true,
@@ -651,7 +612,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "selections",
+      "name": "snapshot",
       "entityType": "columns",
       "schema": "public",
       "table": "configuration_draft"
@@ -665,19 +626,6 @@
       "generated": null,
       "identity": null,
       "name": "status",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_draft"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "step",
       "entityType": "columns",
       "schema": "public",
       "table": "configuration_draft"
@@ -2854,20 +2802,6 @@
       "schema": "public",
       "table": "user",
       "entityType": "uniques"
-    },
-    {
-      "value": "\"project_name\" IS NULL OR (char_length(\"project_name\") >= 1 AND char_length(\"project_name\") <= 120)",
-      "name": "configuration_draft_project_name_check",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "configuration_draft"
-    },
-    {
-      "value": "\"quantity\" >= -9007199254740991 AND \"quantity\" <= 9007199254740991",
-      "name": "configuration_draft_quantity_safe_number_check",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "configuration_draft"
     },
     {
       "value": "\"revision\" > 0",

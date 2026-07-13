@@ -41,19 +41,23 @@ export const ConfigurationDraftEvaluationSummarySchema = z.discriminatedUnion("s
   z.object({ status: z.literal("invalid"), issues: z.array(ConfigurationIssueSchema).min(1) })
 ]);
 
+export const ConfigurationDraftSnapshotSchema = z.object({
+  evaluationSummary: ConfigurationDraftEvaluationSummarySchema,
+  projectName: ConfigurationDraftProjectNameSchema,
+  quantity: ConfigurationDraftQuantitySchema,
+  selections: ConfigurationDraftSelectionsSchema,
+  step: ConfigurationDraftStepSchema
+});
+
 export const ConfigurationDraftDetailSchema = z.object({
   createdAt: z.string().datetime(),
-  evaluationSummary: ConfigurationDraftEvaluationSummarySchema,
   id: IdSchema,
   productId: IdSchema,
   productSlug: IdSchema,
-  projectName: ConfigurationDraftProjectNameSchema,
-  quantity: ConfigurationDraftQuantitySchema,
   revision: z.number().int().positive(),
-  selections: ConfigurationDraftSelectionsSchema,
   status: ConfigurationDraftStatusSchema,
-  step: ConfigurationDraftStepSchema,
-  updatedAt: z.string().datetime()
+  updatedAt: z.string().datetime(),
+  ...ConfigurationDraftSnapshotSchema.shape
 });
 
 export const ConfigurationDraftListItemSchema = ConfigurationDraftDetailSchema.pick({
@@ -106,6 +110,7 @@ export type ConfigurationDraftQuantity = z.infer<typeof ConfigurationDraftQuanti
 export type ConfigurationDraftEvaluationSummary = z.infer<
   typeof ConfigurationDraftEvaluationSummarySchema
 >;
+export type ConfigurationDraftSnapshot = z.infer<typeof ConfigurationDraftSnapshotSchema>;
 export type ConfigurationDraftDetail = z.infer<typeof ConfigurationDraftDetailSchema>;
 export type ConfigurationDraftListItem = z.infer<typeof ConfigurationDraftListItemSchema>;
 export type ConfigurationDraftEditor = z.infer<typeof ConfigurationDraftEditorSchema>;

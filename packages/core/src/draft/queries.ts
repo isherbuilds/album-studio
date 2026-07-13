@@ -19,9 +19,13 @@ export function parseConfigurationDraftDetail(
   productSlug: string
 ): ConfigurationDraftDetail {
   return ConfigurationDraftDetailSchema.parse({
-    ...row,
+    ...row.snapshot,
     createdAt: row.createdAt.toISOString(),
+    id: row.id,
+    productId: row.productId,
     productSlug,
+    revision: row.revision,
+    status: row.status,
     updatedAt: row.updatedAt.toISOString()
   });
 }
@@ -55,28 +59,22 @@ export async function listConfigurationDrafts(
     )
     .orderBy(desc(configurationDraft.updatedAt), desc(configurationDraft.id));
 
-  return rows.map((row) =>
-    ConfigurationDraftListItemSchema.parse({
-      evaluationSummary: row.draft.evaluationSummary,
-      id: row.draft.id,
-      productId: row.draft.productId,
+  return rows.map((row) => {
+    const draft = parseConfigurationDraftDetail(row.draft, row.productSlug);
+    return ConfigurationDraftListItemSchema.parse({
+      ...draft,
       productName: row.productName,
-      productSlug: row.productSlug,
-      projectName: row.draft.projectName,
-      quantity: row.draft.quantity,
       resumable: row.productStatus === "published",
-      revision: row.draft.revision,
-      thumbnailUrl: row.productImageUrls[0] ?? null,
-      updatedAt: row.draft.updatedAt.toISOString()
-    })
-  );
+      thumbnailUrl: row.productImageUrls[0] ?? null
+    });
+  });
 }
 
 export async function loadConfigurationDraft(
   db: DatabaseOrTransaction,
-  input: { customerId: string; draftId: string; lockDraft?: boolean; organizationId: string }
+  input: { customerId: string; draftId: string; organizationId: string }
 ): Promise<ConfigurationDraftDetail | undefined> {
-  const query = db
+  const rows = await db
     .select({ draft: configurationDraft, productSlug: product.slug })
     .from(configurationDraft)
     .innerJoin(
@@ -96,9 +94,6 @@ export async function loadConfigurationDraft(
       )
     )
     .limit(1);
-  const rows = input.lockDraft
-    ? await query.for("update", { of: configurationDraft })
-    : await query;
   const row = rows[0];
   return row ? parseConfigurationDraftDetail(row.draft, row.productSlug) : undefined;
 }
