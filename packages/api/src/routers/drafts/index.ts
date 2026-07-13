@@ -42,16 +42,12 @@ export const draftsRouter = {
     .route({ description: "Create a Configuration Draft for a published Product", method: "POST" })
     .output(ConfigurationDraftEditorSchema)
     .handler(async ({ context, errors, input }) => {
-      const editor = await context.db.transaction(
-        (tx) =>
-          createConfigurationDraft(tx, {
-            customerId: context.authSession.user.id,
-            organizationId: context.organization.id,
-            productSlug: input.productSlug,
-            projectName: input.projectName
-          }),
-        { isolationLevel: "repeatable read" }
-      );
+      const editor = await createConfigurationDraft(context.db, {
+        customerId: context.authSession.user.id,
+        organizationId: context.organization.id,
+        productSlug: input.productSlug,
+        projectName: input.projectName
+      });
       if (!editor) throw errors.NOT_FOUND({ message: "Product not found" });
       return editor;
     }),

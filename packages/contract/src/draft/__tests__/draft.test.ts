@@ -6,6 +6,7 @@ import {
   MAX_PRODUCT_OPTION_GROUPS
 } from "#@/configuration/index";
 import {
+  ConfigurationDraftDetailSchema,
   ConfigurationDraftStepSchema,
   DraftCreateInputSchema,
   DraftSaveInputSchema
@@ -100,6 +101,35 @@ describe("Configuration Draft contracts", () => {
         selections: {
           cover: "v".repeat(MAX_OPTION_VALUE_ID_LENGTH + 1)
         }
+      }).success
+    ).toBe(false);
+
+    const detail = {
+      createdAt: new Date().toISOString(),
+      evaluationSummary: {
+        status: "valid" as const,
+        orderTotal: { amountMinor: 10_000, currency: "USD" }
+      },
+      id: "draft-1",
+      productId: "product-1",
+      productSlug: "album",
+      projectName: null,
+      quantity: 1,
+      revision: 1,
+      status: "active" as const,
+      step: { kind: "review" as const },
+      updatedAt: new Date().toISOString()
+    };
+    expect(
+      ConfigurationDraftDetailSchema.safeParse({
+        ...detail,
+        selections: maximumSelections
+      }).success
+    ).toBe(true);
+    expect(
+      ConfigurationDraftDetailSchema.safeParse({
+        ...detail,
+        selections: { ...maximumSelections, overflow: "value-overflow" }
       }).success
     ).toBe(false);
   });

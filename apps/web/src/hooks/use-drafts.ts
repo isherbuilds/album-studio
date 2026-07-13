@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { isDefinedError, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 import {
@@ -54,16 +55,29 @@ export function useCreateDraftMutation(organizationSlug: string) {
 
 export function useRemoveDraftMutation(organizationSlug: string) {
   const queryClient = useQueryClient();
-  return useMutation({
+  const [pendingDraftIds, setPendingDraftIds] = useState<ReadonlySet<string>>(() => new Set());
+  const mutation = useMutation({
     mutationFn: (input: Omit<DraftRemoveInput, "organizationSlug">) =>
       orpc.drafts.remove.call({ ...input, organizationSlug }),
-    onSuccess: ({ id }) => {
+    onMutate: (input) => {
+      setPendingDraftIds((current) => new Set(current).add(input.draftId));
+    },
+    onSettled: (_data, _error, input) => {
+      setPendingDraftIds((current) => {
+        const next = new Set(current);
+        next.delete(input.draftId);
+        return next;
+      });
+    },
+    onSuccess: async ({ id }) => {
       queryClient.removeQueries(getDraftByIdQueryOptions(organizationSlug, id));
       queryClient.setQueryData(getDraftListQueryOptions(organizationSlug).queryKey, (drafts) =>
         drafts?.filter((draft) => draft.id !== id)
       );
+      await queryClient.invalidateQueries(getDraftListQueryOptions(organizationSlug));
     }
   });
+  return { ...mutation, pendingDraftIds };
 }
 
 export function useSaveDraftMutation(
@@ -71,8 +85,8 @@ export function useSaveDraftMutation(
   onFailure: (conflict: ConfigurationDraftEditor["draft"] | null) => void
 ) {
   const queryClient = useQueryClient();
-  return useMutation(
-    orpc.drafts.save.mutationOptions({
+  return useMutation({
+    ...orpc.drafts.save.mutationOptions({
       onError: (error) => {
         onFailure(
           isDefinedError(error) && error.code === "DRAFT_CONFLICT" ? error.data.draft : null
@@ -82,8 +96,10 @@ export function useSaveDraftMutation(
         updateDraftEditorCache(queryClient, organizationSlug, editor);
         await queryClient.invalidateQueries(getDraftListQueryOptions(organizationSlug));
       }
-    })
-  );
+    }),
+    mutationFn: (input: Omit<DraftSaveInput, "organizationSlug">) =>
+      orpc.drafts.save.call({ ...input, organizationSlug })
+  });
 }
 
 export function useReloadDraftMutation(organizationSlug: string, draftId: string) {

@@ -46,6 +46,7 @@ function DraftEditor({
 }) {
   const [currentEditor, setCurrentEditor] = useState(editor);
   const [snapshot, setSnapshot] = useState(() => snapshotFromDraft(editor.draft));
+  const [configuratorVersion, setConfiguratorVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState<DraftCheckpointStatus>("saved");
   const [conflictDraft, setConflictDraft] = useState<ConfigurationDraftDetail | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement>(null);
@@ -60,12 +61,13 @@ function DraftEditor({
   const isBusy = isSaving || reloadDraft.isPending;
   const hasUnsavedChanges = saveStatus !== "saved";
 
-  const adoptEditor = (savedEditor: ConfigurationDraftEditor) => {
+  const adoptEditor = (savedEditor: ConfigurationDraftEditor, resetStepHistory = false) => {
     setCurrentEditor(savedEditor);
     setSnapshot(snapshotFromDraft(savedEditor.draft));
     setConflictDraft(null);
     reloadDraft.reset();
     setSaveStatus("saved");
+    if (resetStepHistory) setConfiguratorVersion((version) => version + 1);
   };
 
   const changeSnapshot = (patch: DraftSnapshotPatch) => {
@@ -88,8 +90,7 @@ function DraftEditor({
         await saveDraft.mutateAsync({
           ...next,
           draftId: currentEditor.draft.id,
-          expectedRevision,
-          organizationSlug
+          expectedRevision
         })
       );
       return true;
@@ -110,7 +111,7 @@ function DraftEditor({
     requestInFlight.current = true;
     reloadDraft.reset();
     try {
-      adoptEditor(await reloadDraft.mutateAsync());
+      adoptEditor(await reloadDraft.mutateAsync(), true);
       return true;
     } catch {
       return false;
@@ -135,6 +136,10 @@ function DraftEditor({
       <DraftConfigurator
         conflictReloadFailed={reloadDraft.isError}
         isSaving={isBusy}
+        key={JSON.stringify([
+          configuratorVersion,
+          currentEditor.product.definition.groups.map((group) => group.key)
+        ])}
         onAcceptServer={() => void loadSavedVersion()}
         onOverwriteLocal={() => void overwriteLocal()}
         onSaveChanges={() => void saveCheckpoint(snapshot)}

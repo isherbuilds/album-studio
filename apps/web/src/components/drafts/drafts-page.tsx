@@ -1,3 +1,4 @@
+import { useHydrated } from "@tanstack/react-router";
 import { ArrowRight, ImageOff, PackageOpen, Trash2 } from "lucide-react";
 
 import { m } from "@tsu-stack/i18n/messages";
@@ -20,13 +21,14 @@ import { useDraftListQuery, useRemoveDraftMutation } from "@/hooks/use-drafts";
 
 export function DraftsPage({ organizationSlug }: { organizationSlug: string }) {
   const { locale } = useLocale();
+  const isHydrated = useHydrated();
   const drafts = useDraftListQuery(organizationSlug);
   const removeDraft = useRemoveDraftMutation(organizationSlug);
   const items = drafts.data ?? [];
-  const dateFormatter = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeZone: "UTC"
-  });
+  const dateFormatter = new Intl.DateTimeFormat(
+    locale,
+    isHydrated ? { dateStyle: "medium" } : { dateStyle: "medium", timeZone: "UTC" }
+  );
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 p-5 sm:p-8">
@@ -138,9 +140,7 @@ export function DraftsPage({ organizationSlug }: { organizationSlug: string }) {
                     <Button
                       aria-label={m.drafts__remove_named({ name })}
                       className="col-start-3 justify-self-end sm:col-start-4 sm:row-start-1"
-                      disabled={
-                        removeDraft.isPending && removeDraft.variables?.draftId === draft.id
-                      }
+                      disabled={removeDraft.pendingDraftIds.has(draft.id)}
                       onClick={() => {
                         if (!window.confirm(m.drafts__remove_confirm())) return;
                         removeDraft.mutate({ draftId: draft.id });

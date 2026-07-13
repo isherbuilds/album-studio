@@ -74,9 +74,9 @@ export async function listConfigurationDrafts(
 
 export async function loadConfigurationDraft(
   db: DatabaseOrTransaction,
-  input: { customerId: string; draftId: string; organizationId: string }
+  input: { customerId: string; draftId: string; lockDraft?: boolean; organizationId: string }
 ): Promise<ConfigurationDraftDetail | undefined> {
-  const rows = await db
+  const query = db
     .select({ draft: configurationDraft, productSlug: product.slug })
     .from(configurationDraft)
     .innerJoin(
@@ -96,6 +96,9 @@ export async function loadConfigurationDraft(
       )
     )
     .limit(1);
+  const rows = input.lockDraft
+    ? await query.for("update", { of: configurationDraft })
+    : await query;
   const row = rows[0];
   return row ? parseConfigurationDraftDetail(row.draft, row.productSlug) : undefined;
 }

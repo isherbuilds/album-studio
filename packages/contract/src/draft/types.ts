@@ -50,7 +50,7 @@ export const ConfigurationDraftDetailSchema = z.object({
   projectName: ConfigurationDraftProjectNameSchema,
   quantity: ConfigurationDraftQuantitySchema,
   revision: z.number().int().positive(),
-  selections: ConfigurationSelectionsSchema,
+  selections: ConfigurationDraftSelectionsSchema,
   status: ConfigurationDraftStatusSchema,
   step: ConfigurationDraftStepSchema,
   updatedAt: z.string().datetime()

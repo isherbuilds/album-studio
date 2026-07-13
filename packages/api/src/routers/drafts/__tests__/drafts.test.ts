@@ -1,10 +1,11 @@
 import { createRouterClient } from "@orpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { MAX_PRODUCT_OPTION_GROUPS } from "@tsu-stack/contract/configuration";
+import { loadPublicProductDefinition } from "@tsu-stack/core/catalog";
 import { evaluateConfiguration } from "@tsu-stack/core/configuration";
-import { saveConfigurationDraft } from "@tsu-stack/core/draft";
+import { createConfigurationDraft, saveConfigurationDraft } from "@tsu-stack/core/draft";
 import { db, type Database } from "@tsu-stack/db";
 import {
   configurationDraft,
@@ -304,6 +305,75 @@ describe("drafts router", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
   });
 
+  it("creates against a locked Product snapshot inside one transaction", async () => {
+    let transactionCalls = 0;
+    const transactionalDb: Pick<Database, "transaction"> = {
+      transaction: async (callback, config) => {
+        transactionCalls += 1;
+        return db.transaction(callback, config);
+      }
+    };
+
+    const created = await createConfigurationDraft(transactionalDb, {
+      customerId: fixture.customerId,
+      organizationId: fixture.organizationId,
+      productSlug: fixture.productSlug,
+      projectName: "Transaction owned"
+    });
+
+    expect(created?.draft).toMatchObject({
+      productId: fixture.productId,
+      projectName: "Transaction owned",
+      revision: 1
+    });
+    expect(transactionCalls).toBe(1);
+  });
+
+  it("blocks Product lifecycle writes while a Draft snapshot transaction is active", async () => {
+    const state = { productLocked: false, updaterPid: 0 };
+    const snapshotTransaction = db.transaction(async (tx) => {
+      const snapshot = await loadPublicProductDefinition(tx, {
+        lockProduct: true,
+        organizationId: fixture.organizationId,
+        productId: fixture.productId
+      });
+      if (!snapshot) throw new Error("Expected published Product snapshot");
+      state.productLocked = true;
+      await tx.execute(sql`SELECT pg_sleep(2)`);
+    });
+    await expect.poll(() => state.productLocked).toBe(true);
+
+    const lifecycleUpdate = db.transaction(async (tx) => {
+      const pidRows = await tx.execute(sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`);
+      const pid = Number(pidRows[0]?.pid);
+      if (!Number.isInteger(pid) || pid <= 0) {
+        throw new Error("Product updater has no PostgreSQL backend PID");
+      }
+      state.updaterPid = pid;
+      await tx.update(product).set({ status: "archived" }).where(eq(product.id, fixture.productId));
+    });
+    await expect.poll(() => state.updaterPid).toBeGreaterThan(0);
+
+    try {
+      await expect
+        .poll(async () => {
+          const activity = await db.execute(sql<{ waiting: boolean }>`
+            SELECT wait_event_type = 'Lock' AS waiting
+            FROM pg_stat_activity
+            WHERE pid = ${state.updaterPid}
+          `);
+          return activity[0]?.waiting;
+        })
+        .toBe(true);
+    } finally {
+      await Promise.all([snapshotTransaction, lifecycleUpdate]);
+      await db
+        .update(product)
+        .set({ status: "published" })
+        .where(eq(product.id, fixture.productId));
+    }
+  });
+
   it("persists evaluation summary for normalized snapshot and rejects stale revisions", async () => {
     const client = clientFor(fixture.customerId);
     const created = await client.create({
@@ -396,31 +466,20 @@ describe("drafts router", () => {
     expect(resumed).toEqual(latest);
   });
 
-  it("commits against one authoritative Product snapshot", async () => {
+  it("commits evaluation and CAS inside one transaction", async () => {
     const created = await clientFor(fixture.customerId).create({
       organizationSlug: fixture.organizationSlug,
       productSlug: fixture.productSlug
     });
     let transactionCalls = 0;
-    let preparationConfig: Parameters<Database["transaction"]>[1];
-    const interleavedDb: Pick<Database, "select" | "transaction" | "update"> = {
-      select: db.select.bind(db),
+    const transactionalDb: Pick<Database, "transaction"> = {
       transaction: async (callback, config) => {
         transactionCalls += 1;
-        preparationConfig = config;
-        const result = await db.transaction(callback, config);
-        if (transactionCalls === 1) {
-          await db
-            .update(product)
-            .set({ basePriceMinor: 11_000 })
-            .where(eq(product.id, fixture.productId));
-        }
-        return result;
-      },
-      update: db.update.bind(db)
+        return db.transaction(callback, config);
+      }
     };
 
-    const result = await saveConfigurationDraft(interleavedDb, {
+    const result = await saveConfigurationDraft(transactionalDb, {
       customerId: fixture.customerId,
       draftId: created.draft.id,
       expectedRevision: created.draft.revision,
@@ -430,11 +489,6 @@ describe("drafts router", () => {
       selections: { cover: fixture.coverValueId, pages: 20 },
       step: { kind: "review" }
     });
-    await db
-      .update(product)
-      .set({ basePriceMinor: 10_000 })
-      .where(eq(product.id, fixture.productId));
-
     expect(result).toMatchObject({
       kind: "saved",
       editor: {
@@ -448,62 +502,6 @@ describe("drafts router", () => {
       }
     });
     expect(transactionCalls).toBe(1);
-    expect(preparationConfig).toEqual({
-      accessMode: "read only",
-      isolationLevel: "repeatable read"
-    });
-  });
-
-  it("does not save after Product becomes unpublished between preparation and CAS", async () => {
-    const created = await clientFor(fixture.customerId).create({
-      organizationSlug: fixture.organizationSlug,
-      productSlug: fixture.productSlug
-    });
-    let transactionCalls = 0;
-    const interleavedDb: Pick<Database, "select" | "transaction" | "update"> = {
-      select: db.select.bind(db),
-      transaction: async (callback, config) => {
-        transactionCalls += 1;
-        const result = await db.transaction(callback, config);
-        if (transactionCalls === 1) {
-          await db
-            .update(product)
-            .set({ status: "archived" })
-            .where(eq(product.id, fixture.productId));
-        }
-        return result;
-      },
-      update: db.update.bind(db)
-    };
-
-    let result: Awaited<ReturnType<typeof saveConfigurationDraft>>;
-    try {
-      result = await saveConfigurationDraft(interleavedDb, {
-        customerId: fixture.customerId,
-        draftId: created.draft.id,
-        expectedRevision: created.draft.revision,
-        organizationId: fixture.organizationId,
-        projectName: "Must not save",
-        quantity: 1,
-        selections: { cover: fixture.coverValueId, pages: 20 },
-        step: { kind: "review" }
-      });
-    } finally {
-      await db
-        .update(product)
-        .set({ status: "published" })
-        .where(eq(product.id, fixture.productId));
-    }
-
-    expect(result).toEqual({ kind: "not_found" });
-    const unchanged = await clientFor(fixture.customerId).byId({
-      organizationSlug: fixture.organizationSlug,
-      draftId: created.draft.id
-    });
-    expect(unchanged.draft).toMatchObject({
-      projectName: created.draft.projectName,
-      revision: created.draft.revision
-    });
   });
 
   it("returns one saved Draft and one typed conflict for simultaneous revisions", async () => {

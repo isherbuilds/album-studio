@@ -220,3 +220,44 @@ test("customer can explicitly save local changes and leave after a conflict", as
   await staleSession.close();
   await firstSession.close();
 });
+
+test("loading a saved conflict resets reachable configurator steps", async ({ browser }) => {
+  const browserErrors: string[] = [];
+  const serverErrors: string[] = [];
+  const firstSession = await browser.newContext();
+  const firstPage = await firstSession.newPage();
+  monitorErrors(firstPage, browserErrors, serverErrors);
+
+  await signInAsDemoCustomer(firstPage, "/web/org/demo-studio/catalog");
+  await firstPage.getByRole("link", { name: /Wedding Album/ }).click();
+  await firstPage.getByRole("button", { name: "Start configuration" }).click();
+  await firstPage.getByRole("button", { name: /Linen/ }).click();
+  await firstPage.getByRole("button", { name: "Next" }).click();
+  await firstPage.getByRole("button", { name: /Matte/ }).click();
+  await firstPage.getByRole("button", { name: "Next" }).click();
+  await expect(firstPage.getByRole("spinbutton", { name: "Pages" })).toBeVisible();
+  const draftUrl = firstPage.url();
+
+  const staleSession = await browser.newContext();
+  const stalePage = await staleSession.newPage();
+  monitorErrors(stalePage, browserErrors, serverErrors, true);
+  await signInAsDemoCustomer(stalePage, draftUrl);
+  await expect(stalePage.getByRole("spinbutton", { name: "Pages" })).toBeVisible();
+
+  await firstPage.getByRole("button", { name: "Back" }).click();
+  await firstPage.getByRole("button", { name: "Back" }).click();
+  await expect(firstPage.getByRole("button", { name: /Linen/ })).toBeVisible();
+
+  await stalePage.getByLabel("Project name").fill(`Stale ${Date.now()}`);
+  await stalePage.getByRole("button", { name: "Save changes" }).click();
+  await expect(stalePage.getByText("Newer saved version found", { exact: true })).toBeVisible();
+  await stalePage.getByRole("button", { name: "Load saved version" }).click();
+
+  await expect(stalePage.getByRole("button", { name: /Linen/ })).toBeVisible();
+  await expect(stalePage.getByRole("button", { name: "Step 2: Finish" })).toBeDisabled();
+  expect(browserErrors).toEqual([]);
+  expect(serverErrors).toEqual([]);
+
+  await staleSession.close();
+  await firstSession.close();
+});

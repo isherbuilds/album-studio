@@ -81,13 +81,14 @@ export async function listPublishedProductSummaries(
  */
 export async function loadPublicProductDefinition(
   db: DatabaseOrTransaction,
-  input:
-    | { organizationId: string; productId: string }
-    | { organizationId: string; productSlug: string }
+  input: { lockProduct?: boolean; organizationId: string } & (
+    | { productId: string }
+    | { productSlug: string }
+  )
 ): Promise<PublicProductDefinition | undefined> {
   const productLocator =
     "productId" in input ? eq(product.id, input.productId) : eq(product.slug, input.productSlug);
-  const productRows = await db
+  const productQuery = db
     .select({
       id: product.id,
       slug: product.slug,
@@ -107,6 +108,9 @@ export async function loadPublicProductDefinition(
       )
     )
     .limit(1);
+  const productRows = input.lockProduct
+    ? await productQuery.for("share", { of: product })
+    : await productQuery;
 
   const productRow = productRows[0];
   if (!productRow) return undefined;
