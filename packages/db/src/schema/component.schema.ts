@@ -1,4 +1,14 @@
-import { index, numeric, pgEnum, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  foreignKey,
+  index,
+  numeric,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique
+} from "drizzle-orm/pg-core";
 
 import { organization } from "#@/schema/auth.schema";
 import { optionValue } from "#@/schema/product.schema";
@@ -41,7 +51,10 @@ export const component = pgTable(
       .$onUpdate(() => new Date())
       .notNull()
   },
-  (table) => [index("component_organization_idx").on(table.organizationId)]
+  (table) => [
+    index("component_organization_idx").on(table.organizationId),
+    unique("component_id_organization_key").on(table.id, table.organizationId)
+  ]
 );
 
 /**
@@ -51,15 +64,22 @@ export const component = pgTable(
 export const optionValueComponent = pgTable(
   "option_value_component",
   {
-    componentId: text("component_id")
-      .notNull()
-      .references(() => component.id, { onDelete: "cascade" }),
-    optionValueId: text("option_value_id")
-      .notNull()
-      .references(() => optionValue.id, { onDelete: "cascade" })
+    componentId: text("component_id").notNull(),
+    optionValueId: text("option_value_id").notNull(),
+    organizationId: text("organization_id").notNull()
   },
   (table) => [
     primaryKey({ columns: [table.optionValueId, table.componentId] }),
-    index("option_value_component_component_idx").on(table.componentId)
+    index("option_value_component_component_idx").on(table.componentId),
+    foreignKey({
+      name: "option_value_component_component_fkey",
+      columns: [table.componentId, table.organizationId],
+      foreignColumns: [component.id, component.organizationId]
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "option_value_component_option_value_fkey",
+      columns: [table.optionValueId, table.organizationId],
+      foreignColumns: [optionValue.id, optionValue.organizationId]
+    }).onDelete("cascade")
   ]
 );

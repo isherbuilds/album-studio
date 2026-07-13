@@ -81,8 +81,7 @@ function MobileNavAuth({ onNavigate }: { onNavigate: () => void }) {
   const redirect = routerState.location.search?.redirect;
 
   const handleSignOut = async () => {
-    await signOut();
-    onNavigate();
+    if (await signOut()) onNavigate();
   };
 
   if (!user) {

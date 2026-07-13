@@ -16,7 +16,11 @@ export const CurrencyCodeSchema = z
   )
   .brand<"CurrencyCode">();
 
-export const MinorUnitAmountSchema = z.number().int();
+export const MinorUnitAmountSchema = z
+  .number()
+  .int()
+  .min(Number.MIN_SAFE_INTEGER)
+  .max(Number.MAX_SAFE_INTEGER);
 
 export const MoneySchema = z.object({
   amountMinor: MinorUnitAmountSchema,

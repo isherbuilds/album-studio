@@ -30,6 +30,13 @@ const SEEDED_COMPONENT_NAMES = [
   "Gift Box Stock"
 ];
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required to seed demo data");
+const databaseHost = new URL(databaseUrl).hostname;
+if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(databaseHost)) {
+  throw new Error(`Refusing to seed a non-local database (host: ${databaseHost})`);
+}
+
 async function findUserIdByEmail(email: string): Promise<string | undefined> {
   const rows = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
   return rows[0]?.id;
@@ -67,6 +74,8 @@ if (organizationId === undefined) {
     }
   });
   organizationId = createdOrganization.id;
+} else {
+  await db.update(organization).set({ currency: "USD" }).where(eq(organization.id, organizationId));
 }
 
 const existingCustomerMembers = await db
@@ -234,78 +243,102 @@ await db.transaction(async (tx) => {
       imageUrl: "/placeholders/cover-linen.svg",
       label: "Linen",
       optionGroupId: ids.coverGroup,
+      organizationId,
       position: 0,
-      priceAdjustmentMinor: 0
+      priceAdjustmentMinor: 0,
+      productId: ids.product
     },
     {
       id: ids.coverLeather,
       imageUrl: "/placeholders/cover-leather.svg",
       label: "Leather",
       optionGroupId: ids.coverGroup,
+      organizationId,
       position: 1,
-      priceAdjustmentMinor: 4000
+      priceAdjustmentMinor: 4000,
+      productId: ids.product
     },
     {
       id: ids.coverSilk,
       imageUrl: "/placeholders/cover-silk.svg",
       label: "Silk",
       optionGroupId: ids.coverGroup,
+      organizationId,
       position: 2,
-      priceAdjustmentMinor: 2500
+      priceAdjustmentMinor: 2500,
+      productId: ids.product
     },
     {
       id: ids.coverVelvet,
       imageUrl: "/placeholders/cover-velvet.svg",
       label: "Velvet",
       optionGroupId: ids.coverGroup,
+      organizationId,
       position: 3,
-      priceAdjustmentMinor: 3000
+      priceAdjustmentMinor: 3000,
+      productId: ids.product
     },
     {
       id: ids.finishMatte,
       imageUrl: "/placeholders/finish-matte.svg",
       label: "Matte",
       optionGroupId: ids.finishGroup,
+      organizationId,
       position: 0,
-      priceAdjustmentMinor: 0
+      priceAdjustmentMinor: 0,
+      productId: ids.product
     },
     {
       id: ids.finishFoil,
       imageUrl: "/placeholders/finish-foil.svg",
       label: "Foil",
       optionGroupId: ids.finishGroup,
+      organizationId,
       position: 1,
-      priceAdjustmentMinor: 1500
+      priceAdjustmentMinor: 1500,
+      productId: ids.product
     },
     {
       id: ids.giftBoxNo,
       label: "No Gift Box",
       optionGroupId: ids.giftBoxGroup,
+      organizationId,
       position: 0,
-      priceAdjustmentMinor: 0
+      priceAdjustmentMinor: 0,
+      productId: ids.product
     },
     {
       id: ids.giftBoxPremium,
       imageUrl: "/placeholders/giftbox.svg",
       label: "Premium Gift Box",
       optionGroupId: ids.giftBoxGroup,
+      organizationId,
       position: 1,
-      priceAdjustmentMinor: 2000
+      priceAdjustmentMinor: 2000,
+      productId: ids.product
     }
   ]);
 
   await tx.insert(optionValueRequirement).values([
-    { optionValueId: ids.finishFoil, prerequisiteOptionValueId: ids.coverLinen },
-    { optionValueId: ids.finishFoil, prerequisiteOptionValueId: ids.coverLeather }
+    {
+      optionValueId: ids.finishFoil,
+      prerequisiteOptionValueId: ids.coverLinen,
+      productId: ids.product
+    },
+    {
+      optionValueId: ids.finishFoil,
+      prerequisiteOptionValueId: ids.coverLeather,
+      productId: ids.product
+    }
   ]);
 
   await tx.insert(optionValueComponent).values([
-    { componentId: ids.linenFabric, optionValueId: ids.coverLinen },
-    { componentId: ids.leatherHide, optionValueId: ids.coverLeather },
-    { componentId: ids.silkRoll, optionValueId: ids.coverSilk },
-    { componentId: ids.velvetFabric, optionValueId: ids.coverVelvet },
-    { componentId: ids.foilRoll, optionValueId: ids.finishFoil },
-    { componentId: ids.boxStock, optionValueId: ids.giftBoxPremium }
+    { componentId: ids.linenFabric, optionValueId: ids.coverLinen, organizationId },
+    { componentId: ids.leatherHide, optionValueId: ids.coverLeather, organizationId },
+    { componentId: ids.silkRoll, optionValueId: ids.coverSilk, organizationId },
+    { componentId: ids.velvetFabric, optionValueId: ids.coverVelvet, organizationId },
+    { componentId: ids.foilRoll, optionValueId: ids.finishFoil, organizationId },
+    { componentId: ids.boxStock, optionValueId: ids.giftBoxPremium, organizationId }
   ]);
 });
 

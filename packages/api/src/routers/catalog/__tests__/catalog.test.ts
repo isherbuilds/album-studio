@@ -258,29 +258,37 @@ beforeAll(async () => {
       id: fixture.hardcoverValueId,
       label: "Hardcover",
       optionGroupId: fixture.coverGroupId,
+      organizationId: fixture.organizationId,
       position: 0,
-      priceAdjustmentMinor: 1500
+      priceAdjustmentMinor: 1500,
+      productId: fixture.publishedProductId
     },
     {
       id: fixture.softcoverValueId,
       label: "Softcover",
       optionGroupId: fixture.coverGroupId,
+      organizationId: fixture.organizationId,
       position: 1,
-      priceAdjustmentMinor: 0
+      priceAdjustmentMinor: 0,
+      productId: fixture.publishedProductId
     },
     {
       id: fixture.giftWrapYesValueId,
       label: "Yes",
       optionGroupId: fixture.giftWrapGroupId,
+      organizationId: fixture.organizationId,
       position: 0,
-      priceAdjustmentMinor: 500
+      priceAdjustmentMinor: 500,
+      productId: fixture.publishedProductId
     },
     {
       id: fixture.giftWrapNoValueId,
       label: "No",
       optionGroupId: fixture.giftWrapGroupId,
+      organizationId: fixture.organizationId,
       position: 1,
-      priceAdjustmentMinor: 0
+      priceAdjustmentMinor: 0,
+      productId: fixture.publishedProductId
     }
   ]);
 
@@ -288,11 +296,13 @@ beforeAll(async () => {
   await db.insert(optionValueRequirement).values([
     {
       optionValueId: fixture.giftWrapYesValueId,
-      prerequisiteOptionValueId: fixture.hardcoverValueId
+      prerequisiteOptionValueId: fixture.hardcoverValueId,
+      productId: fixture.publishedProductId
     },
     {
       optionValueId: fixture.giftWrapYesValueId,
-      prerequisiteOptionValueId: fixture.softcoverValueId
+      prerequisiteOptionValueId: fixture.softcoverValueId,
+      productId: fixture.publishedProductId
     }
   ]);
 
@@ -300,11 +310,13 @@ beforeAll(async () => {
   await db.insert(optionValueComponent).values([
     {
       componentId: fixture.inStockComponentId,
-      optionValueId: fixture.hardcoverValueId
+      optionValueId: fixture.hardcoverValueId,
+      organizationId: fixture.organizationId
     },
     {
       componentId: fixture.outOfStockComponentId,
-      optionValueId: fixture.softcoverValueId
+      optionValueId: fixture.softcoverValueId,
+      organizationId: fixture.organizationId
     }
   ]);
 });
@@ -525,6 +537,111 @@ describe("catalog router", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
   });
 
+  it("rejects cross-scope catalog associations at the database boundary", async () => {
+    const otherComponentId = crypto.randomUUID();
+    const otherGroupId = crypto.randomUUID();
+
+    await db.insert(component).values({
+      id: otherComponentId,
+      name: "Other tenant component",
+      organizationId: fixture.otherOrganizationId,
+      unit: "piece"
+    });
+    await db.insert(optionGroup).values({
+      id: otherGroupId,
+      key: "other-cover",
+      label: "Other cover",
+      position: 0,
+      productId: fixture.otherProductId,
+      required: true,
+      type: "single"
+    });
+
+    await expect(
+      db.insert(optionValueComponent).values({
+        componentId: otherComponentId,
+        optionValueId: fixture.hardcoverValueId,
+        organizationId: fixture.organizationId
+      })
+    ).rejects.toMatchObject({
+      cause: { constraint_name: "option_value_component_component_fkey" }
+    });
+
+    await expect(
+      db.insert(optionValue).values({
+        id: crypto.randomUUID(),
+        label: "Mismatched value",
+        optionGroupId: otherGroupId,
+        organizationId: fixture.organizationId,
+        position: 0,
+        priceAdjustmentMinor: 0,
+        productId: fixture.publishedProductId
+      })
+    ).rejects.toMatchObject({
+      cause: { constraint_name: "option_value_option_group_product_fkey" }
+    });
+  });
+
+  it("rejects monetary values outside JavaScript's safe integer range", async () => {
+    await expect(
+      db.insert(product).values({
+        basePriceMinor: Number.MAX_SAFE_INTEGER + 1,
+        imageUrls: [],
+        name: "Unsafe money",
+        organizationId: fixture.organizationId,
+        slug: `unsafe-money-${crypto.randomUUID()}`,
+        status: "draft"
+      })
+    ).rejects.toMatchObject({ cause: { constraint_name: "product_base_price_minor_check" } });
+
+    // The derived monetary columns carry the same safe-integer bound.
+    await expect(
+      db.insert(optionValue).values({
+        id: crypto.randomUUID(),
+        label: "Unsafe adjustment",
+        optionGroupId: fixture.coverGroupId,
+        organizationId: fixture.organizationId,
+        position: 99,
+        priceAdjustmentMinor: Number.MAX_SAFE_INTEGER + 1,
+        productId: fixture.publishedProductId
+      })
+    ).rejects.toMatchObject({
+      cause: { constraint_name: "option_value_price_adjustment_minor_check" }
+    });
+
+    // A fully valid number group (passes the number-fields check) but an unsafe unit price.
+    await expect(
+      db.insert(optionGroup).values({
+        additionalUnitPriceMinor: Number.MAX_SAFE_INTEGER + 1,
+        id: crypto.randomUUID(),
+        included: 0,
+        key: `unsafe-unit-${crypto.randomUUID()}`,
+        label: "Unsafe unit price",
+        maximum: 10,
+        minimum: 0,
+        position: 99,
+        productId: fixture.publishedProductId,
+        required: false,
+        step: 5,
+        type: "number"
+      })
+    ).rejects.toMatchObject({
+      cause: { constraint_name: "option_group_additional_unit_price_minor_check" }
+    });
+  });
+
+  it("rejects a self-referential option value requirement at the database boundary", async () => {
+    await expect(
+      db.insert(optionValueRequirement).values({
+        optionValueId: fixture.hardcoverValueId,
+        prerequisiteOptionValueId: fixture.hardcoverValueId,
+        productId: fixture.publishedProductId
+      })
+    ).rejects.toMatchObject({
+      cause: { constraint_name: "option_value_requirement_no_self_reference_check" }
+    });
+  });
+
   it("returns an evaluator-ready payload", async () => {
     const memberClient = createRouterClient(catalogRouter, {
       context: createContext(fixture.memberId, `${fixture.memberId}@example.com`)
@@ -627,8 +744,10 @@ describe("catalog router", () => {
             id: crypto.randomUUID(),
             label: `Extra value ${groupIndex}-${position}`,
             optionGroupId,
+            organizationId: fixture.organizationId,
             position,
-            priceAdjustmentMinor: groupIndex + position
+            priceAdjustmentMinor: groupIndex + position,
+            productId: fixture.publishedProductId
           };
         })
       )
@@ -645,11 +764,12 @@ describe("catalog router", () => {
           }
         }
       });
-      await loadPublicProductDefinition(expandedDb, {
+      const expandedDefinition = await loadPublicProductDefinition(expandedDb, {
         organizationId: fixture.organizationId,
         productSlug: fixture.publishedProductSlug
       });
 
+      expect(expandedDefinition?.definition.groups).toHaveLength(3 + extraGroupIds.length);
       expect(baselineQueryCount).toBe(6);
       expect(expandedQueryCount).toBe(baselineQueryCount);
     } finally {

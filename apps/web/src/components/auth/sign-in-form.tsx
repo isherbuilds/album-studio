@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useHydrated } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -28,6 +29,7 @@ export function SignInForm({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isPending } = useAuth();
+  const isHydrated = useHydrated();
 
   const signInMutation = useMutation({
     mutationFn: async (values: { email: string; password: string }) => {
@@ -107,6 +109,7 @@ export function SignInForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                   type="email"
                   value={field.state.value}
+                  disabled={!isHydrated}
                   placeholder={m.auth__email_placeholder()}
                 />
                 {field.state.meta.errors.map((error) => (
@@ -129,6 +132,7 @@ export function SignInForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                   type="password"
                   value={field.state.value}
+                  disabled={!isHydrated}
                 />
                 {field.state.meta.errors.map((error) => (
                   <p className="text-sm text-destructive" key={error?.message}>
@@ -143,7 +147,7 @@ export function SignInForm({
             <Button
               light="skeuomorphic"
               type="submit"
-              disabled={signInMutation.isPending || signInMutation.isSuccess}
+              disabled={!isHydrated || signInMutation.isPending || signInMutation.isSuccess}
             >
               {signInMutation.isPending ? m.auth__signing_in() : m.auth__sign_in()}
             </Button>

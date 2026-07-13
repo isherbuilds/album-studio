@@ -73,6 +73,7 @@
   "auth__and": "and",
   "auth__privacy_policy": "Privacy Policy",
   "auth__sign_in_failed": "Sign in failed",
+  "auth__sign_out_failed": "Sign out failed",
   "auth__sign_in_successful": "Sign in successful",
   "auth__invalid_email": "Invalid email address",
   "auth__password_min_length": "Password must be at least 8 characters",

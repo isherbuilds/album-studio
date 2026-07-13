@@ -14,7 +14,6 @@ test("customer sees constraints and receives live configuration pricing", async 
   });
 
   await page.goto("/web/org/demo-studio/catalog");
-  await page.waitForLoadState("networkidle");
 
   await page.getByLabel("Email").fill("customer@demo-studio.test");
   await page.getByLabel("Password").fill("demo-password-123");
@@ -24,7 +23,6 @@ test("customer sees constraints and receives live configuration pricing", async 
   await page.goto("/web/org/demo-studio");
   await expect(page).toHaveURL(/\/org\/demo-studio\/catalog$/);
   await page.getByRole("link", { name: /Wedding Album/ }).click();
-  await page.waitForLoadState("networkidle");
 
   const velvet = page.getByRole("button", { name: /Velvet/ });
   await expect(velvet).toBeDisabled();

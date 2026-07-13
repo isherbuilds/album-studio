@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
-const localDatabaseHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+const localDatabaseHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 export default async function setup() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -26,15 +26,30 @@ export default async function setup() {
   const testDatabaseUrl = parsedDatabaseUrl.toString();
   process.env.DATABASE_URL = testDatabaseUrl;
 
-  const migrationClient = postgres(testDatabaseUrl, { max: 1, onnotice: () => undefined });
-  await migrate(drizzle({ client: migrationClient }), {
-    migrationsFolder: resolve(import.meta.dirname, "../../../db/migrations"),
-    migrationsSchema: schema
-  });
-  await migrationClient.end();
+  try {
+    const migrationClient = postgres(testDatabaseUrl, { max: 1, onnotice: () => undefined });
+    try {
+      await migrate(drizzle({ client: migrationClient }), {
+        migrationsFolder: resolve(import.meta.dirname, "../../../db/migrations"),
+        migrationsSchema: schema
+      });
+    } finally {
+      await migrationClient.end();
+    }
+  } catch (error) {
+    try {
+      await adminClient.unsafe(`drop schema if exists "${schema}" cascade`);
+    } finally {
+      await adminClient.end();
+    }
+    throw error;
+  }
 
   return async () => {
-    await adminClient.unsafe(`drop schema "${schema}" cascade`);
-    await adminClient.end();
+    try {
+      await adminClient.unsafe(`drop schema "${schema}" cascade`);
+    } finally {
+      await adminClient.end();
+    }
   };
 }

@@ -129,8 +129,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <Button
           className="w-full justify-start"
           onClick={async () => {
-            await signOut();
-            onNavigate?.();
+            if (await signOut()) onNavigate?.();
           }}
           variant="ghost"
         >

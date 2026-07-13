@@ -145,7 +145,7 @@ describe("platform router authorization", () => {
 
     try {
       const created = await client.organizations.create({
-        currency: "USD",
+        currency: "EUR",
         name: "Platform Organization",
         ownerEmail: provisionedOwnerEmail,
         ownerName: "Provisioned Owner",
@@ -161,6 +161,11 @@ describe("platform router authorization", () => {
         ownerCreated: true,
         slug
       });
+      const [persisted] = await db
+        .select({ currency: organization.currency })
+        .from(organization)
+        .where(eq(organization.slug, slug));
+      expect(persisted?.currency).toBe("EUR");
       await expect(
         client.organizations.create({
           currency: "USD",

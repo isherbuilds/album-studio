@@ -47,7 +47,7 @@ export function CatalogPage({ organizationSlug }: { organizationSlug: string }) 
                   <div className="flex aspect-square items-center justify-center overflow-hidden bg-muted">
                     {product.thumbnailUrl ? (
                       <Image
-                        alt={product.name}
+                        alt=""
                         className="size-full object-cover transition-transform duration-300 group-hover/product:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover/product:scale-100"
                         height={480}
                         src={product.thumbnailUrl}

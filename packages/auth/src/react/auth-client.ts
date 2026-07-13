@@ -4,6 +4,7 @@ import { createAuthClient } from "better-auth/react";
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 
 import { organizationAccessControl, organizationRoles } from "#@/access-control";
+import { organizationAdditionalFields } from "#@/organization-fields";
 
 export const API_AUTH_URL = `${ENV_WEB_ISOMORPHIC.VITE_SERVER_URL}/auth`;
 
@@ -20,9 +21,7 @@ export const authClient = createAuthClient({
       roles: organizationRoles,
       schema: {
         organization: {
-          additionalFields: {
-            currency: { type: "string", input: true, required: true }
-          }
+          additionalFields: organizationAdditionalFields
         }
       }
     })

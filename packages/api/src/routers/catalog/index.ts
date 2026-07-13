@@ -26,10 +26,14 @@ export const catalogRouter = {
     .route({ description: "Get a published catalog product by slug", method: "GET" })
     .output(PublicProductDefinitionSchema)
     .handler(async ({ context, errors, input }) => {
-      const definition = await loadPublicProductDefinition(context.db, {
-        organizationId: context.organization.id,
-        productSlug: input.productSlug
-      });
+      const definition = await context.db.transaction(
+        (tx) =>
+          loadPublicProductDefinition(tx, {
+            organizationId: context.organization.id,
+            productSlug: input.productSlug
+          }),
+        { accessMode: "read only", isolationLevel: "repeatable read" }
+      );
       if (!definition) throw errors.NOT_FOUND({ message: "Product not found" });
       return definition;
     })

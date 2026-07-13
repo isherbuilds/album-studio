@@ -10,12 +10,19 @@ const localeRoute = createRoute({
 });
 const guestRoute = createRoute({ getParentRoute: () => localeRoute, id: "(guest)" });
 const signInRoute = createRoute({ getParentRoute: () => guestRoute, path: "/sign-in" });
+const dynamicRoute = createRoute({ getParentRoute: () => localeRoute, path: "/$slug" });
+const splatRoute = createRoute({ getParentRoute: () => localeRoute, path: "/files/$" });
 const productRoute = createRoute({
   getParentRoute: () => localeRoute,
   path: "/org/$organizationSlug/catalog/$productSlug"
 });
 const routeTree = rootRoute.addChildren([
-  localeRoute.addChildren([guestRoute.addChildren([signInRoute]), productRoute])
+  localeRoute.addChildren([
+    dynamicRoute,
+    guestRoute.addChildren([signInRoute]),
+    productRoute,
+    splatRoute
+  ])
 ]);
 createRouter({ routeTree });
 
@@ -34,8 +41,15 @@ describe("validateNavigateTo", () => {
     );
   });
 
-  it("rejects unknown and guest routes", () => {
+  it("rejects unknown routes", () => {
     expect(validateProtectedRoute("/org/demo-studio/catalog/wedding-album/unknown")).toBe("/");
+  });
+
+  it("prefers a literal route over a matching dynamic route", () => {
     expect(validateProtectedRoute("/sign-in")).toBe("/");
+  });
+
+  it("accepts paths handled by a splat route", () => {
+    expect(validateProtectedRoute("/files/albums/2026")).toBe("/files/albums/2026");
   });
 });

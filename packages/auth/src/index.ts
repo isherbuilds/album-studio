@@ -14,6 +14,7 @@ import * as schema from "@tsu-stack/db/schema";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
 
 import { organizationAccessControl, organizationRoles } from "#@/access-control";
+import { organizationAdditionalFields } from "#@/organization-fields";
 
 export const auth = betterAuth({
   baseURL: new URL(ENV_SERVER.VITE_SERVER_URL).origin,
@@ -57,9 +58,7 @@ export const auth = betterAuth({
       roles: organizationRoles,
       schema: {
         organization: {
-          additionalFields: {
-            currency: { type: "string", input: true, required: true }
-          }
+          additionalFields: organizationAdditionalFields
         }
       }
     }),

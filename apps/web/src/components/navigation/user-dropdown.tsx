@@ -62,7 +62,17 @@ export function UserDropdown() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer" variant="destructive" onClick={handleSignOut}>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          variant="destructive"
+          onSelect={(event) => {
+            // Keep the menu open until sign-out resolves: success invalidates routing and
+            // redirects (unmounting this), failure surfaces a toast so the user can retry
+            // instead of the menu silently closing on a still-authenticated session.
+            event.preventDefault();
+            void handleSignOut();
+          }}
+        >
           <LogOut aria-hidden="true" className="opacity-60" />
           <span>{m.user_dropdown__logout()}</span>
         </DropdownMenuItem>
