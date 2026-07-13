@@ -81,8 +81,12 @@ export async function listPublishedProductSummaries(
  */
 export async function loadPublicProductDefinition(
   db: DatabaseOrTransaction,
-  input: { organizationId: string; productSlug: string }
+  input:
+    | { organizationId: string; productId: string }
+    | { organizationId: string; productSlug: string }
 ): Promise<PublicProductDefinition | undefined> {
+  const productLocator =
+    "productId" in input ? eq(product.id, input.productId) : eq(product.slug, input.productSlug);
   const productRows = await db
     .select({
       id: product.id,
@@ -98,7 +102,7 @@ export async function loadPublicProductDefinition(
     .where(
       and(
         eq(product.organizationId, input.organizationId),
-        eq(product.slug, input.productSlug),
+        productLocator,
         eq(product.status, "published")
       )
     )

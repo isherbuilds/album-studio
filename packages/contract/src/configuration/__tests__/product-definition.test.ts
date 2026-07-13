@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 import { type z } from "zod";
 
-import { ProductDefinitionSchema } from "@tsu-stack/contract/configuration";
+import {
+  MAX_OPTION_GROUP_KEY_LENGTH,
+  MAX_OPTION_VALUE_ID_LENGTH,
+  MAX_PRODUCT_OPTION_GROUPS,
+  ProductDefinitionSchema
+} from "@tsu-stack/contract/configuration";
 
 function product(): z.input<typeof ProductDefinitionSchema> {
   return {
@@ -178,6 +183,66 @@ describe("ProductDefinitionSchema invariants", () => {
   it("rejects a negative numeric minimum", () => {
     const value = product();
     numeric(value).minimum = -2;
+    expect(ProductDefinitionSchema.safeParse(value).success).toBe(false);
+  });
+
+  it("accepts Option Group and Value boundaries", () => {
+    const groupCountValue = product();
+    groupCountValue.groups = Array.from({ length: MAX_PRODUCT_OPTION_GROUPS }, (_, index) => {
+      return {
+        type: "number" as const,
+        key: `group-${index}`,
+        label: `Group ${index}`,
+        required: true,
+        minimum: 0,
+        maximum: 1,
+        included: 0,
+        step: 1,
+        additionalUnitPriceMinor: 0
+      };
+    });
+    expect(ProductDefinitionSchema.safeParse(groupCountValue).success).toBe(true);
+
+    const groupKeyValue = product();
+    groupKeyValue.groups = [groupKeyValue.groups[2]];
+    groupKeyValue.groups[0].key = "g".repeat(MAX_OPTION_GROUP_KEY_LENGTH);
+    expect(ProductDefinitionSchema.safeParse(groupKeyValue).success).toBe(true);
+
+    const optionValue = product();
+    optionValue.groups = [optionValue.groups[0]];
+    discrete(optionValue, 0).values[0].id = "v".repeat(MAX_OPTION_VALUE_ID_LENGTH);
+    expect(ProductDefinitionSchema.safeParse(optionValue).success).toBe(true);
+  });
+
+  it("rejects too many Option Groups", () => {
+    const value = product();
+    value.groups = Array.from({ length: MAX_PRODUCT_OPTION_GROUPS + 1 }, (_, index) => {
+      return {
+        type: "number" as const,
+        key: `group-${index}`,
+        label: `Group ${index}`,
+        required: true,
+        minimum: 0,
+        maximum: 1,
+        included: 0,
+        step: 1,
+        additionalUnitPriceMinor: 0
+      };
+    });
+    expect(ProductDefinitionSchema.safeParse(value).success).toBe(false);
+  });
+
+  it("rejects oversized Option Group keys", () => {
+    const value = product();
+    value.groups = [value.groups[2]];
+    value.groups[0].key = "g".repeat(MAX_OPTION_GROUP_KEY_LENGTH + 1);
+    expect(ProductDefinitionSchema.safeParse(value).success).toBe(false);
+  });
+
+  it("rejects oversized Option Value IDs", () => {
+    const value = product();
+    value.groups = [value.groups[0]];
+    discrete(value, 0).values[0].id = "v".repeat(MAX_OPTION_VALUE_ID_LENGTH + 1);
     expect(ProductDefinitionSchema.safeParse(value).success).toBe(false);
   });
 });

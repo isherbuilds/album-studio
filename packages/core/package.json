@@ -10,6 +10,7 @@
     "./assets": "./src/assets/index.ts",
     "./catalog": "./src/catalog/index.ts",
     "./configuration": "./src/configuration/index.ts",
+    "./draft": "./src/draft/index.ts",
     "./health": "./src/health/index.ts",
     "./organization": "./src/organization/index.ts",
     "./*": "./src/*.ts"

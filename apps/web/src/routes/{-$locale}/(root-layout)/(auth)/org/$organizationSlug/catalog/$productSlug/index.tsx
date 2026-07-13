@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ProductConfiguratorPage } from "@/components/catalog/product-configurator-page";
+import { ProductStartPage } from "@/components/catalog/product-start-page";
 import { getCatalogBySlugQueryOptions } from "@/hooks/use-catalog";
 
 export const Route = createFileRoute(
@@ -15,5 +15,5 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { organizationSlug, productSlug } = Route.useParams();
-  return <ProductConfiguratorPage organizationSlug={organizationSlug} productSlug={productSlug} />;
+  return <ProductStartPage organizationSlug={organizationSlug} productSlug={productSlug} />;
 }

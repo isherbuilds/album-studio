@@ -57,7 +57,7 @@ export function HeroSection() {
           </ShaderErrorBoundary>
 
           <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
-            <div className="duraton-500 mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm font-medium text-foreground backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
                 <span
                   className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"

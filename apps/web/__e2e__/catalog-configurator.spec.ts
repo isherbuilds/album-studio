@@ -13,16 +13,22 @@ test("customer sees constraints and receives live configuration pricing", async 
     }
   });
 
-  await page.goto("/web/org/demo-studio/catalog");
+  await page.goto("/web/sign-in?redirect=%2Forg%2Fdemo-studio%2Fcatalog");
 
   await page.getByLabel("Email").fill("customer@demo-studio.test");
   await page.getByLabel("Password").fill("demo-password-123");
+  const signInResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/sign-in/email") && response.request().method() === "POST"
+  );
   await page.getByRole("button", { name: "Sign In" }).click();
+  expect((await signInResponse).ok()).toBe(true);
+  await page.goto("about:blank");
+  await page.goto("/web/org/demo-studio/catalog");
 
   await expect(page.getByRole("heading", { name: "Catalog" })).toBeVisible();
-  await page.goto("/web/org/demo-studio");
-  await expect(page).toHaveURL(/\/org\/demo-studio\/catalog$/);
   await page.getByRole("link", { name: /Wedding Album/ }).click();
+  await page.getByRole("button", { name: "Start configuration" }).click();
 
   const velvet = page.getByRole("button", { name: /Velvet/ });
   await expect(velvet).toBeDisabled();

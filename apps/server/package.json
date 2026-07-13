@@ -14,7 +14,8 @@
     "dev": "pnpm dotenvx run -f ../../packages/env/.env -- node --import tsx --watch src/index.ts",
     "seed:demo-data": "pnpm dotenvx run -f ../../packages/env/.env -- node --import tsx scripts/seed-demo-data.ts",
     "seed:platform-admin": "pnpm dotenvx run -f ../../packages/env/.env -- node --import tsx scripts/seed-platform-admin.ts",
-    "start": "pnpm dotenvx run -f ../../packages/env/.env -- node .output/index.mjs"
+    "start": "pnpm dotenvx run -f ../../packages/env/.env -- node .output/index.mjs",
+    "test:unit": "vp test"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
@@ -25,6 +26,7 @@
     "@orpc/zod": "catalog:",
     "@tsu-stack/api": "workspace:*",
     "@tsu-stack/auth": "workspace:*",
+    "@tsu-stack/contract": "workspace:*",
     "@tsu-stack/db": "workspace:*",
     "@tsu-stack/env": "workspace:*",
     "@tsu-stack/logger": "workspace:*",

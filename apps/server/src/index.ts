@@ -10,7 +10,6 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { experimental_RethrowHandlerPlugin as RethrowHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { type ContentfulStatusCode } from "hono/utils/http-status";
 
 import { createContext } from "@tsu-stack/api/lib/context/hono/create-context";
@@ -25,6 +24,8 @@ import {
   type HonoLogVariables
 } from "@tsu-stack/logger/server/hono/middleware";
 
+import { requestBodyLimit } from "#@/request-body-limit";
+import { createServerCors } from "#@/server-cors";
 import "#@/shared/lib/logger";
 
 const serverHostname = hostname();
@@ -33,15 +34,7 @@ export const app = new Hono<HonoLogVariables>().basePath(
   new URL(ENV_SERVER.VITE_SERVER_URL).pathname
 );
 
-app.use(
-  "/*",
-  cors({
-    allowHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    credentials: true,
-    origin: [new URL(ENV_SERVER.VITE_WEB_URL).origin]
-  })
-);
+app.use("/*", createServerCors(new URL(ENV_SERVER.VITE_WEB_URL).origin));
 
 app.use(
   "/*",
@@ -52,6 +45,8 @@ app.use(
     }
   })
 );
+
+app.use("/rpc/*", requestBodyLimit);
 
 app.post("/_logs/ingest", honoLogIngestionMiddleware());
 

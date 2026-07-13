@@ -149,7 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarContent />
       </aside>
       <div className="lg:col-start-2">
-        <header className="sticky top-0 flex h-14 items-center border-b bg-background/95 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 flex h-14 items-center border-b bg-background px-4 lg:hidden">
           <Sheet onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>
             <SheetTrigger asChild>
               <Button aria-label={m.app_shell__open_navigation()} size="icon" variant="ghost">

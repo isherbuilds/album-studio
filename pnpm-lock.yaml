@@ -295,6 +295,9 @@ importers:
       '@tsu-stack/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@tsu-stack/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@tsu-stack/db':
         specifier: workspace:*
         version: link:../../packages/db
