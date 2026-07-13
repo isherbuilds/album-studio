@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "6cd28d7b-9c2e-41f1-85a8-c13998368200",
+  "id": "daa9a0ab-9e37-4d98-a0a3-e038bb15ecec",
   "prevIds": [
     "53662f25-85ed-456c-b5f0-b3bb28fcb866"
   ],
@@ -1036,7 +1036,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'USD'",
+      "default": "'INR'",
       "generated": null,
       "identity": null,
       "name": "currency",
@@ -2603,13 +2603,6 @@
       "entityType": "checks",
       "schema": "public",
       "table": "member"
-    },
-    {
-      "value": "\"type\" <> 'number' OR (\n        \"minimum\" IS NOT NULL AND \"maximum\" IS NOT NULL AND \"step\" IS NOT NULL\n        AND \"included\" IS NOT NULL AND \"additional_unit_price_minor\" IS NOT NULL\n        AND \"minimum\" >= 0 AND \"maximum\" >= 0 AND \"included\" >= 0\n        AND \"step\" > 0 AND \"additional_unit_price_minor\" >= 0\n        AND \"minimum\" <= \"maximum\"\n        AND \"included\" >= \"minimum\" AND \"included\" <= \"maximum\"\n        AND (\"maximum\" - \"minimum\") % \"step\" = 0\n        AND (\"included\" - \"minimum\") % \"step\" = 0\n      )",
-      "name": "option_group_number_fields_check",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "option_group"
     },
     {
       "value": "\"additional_unit_price_minor\" IS NULL OR \"additional_unit_price_minor\" <= 9007199254740991",

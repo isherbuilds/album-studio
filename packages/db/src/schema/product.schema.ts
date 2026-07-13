@@ -45,7 +45,10 @@ export const product = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    revision: integer("revision").notNull().default(1),
+    revision: integer("revision")
+      .notNull()
+      .default(1)
+      .$onUpdate(() => sql`revision + 1`),
     slug: text("slug").notNull(),
     status: productStatus("status").notNull().default("draft"),
     updatedAt: timestamp("updated_at")
@@ -94,19 +97,6 @@ export const optionGroup = pgTable(
     uniqueIndex("option_group_product_key_uidx").on(table.productId, table.key),
     uniqueIndex("option_group_product_position_uidx").on(table.productId, table.position),
     unique("option_group_id_product_key").on(table.id, table.productId),
-    check(
-      "option_group_number_fields_check",
-      sql`${table.type} <> 'number' OR (
-        ${table.minimum} IS NOT NULL AND ${table.maximum} IS NOT NULL AND ${table.step} IS NOT NULL
-        AND ${table.included} IS NOT NULL AND ${table.additionalUnitPriceMinor} IS NOT NULL
-        AND ${table.minimum} >= 0 AND ${table.maximum} >= 0 AND ${table.included} >= 0
-        AND ${table.step} > 0 AND ${table.additionalUnitPriceMinor} >= 0
-        AND ${table.minimum} <= ${table.maximum}
-        AND ${table.included} >= ${table.minimum} AND ${table.included} <= ${table.maximum}
-        AND (${table.maximum} - ${table.minimum}) % ${table.step} = 0
-        AND (${table.included} - ${table.minimum}) % ${table.step} = 0
-      )`
-    ),
     check(
       "option_group_additional_unit_price_minor_check",
       sql`${table.additionalUnitPriceMinor} IS NULL OR ${table.additionalUnitPriceMinor} <= 9007199254740991`

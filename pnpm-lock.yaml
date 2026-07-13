@@ -640,6 +640,9 @@ importers:
       '@tanstack/react-start':
         specifier: 'catalog:'
         version: 1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@tsu-stack/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@tsu-stack/logger':
         specifier: workspace:*
         version: link:../logger

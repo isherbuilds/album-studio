@@ -3,6 +3,7 @@ import process from "node:process";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { auth } from "@tsu-stack/auth/index";
+import { DEFAULT_ORGANIZATION_CURRENCY } from "@tsu-stack/contract/configuration";
 import { db } from "@tsu-stack/db";
 import {
   component,
@@ -66,7 +67,7 @@ let organizationId = existingOrganization?.id;
 if (organizationId === undefined) {
   const createdOrganization = await auth.api.createOrganization({
     body: {
-      currency: "USD",
+      currency: DEFAULT_ORGANIZATION_CURRENCY,
       keepCurrentActiveOrganization: true,
       name: "Demo Studio",
       slug: ORGANIZATION_SLUG,
@@ -75,7 +76,10 @@ if (organizationId === undefined) {
   });
   organizationId = createdOrganization.id;
 } else {
-  await db.update(organization).set({ currency: "USD" }).where(eq(organization.id, organizationId));
+  await db
+    .update(organization)
+    .set({ currency: DEFAULT_ORGANIZATION_CURRENCY })
+    .where(eq(organization.id, organizationId));
 }
 
 const existingCustomerMembers = await db

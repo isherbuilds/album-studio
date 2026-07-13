@@ -405,8 +405,6 @@ function ConfiguratorContent({
   );
   const [quantity, setQuantity] = useState(1);
 
-  // Pure evaluator over stable payload inputs. The React Compiler memoizes this, so
-  // step/draft re-renders that don't touch selections or quantity reuse the result.
   const evaluation = evaluateConfiguration({
     product,
     availability,

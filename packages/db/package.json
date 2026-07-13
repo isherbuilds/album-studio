@@ -16,6 +16,7 @@
     "auth:generate": "vp run -w auth:generate"
   },
   "dependencies": {
+    "@tsu-stack/contract": "workspace:*",
     "@tsu-stack/logger": "workspace:*",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:"

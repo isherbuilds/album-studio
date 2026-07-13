@@ -108,6 +108,29 @@ afterAll(async () => {
 });
 
 describe("platform router authorization", () => {
+  it("defaults organization currency to INR", async () => {
+    const id = crypto.randomUUID();
+    const slug = `default-currency-${id}`;
+
+    try {
+      await db.insert(organization).values({
+        createdAt: new Date(),
+        id,
+        name: "Default Currency Organization",
+        slug
+      });
+
+      await expect(
+        db
+          .select({ currency: organization.currency })
+          .from(organization)
+          .where(eq(organization.id, id))
+      ).resolves.toEqual([{ currency: "INR" }]);
+    } finally {
+      await db.delete(organization).where(eq(organization.id, id));
+    }
+  });
+
   it("rejects a signed-in non-admin even when the request context contains a stale admin role", async () => {
     const client = createRouterClient(platformRouter, {
       context: createContext(nonAdminHeaders, "admin")

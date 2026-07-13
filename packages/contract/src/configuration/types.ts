@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const DEFAULT_ORGANIZATION_CURRENCY = "INR";
+
 const IdSchema = z.string().min(1);
 const NonEmptyStringSchema = z.string().min(1);
 const supportedCurrencyCodes =

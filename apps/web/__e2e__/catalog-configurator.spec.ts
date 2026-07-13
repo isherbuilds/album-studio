@@ -28,8 +28,14 @@ test("customer sees constraints and receives live configuration pricing", async 
   await expect(velvet).toBeDisabled();
   await expect(velvet).toContainText("Out of stock");
 
-  await page.getByRole("button", { name: /Silk/ }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  const silk = page.getByRole("button", { name: /Silk/ });
+  await expect(async () => {
+    await silk.click();
+    await expect(silk).toHaveAttribute("aria-pressed", "true");
+  }).toPass();
+  const next = page.getByRole("button", { name: "Next" });
+  await expect(next).toBeEnabled();
+  await next.click();
 
   const foil = page.getByRole("button", { name: /Foil/ });
   await expect(foil).toBeDisabled();
@@ -52,11 +58,11 @@ test("customer sees constraints and receives live configuration pricing", async 
   await page.getByRole("button", { name: "Next" }).click();
 
   await expect(
-    page.getByText("$182.00", { exact: true }).filter({ visible: true }).last()
+    page.getByText("₹182.00", { exact: true }).filter({ visible: true }).last()
   ).toBeVisible();
   await page.getByRole("button", { name: "Increase" }).click();
   await expect(
-    page.getByText("$364.00", { exact: true }).filter({ visible: true }).last()
+    page.getByText("₹364.00", { exact: true }).filter({ visible: true }).last()
   ).toBeVisible();
 
   expect(browserErrors).toEqual([]);

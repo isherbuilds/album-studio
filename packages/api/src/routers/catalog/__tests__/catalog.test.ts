@@ -630,6 +630,20 @@ describe("catalog router", () => {
     });
   });
 
+  it("increments product revision on Drizzle updates", async () => {
+    await db
+      .update(product)
+      .set({ name: "Published Product Updated" })
+      .where(eq(product.id, fixture.publishedProductId));
+
+    await expect(
+      db
+        .select({ revision: product.revision })
+        .from(product)
+        .where(eq(product.id, fixture.publishedProductId))
+    ).resolves.toEqual([{ revision: 2 }]);
+  });
+
   it("rejects a self-referential option value requirement at the database boundary", async () => {
     await expect(
       db.insert(optionValueRequirement).values({

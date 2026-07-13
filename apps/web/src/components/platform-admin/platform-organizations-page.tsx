@@ -2,6 +2,7 @@ import { Building2, Search, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { DEFAULT_ORGANIZATION_CURRENCY } from "@tsu-stack/contract/configuration";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Badge } from "@tsu-stack/ui/components/badge";
@@ -30,7 +31,7 @@ import {
 } from "@/hooks/use-platform-admin";
 
 const EMPTY_FORM = {
-  currency: "USD",
+  currency: DEFAULT_ORGANIZATION_CURRENCY,
   name: "",
   ownerEmail: "",
   ownerName: "",
@@ -191,7 +192,7 @@ export function PlatformOrganizationsPage() {
                       setForm({ ...form, currency: event.target.value.toUpperCase() })
                     }
                     pattern="[A-Za-z]{3}"
-                    placeholder="USD"
+                    placeholder={DEFAULT_ORGANIZATION_CURRENCY}
                     required
                     value={form.currency}
                   />

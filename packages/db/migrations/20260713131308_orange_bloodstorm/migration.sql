@@ -28,16 +28,6 @@ CREATE TABLE "option_group" (
 	"step" integer,
 	"type" "option_group_type" NOT NULL,
 	CONSTRAINT "option_group_id_product_key" UNIQUE("id","product_id"),
-	CONSTRAINT "option_group_number_fields_check" CHECK ("type" <> 'number' OR (
-        "minimum" IS NOT NULL AND "maximum" IS NOT NULL AND "step" IS NOT NULL
-        AND "included" IS NOT NULL AND "additional_unit_price_minor" IS NOT NULL
-        AND "minimum" >= 0 AND "maximum" >= 0 AND "included" >= 0
-        AND "step" > 0 AND "additional_unit_price_minor" >= 0
-        AND "minimum" <= "maximum"
-        AND "included" >= "minimum" AND "included" <= "maximum"
-        AND ("maximum" - "minimum") % "step" = 0
-        AND ("included" - "minimum") % "step" = 0
-      )),
 	CONSTRAINT "option_group_additional_unit_price_minor_check" CHECK ("additional_unit_price_minor" IS NULL OR "additional_unit_price_minor" <= 9007199254740991)
 );
 --> statement-breakpoint
@@ -86,7 +76,7 @@ CREATE TABLE "product" (
 	CONSTRAINT "product_base_price_minor_check" CHECK ("base_price_minor" >= 0 AND "base_price_minor" <= 9007199254740991)
 );
 --> statement-breakpoint
-ALTER TABLE "organization" ADD COLUMN "currency" text DEFAULT 'USD' NOT NULL;--> statement-breakpoint
+ALTER TABLE "organization" ADD COLUMN "currency" text DEFAULT 'INR' NOT NULL;--> statement-breakpoint
 CREATE INDEX "component_organization_idx" ON "component" ("organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "option_group_product_key_uidx" ON "option_group" ("product_id","key");--> statement-breakpoint
 CREATE UNIQUE INDEX "option_group_product_position_uidx" ON "option_group" ("product_id","position");--> statement-breakpoint
