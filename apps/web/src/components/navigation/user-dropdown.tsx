@@ -1,10 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import { FileText, BarChart2, Lock, LogOut, UserSquare } from "lucide-react";
 
-import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
-import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Button } from "@tsu-stack/ui/components/button";
@@ -20,23 +16,11 @@ import {
 
 import { NavbarAvatar } from "@/components/navigation/navbar-avatar";
 import { NavbarUnauthenticatedButtons } from "@/components/navigation/navbar-unauthenticated-buttons";
+import { useSignOut } from "@/hooks/use-auth";
 
 export function UserDropdown() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
   const { user } = useAuthSuspense();
-
-  const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onResponse: async () => {
-          // Invalidate to sync across all tabs
-          await queryClient.invalidateQueries(getAuthUserQueryOptions());
-          await router.invalidate();
-        }
-      }
-    });
-  };
+  const handleSignOut = useSignOut();
 
   if (!user) {
     return <NavbarUnauthenticatedButtons />;
@@ -78,7 +62,17 @@ export function UserDropdown() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer" variant="destructive" onClick={handleSignOut}>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          variant="destructive"
+          onSelect={(event) => {
+            // Keep the menu open until sign-out resolves: success invalidates routing and
+            // redirects (unmounting this), failure surfaces a toast so the user can retry
+            // instead of the menu silently closing on a still-authenticated session.
+            event.preventDefault();
+            void handleSignOut();
+          }}
+        >
           <LogOut aria-hidden="true" className="opacity-60" />
           <span>{m.user_dropdown__logout()}</span>
         </DropdownMenuItem>

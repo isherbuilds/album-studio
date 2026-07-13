@@ -45,6 +45,9 @@ catalogs:
     '@mdx-js/rollup':
       specifier: 3.1.1
       version: 3.1.1
+    '@opentelemetry/api':
+      specifier: ^1.9.1
+      version: 1.9.1
     '@orpc/client':
       specifier: 1.14.7
       version: 1.14.7
@@ -66,6 +69,9 @@ catalogs:
     '@paper-design/shaders-react':
       specifier: 0.0.77
       version: 0.0.77
+    '@playwright/test':
+      specifier: ^1.61.1
+      version: 1.61.1
     '@rolldown/plugin-babel':
       specifier: 0.2.3
       version: 0.2.3
@@ -261,7 +267,7 @@ importers:
         version: '@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)'
       vite-plus:
         specifier: 'catalog:'
-        version: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+        version: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   apps/server:
     dependencies:
@@ -273,16 +279,16 @@ importers:
         version: 2.0.8(hono@4.12.28)
       '@orpc/json-schema':
         specifier: 'catalog:'
-        version: 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+        version: 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
       '@orpc/openapi':
         specifier: 'catalog:'
-        version: 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+        version: 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
       '@orpc/server':
         specifier: 'catalog:'
-        version: 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+        version: 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
       '@orpc/zod':
         specifier: 'catalog:'
-        version: 1.14.7(@orpc/contract@1.14.7)(@orpc/server@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)(zod@4.4.3)
+        version: 1.14.7(@opentelemetry/api@1.9.1)(@orpc/contract@1.14.7(@opentelemetry/api@1.9.1))(@orpc/server@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)(zod@4.4.3)
       '@tsu-stack/api':
         specifier: workspace:*
         version: link:../../packages/api
@@ -300,7 +306,7 @@ importers:
         version: link:../../packages/logger
       drizzle-orm:
         specifier: 1.0.0-rc.4-5d5b77c
-        version: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+        version: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
       hono:
         specifier: 'catalog:'
         version: 4.12.28
@@ -420,6 +426,9 @@ importers:
       '@mdx-js/rollup':
         specifier: 'catalog:'
         version: 3.1.1(rollup@4.60.4)
+      '@playwright/test':
+        specifier: 'catalog:'
+        version: 1.61.1
       '@rolldown/plugin-babel':
         specifier: 'catalog:'
         version: 0.2.3(@babel/core@8.0.1)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(rolldown@1.0.3)
@@ -473,7 +482,7 @@ importers:
         version: 10.1.0
       nitro:
         specifier: 'catalog:'
-        version: nitro-nightly@3.0.1-20260128-211656-ae83c97e(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(chokidar@5.0.0)(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))(lru-cache@11.5.1)(rolldown@1.0.3)(rollup@4.60.4)
+        version: nitro-nightly@3.0.1-20260128-211656-ae83c97e(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(chokidar@5.0.0)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))(lru-cache@11.5.1)(rolldown@1.0.3)(rollup@4.60.4)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.2
@@ -488,13 +497,13 @@ importers:
     dependencies:
       '@orpc/client':
         specifier: 'catalog:'
-        version: 1.14.7
+        version: 1.14.7(@opentelemetry/api@1.9.1)
       '@orpc/server':
         specifier: 'catalog:'
-        version: 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+        version: 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
       '@orpc/tanstack-query':
         specifier: 'catalog:'
-        version: 1.14.7(@orpc/client@1.14.7)(@tanstack/query-core@5.101.2)
+        version: 1.14.7(@opentelemetry/api@1.9.1)(@orpc/client@1.14.7(@opentelemetry/api@1.9.1))(@tanstack/query-core@5.101.2)
       '@tanstack/react-start':
         specifier: 'catalog:'
         version: 1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -518,7 +527,7 @@ importers:
         version: link:../logger
       drizzle-orm:
         specifier: 1.0.0-rc.4-5d5b77c
-        version: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+        version: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -532,18 +541,24 @@ importers:
       hono:
         specifier: 'catalog:'
         version: 4.12.28
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.9
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
       vite-plus:
         specifier: 'catalog:'
-        version: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+        version: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   packages/auth:
     dependencies:
       '@better-auth/drizzle-adapter':
         specifier: 'catalog:'
-        version: https://pkg.pr.new/@better-auth/drizzle-adapter@652115b(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))
+        version: https://pkg.pr.new/@better-auth/drizzle-adapter@652115b(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))
+      '@opentelemetry/api':
+        specifier: 'catalog:'
+        version: 1.9.1
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.101.2(react@19.2.7)
@@ -558,7 +573,7 @@ importers:
         version: link:../db
       better-auth:
         specifier: 'catalog:'
-        version: 1.6.23(@tanstack/react-start@1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.13)(vitest@4.1.10)
+        version: 1.6.23(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.13)(vitest@4.1.10)
     devDependencies:
       '@tsu-stack/env':
         specifier: workspace:*
@@ -590,7 +605,7 @@ importers:
         version: 6.0.3
       vite-plus:
         specifier: 'catalog:'
-        version: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+        version: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   packages/core:
     dependencies:
@@ -602,7 +617,7 @@ importers:
         version: link:../db
       drizzle-orm:
         specifier: 1.0.0-rc.4-5d5b77c
-        version: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+        version: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
     devDependencies:
       '@tsu-stack/tsconfig':
         specifier: workspace:*
@@ -618,19 +633,22 @@ importers:
         version: '@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)'
       vite-plus:
         specifier: 'catalog:'
-        version: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+        version: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   packages/db:
     dependencies:
       '@tanstack/react-start':
         specifier: 'catalog:'
         version: 1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@tsu-stack/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@tsu-stack/logger':
         specifier: workspace:*
         version: link:../logger
       drizzle-orm:
         specifier: 1.0.0-rc.4-5d5b77c
-        version: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+        version: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
       postgres:
         specifier: 'catalog:'
         version: 3.4.9
@@ -720,7 +738,7 @@ importers:
         version: 6.1.7
       evlog:
         specifier: 'catalog:'
-        version: 2.20.0(@orpc/server@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(@tanstack/start-client-core@1.170.13)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(hono@4.12.28)(react@19.2.7)
+        version: 2.20.0(@orpc/server@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(@tanstack/start-client-core@1.170.13)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(hono@4.12.28)(react@19.2.7)
       hono:
         specifier: 'catalog:'
         version: 4.12.28
@@ -751,7 +769,7 @@ importers:
         version: '@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)'
       vite-plus:
         specifier: 'catalog:'
-        version: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+        version: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   packages/ui:
     dependencies:
@@ -1832,6 +1850,10 @@ packages:
     resolution: {integrity: sha512-hAX0pT/73190NLqBPPWSdBVGtbY6VOhWYK3qqHqtXQ1gK7kS2yz4+ivsN07hpJ6I3aeMtKP6J6npsEKOAzuTLA==}
     engines: {node: '>=20.0'}
 
+  '@opentelemetry/api@1.9.1':
+    resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
+    engines: {node: '>=8.0.0'}
+
   '@opentelemetry/semantic-conventions@1.41.1':
     resolution: {integrity: sha512-/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA==}
     engines: {node: '>=14'}
@@ -2596,6 +2618,11 @@ packages:
   '@pkgr/core@0.3.6':
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
+
+  '@playwright/test@1.61.1':
+    resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -5199,6 +5226,11 @@ packages:
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -5869,6 +5901,16 @@ packages:
   pkg-up@3.1.0:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
+
+  playwright-core@1.61.1:
+    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.61.1:
+    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
@@ -6775,7 +6817,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
 
-  '@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)':
+  '@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)':
     dependencies:
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
@@ -6786,46 +6828,48 @@ snapshots:
       kysely: 0.29.3
       nanostores: 1.3.0
       zod: 4.4.3
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
 
-  '@better-auth/drizzle-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))':
+  '@better-auth/drizzle-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
     optionalDependencies:
-      drizzle-orm: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
 
-  '@better-auth/drizzle-adapter@https://pkg.pr.new/@better-auth/drizzle-adapter@652115b(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))':
+  '@better-auth/drizzle-adapter@https://pkg.pr.new/@better-auth/drizzle-adapter@652115b(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
     optionalDependencies:
-      drizzle-orm: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
 
-  '@better-auth/kysely-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(kysely@0.29.3)':
+  '@better-auth/kysely-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(kysely@0.29.3)':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
     optionalDependencies:
       kysely: 0.29.3
 
-  '@better-auth/memory-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)':
+  '@better-auth/memory-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
 
-  '@better-auth/mongo-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)':
+  '@better-auth/mongo-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
 
-  '@better-auth/prisma-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)':
+  '@better-auth/prisma-adapter@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
 
-  '@better-auth/telemetry@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)':
+  '@better-auth/telemetry@1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)':
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
 
@@ -7498,21 +7542,23 @@ snapshots:
 
   '@oozcitak/util@10.0.0': {}
 
+  '@opentelemetry/api@1.9.1': {}
+
   '@opentelemetry/semantic-conventions@1.41.1': {}
 
-  '@orpc/client@1.14.7':
+  '@orpc/client@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
-      '@orpc/standard-server-fetch': 1.14.7
-      '@orpc/standard-server-peer': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-fetch': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-peer': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/contract@1.14.7':
+  '@orpc/contract@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/client': 1.14.7
-      '@orpc/shared': 1.14.7
+      '@orpc/client': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
       '@standard-schema/spec': 1.1.0
       openapi-types: 12.1.3
     transitivePeerDependencies:
@@ -7520,13 +7566,13 @@ snapshots:
 
   '@orpc/interop@1.14.7': {}
 
-  '@orpc/json-schema@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)':
+  '@orpc/json-schema@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)':
     dependencies:
-      '@orpc/contract': 1.14.7
+      '@orpc/contract': 1.14.7(@opentelemetry/api@1.9.1)
       '@orpc/interop': 1.14.7
-      '@orpc/openapi': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
-      '@orpc/server': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
-      '@orpc/shared': 1.14.7
+      '@orpc/openapi': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/server': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
       json-schema-typed: 8.0.2
     transitivePeerDependencies:
       - '@opentelemetry/api'
@@ -7534,24 +7580,24 @@ snapshots:
       - fastify
       - ws
 
-  '@orpc/openapi-client@1.14.7':
+  '@orpc/openapi-client@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/client': 1.14.7
-      '@orpc/contract': 1.14.7
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
+      '@orpc/client': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/contract': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/openapi@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)':
+  '@orpc/openapi@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)':
     dependencies:
-      '@orpc/client': 1.14.7
-      '@orpc/contract': 1.14.7
+      '@orpc/client': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/contract': 1.14.7(@opentelemetry/api@1.9.1)
       '@orpc/interop': 1.14.7
-      '@orpc/openapi-client': 1.14.7
-      '@orpc/server': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
+      '@orpc/openapi-client': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/server': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
       json-schema-typed: 8.0.2
       rou3: 0.7.12
     transitivePeerDependencies:
@@ -7560,18 +7606,18 @@ snapshots:
       - fastify
       - ws
 
-  '@orpc/server@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)':
+  '@orpc/server@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)':
     dependencies:
-      '@orpc/client': 1.14.7
-      '@orpc/contract': 1.14.7
+      '@orpc/client': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/contract': 1.14.7(@opentelemetry/api@1.9.1)
       '@orpc/interop': 1.14.7
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
-      '@orpc/standard-server-aws-lambda': 1.14.7
-      '@orpc/standard-server-fastify': 1.14.7
-      '@orpc/standard-server-fetch': 1.14.7
-      '@orpc/standard-server-node': 1.14.7
-      '@orpc/standard-server-peer': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-aws-lambda': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-fastify': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-fetch': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-node': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-peer': 1.14.7(@opentelemetry/api@1.9.1)
       cookie: 1.1.1
     optionalDependencies:
       crossws: 0.4.5(srvx@0.11.16)
@@ -7580,71 +7626,73 @@ snapshots:
       - '@opentelemetry/api'
       - fastify
 
-  '@orpc/shared@1.14.7':
+  '@orpc/shared@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
       radash: 12.1.1
       type-fest: 5.7.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
 
-  '@orpc/standard-server-aws-lambda@1.14.7':
+  '@orpc/standard-server-aws-lambda@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
-      '@orpc/standard-server-fetch': 1.14.7
-      '@orpc/standard-server-node': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-fetch': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-node': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-fastify@1.14.7':
+  '@orpc/standard-server-fastify@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
-      '@orpc/standard-server-node': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-node': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-fetch@1.14.7':
+  '@orpc/standard-server-fetch@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-node@1.14.7':
+  '@orpc/standard-server-node@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
-      '@orpc/standard-server-fetch': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server-fetch': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-peer@1.14.7':
+  '@orpc/standard-server-peer@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/standard-server': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server@1.14.7':
+  '@orpc/standard-server@1.14.7(@opentelemetry/api@1.9.1)':
     dependencies:
-      '@orpc/shared': 1.14.7
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/tanstack-query@1.14.7(@orpc/client@1.14.7)(@tanstack/query-core@5.101.2)':
+  '@orpc/tanstack-query@1.14.7(@opentelemetry/api@1.9.1)(@orpc/client@1.14.7(@opentelemetry/api@1.9.1))(@tanstack/query-core@5.101.2)':
     dependencies:
-      '@orpc/client': 1.14.7
-      '@orpc/shared': 1.14.7
+      '@orpc/client': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
       '@tanstack/query-core': 5.101.2
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/zod@1.14.7(@orpc/contract@1.14.7)(@orpc/server@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)(zod@4.4.3)':
+  '@orpc/zod@1.14.7(@opentelemetry/api@1.9.1)(@orpc/contract@1.14.7(@opentelemetry/api@1.9.1))(@orpc/server@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
-      '@orpc/contract': 1.14.7
-      '@orpc/json-schema': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
-      '@orpc/openapi': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
-      '@orpc/server': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
-      '@orpc/shared': 1.14.7
+      '@orpc/contract': 1.14.7(@opentelemetry/api@1.9.1)
+      '@orpc/json-schema': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/openapi': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/server': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/shared': 1.14.7(@opentelemetry/api@1.9.1)
       escape-string-regexp: 5.0.0
       wildcard-match: 5.1.4
       zod: 4.4.3
@@ -8001,6 +8049,10 @@ snapshots:
   '@paper-design/shaders@0.0.77': {}
 
   '@pkgr/core@0.3.6': {}
+
+  '@playwright/test@1.61.1':
+    dependencies:
+      playwright: 1.61.1
 
   '@polka/url@1.0.0-next.29': {}
 
@@ -9720,19 +9772,19 @@ snapshots:
       '@rolldown/plugin-babel': 0.2.3(@babel/core@8.0.1)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(rolldown@1.0.3)
       babel-plugin-react-compiler: 1.0.0
 
-  '@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))':
+  '@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/browser': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
-      vitest: 4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
+      '@vitest/browser': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
     transitivePeerDependencies:
       - bufferutil
       - msw
       - utf-8-validate
       - vite
 
-  '@vitest/browser@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))':
+  '@vitest/browser@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))':
     dependencies:
       '@blazediff/core': 1.9.1
       '@vitest/mocker': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
@@ -9741,7 +9793,7 @@ snapshots:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.1.0
-      vitest: 4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
       ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
@@ -9903,15 +9955,15 @@ snapshots:
 
   baseline-browser-mapping@2.10.33: {}
 
-  better-auth@1.6.23(@tanstack/react-start@1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.13)(vitest@4.1.10):
+  better-auth@1.6.23(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.13)(vitest@4.1.10):
     dependencies:
-      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
-      '@better-auth/drizzle-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))
-      '@better-auth/kysely-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(kysely@0.29.3)
-      '@better-auth/memory-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)
-      '@better-auth/mongo-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)
-      '@better-auth/prisma-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)
-      '@better-auth/telemetry': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)
+      '@better-auth/core': 1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0)
+      '@better-auth/drizzle-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))
+      '@better-auth/kysely-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(kysely@0.29.3)
+      '@better-auth/memory-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)
+      '@better-auth/mongo-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)
+      '@better-auth/prisma-adapter': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)
+      '@better-auth/telemetry': 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.3)(kysely@0.29.3)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
       '@noble/ciphers': 2.2.0
@@ -9924,11 +9976,11 @@ snapshots:
       zod: 4.4.3
     optionalDependencies:
       '@tanstack/react-start': 1.168.27(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(crossws@0.4.5(srvx@0.11.16))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      drizzle-orm: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       solid-js: 1.9.13
-      vitest: 4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
       - '@opentelemetry/api'
@@ -10075,9 +10127,9 @@ snapshots:
 
   dayjs@1.11.21: {}
 
-  db0@0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)):
+  db0@0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)):
     optionalDependencies:
-      drizzle-orm: 1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
 
   debounce-fn@4.0.0:
     dependencies:
@@ -10129,8 +10181,9 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3):
+  drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3):
     optionalDependencies:
+      '@opentelemetry/api': 1.9.1
       postgres: 3.4.9
       zod: 4.4.3
 
@@ -10354,9 +10407,9 @@ snapshots:
 
   esutils@2.0.3: {}
 
-  evlog@2.20.0(@orpc/server@1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(@tanstack/start-client-core@1.170.13)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(hono@4.12.28)(react@19.2.7):
+  evlog@2.20.0(@orpc/server@1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0))(@tanstack/start-client-core@1.170.13)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(hono@4.12.28)(react@19.2.7):
     optionalDependencies:
-      '@orpc/server': 1.14.7(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
+      '@orpc/server': 1.14.7(@opentelemetry/api@1.9.1)(crossws@0.4.5(srvx@0.11.16))(ws@8.21.0)
       '@tanstack/start-client-core': 1.170.13
       hono: 4.12.28
       react: 19.2.7
@@ -10415,6 +10468,9 @@ snapshots:
       keyv: 4.5.4
 
   flatted@3.4.2: {}
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -11045,11 +11101,11 @@ snapshots:
 
   nf3@0.3.17: {}
 
-  nitro-nightly@3.0.1-20260128-211656-ae83c97e(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(chokidar@5.0.0)(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))(lru-cache@11.5.1)(rolldown@1.0.3)(rollup@4.60.4):
+  nitro-nightly@3.0.1-20260128-211656-ae83c97e(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(chokidar@5.0.0)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))(lru-cache@11.5.1)(rolldown@1.0.3)(rollup@4.60.4):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.5(srvx@0.10.1)
-      db0: 0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))
+      db0: 0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))
       h3: 2.0.1-rc.22(crossws@0.4.5(srvx@0.10.1))
       jiti: 2.7.0
       nf3: 0.3.17
@@ -11060,7 +11116,7 @@ snapshots:
       srvx: 0.10.1
       undici: 7.26.0
       unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(chokidar@5.0.0)(db0@0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)))(lru-cache@11.5.1)(ofetch@2.0.0-alpha.3)
+      unstorage: 2.0.0-alpha.7(chokidar@5.0.0)(db0@0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)))(lru-cache@11.5.1)(ofetch@2.0.0-alpha.3)
     optionalDependencies:
       rolldown: 1.0.3
       rollup: 4.60.4
@@ -11211,7 +11267,7 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  oxfmt@0.57.0(vite-plus@0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)):
+  oxfmt@0.57.0(vite-plus@0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)):
     dependencies:
       tinypool: 2.1.0
     optionalDependencies:
@@ -11234,7 +11290,7 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.57.0
       '@oxfmt/binding-win32-ia32-msvc': 0.57.0
       '@oxfmt/binding-win32-x64-msvc': 0.57.0
-      vite-plus: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+      vite-plus: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   oxlint-tsgolint@0.24.0:
     optionalDependencies:
@@ -11245,7 +11301,7 @@ snapshots:
       '@oxlint-tsgolint/win32-arm64': 0.24.0
       '@oxlint-tsgolint/win32-x64': 0.24.0
 
-  oxlint@1.72.0(oxlint-tsgolint@0.24.0)(vite-plus@0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)):
+  oxlint@1.72.0(oxlint-tsgolint@0.24.0)(vite-plus@0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.72.0
       '@oxlint/binding-android-arm64': 1.72.0
@@ -11267,7 +11323,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.72.0
       '@oxlint/binding-win32-x64-msvc': 1.72.0
       oxlint-tsgolint: 0.24.0
-      vite-plus: 0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
+      vite-plus: 0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
 
   p-limit@2.3.0:
     dependencies:
@@ -11327,6 +11383,14 @@ snapshots:
   pkg-up@3.1.0:
     dependencies:
       find-up: 3.0.0
+
+  playwright-core@1.61.1: {}
+
+  playwright@1.61.1:
+    dependencies:
+      playwright-core: 1.61.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   pngjs@7.0.0: {}
 
@@ -11837,10 +11901,10 @@ snapshots:
       picomatch: 4.0.4
       webpack-virtual-modules: 0.6.2
 
-  unstorage@2.0.0-alpha.7(chokidar@5.0.0)(db0@0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3)))(lru-cache@11.5.1)(ofetch@2.0.0-alpha.3):
+  unstorage@2.0.0-alpha.7(chokidar@5.0.0)(db0@0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)))(lru-cache@11.5.1)(ofetch@2.0.0-alpha.3):
     optionalDependencies:
       chokidar: 5.0.0
-      db0: 0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(postgres@3.4.9)(zod@4.4.3))
+      db0: 0.3.4(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))
       lru-cache: 11.5.1
       ofetch: 2.0.0-alpha.3
 
@@ -11887,12 +11951,12 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plus@0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3):
+  vite-plus@0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3):
     dependencies:
       '@oxc-project/types': 0.138.0
       '@oxlint/plugins': 1.68.0
-      '@vitest/browser': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
-      '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
+      '@vitest/browser': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
+      '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
       '@vitest/expect': 4.1.10
       '@vitest/mocker': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
       '@vitest/pretty-format': 4.1.10
@@ -11901,10 +11965,10 @@ snapshots:
       '@vitest/spy': 4.1.10
       '@vitest/utils': 4.1.10
       '@voidzero-dev/vite-plus-core': 0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)
-      oxfmt: 0.57.0(vite-plus@0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
-      oxlint: 1.72.0(oxlint-tsgolint@0.24.0)(vite-plus@0.2.4(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
+      oxfmt: 0.57.0(vite-plus@0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
+      oxlint: 1.72.0(oxlint-tsgolint@0.24.0)(vite-plus@0.2.4(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
       oxlint-tsgolint: 0.24.0
-      vitest: 4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
     optionalDependencies:
       '@voidzero-dev/vite-plus-darwin-arm64': 0.2.4
       '@voidzero-dev/vite-plus-darwin-x64': 0.2.4
@@ -11949,7 +12013,7 @@ snapshots:
     optionalDependencies:
       vite: '@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)'
 
-  vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)):
+  vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)):
     dependencies:
       '@vitest/expect': 4.1.10
       '@vitest/mocker': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))
@@ -11972,8 +12036,9 @@ snapshots:
       vite: '@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)'
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.1
       '@types/node': 26.1.0
-      '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
+      '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3))(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.23.0)(typescript@6.0.3)))
     transitivePeerDependencies:
       - msw
 

@@ -120,7 +120,10 @@ export function useUpdateMemberRoleMutation() {
       onError: (error) => {
         if (isDefinedError(error)) {
           switch (error.code) {
+            case "FORBIDDEN":
             case "LAST_OWNER":
+            case "NOT_FOUND":
+            case "UNAUTHORIZED":
               toast.error(error.message);
               return;
           }

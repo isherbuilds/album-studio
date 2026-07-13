@@ -14,6 +14,7 @@ import * as schema from "@tsu-stack/db/schema";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
 
 import { organizationAccessControl, organizationRoles } from "#@/access-control";
+import { organizationAdditionalFields } from "#@/organization-fields";
 
 export const auth = betterAuth({
   baseURL: new URL(ENV_SERVER.VITE_SERVER_URL).origin,
@@ -54,7 +55,12 @@ export const auth = betterAuth({
       allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
       invitationExpiresIn: ORGANIZATION_INVITATION_TTL_SECONDS,
-      roles: organizationRoles
+      roles: organizationRoles,
+      schema: {
+        organization: {
+          additionalFields: organizationAdditionalFields
+        }
+      }
     }),
     openAPI({
       theme: "deepSpace"

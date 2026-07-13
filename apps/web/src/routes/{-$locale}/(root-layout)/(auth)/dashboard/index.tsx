@@ -15,9 +15,10 @@ export const Route = createFileRoute("/{-$locale}/(root-layout)/(auth)/dashboard
     const organizations = await context.queryClient.ensureQueryData(
       listMyOrganizationsQueryOptions()
     );
-    if (organizations.length === 1 && organizations[0]) {
+    const [only] = organizations;
+    if (organizations.length === 1 && only) {
       throw redirect({
-        params: { organizationSlug: organizations[0].slug },
+        params: { organizationSlug: only.slug },
         to: "/org/$organizationSlug"
       });
     }

@@ -1,6 +1,8 @@
 import { defineRelationsPart, sql } from "drizzle-orm";
 import { boolean, check, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+import { DEFAULT_ORGANIZATION_CURRENCY } from "@tsu-stack/contract/configuration";
+
 export const user = pgTable("user", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   email: text("email").notNull().unique(),
@@ -83,6 +85,7 @@ export const organization = pgTable(
   "organization",
   {
     createdAt: timestamp("created_at").notNull(),
+    currency: text("currency").notNull().default(DEFAULT_ORGANIZATION_CURRENCY),
     id: text("id").primaryKey(),
     logo: text("logo"),
     metadata: text("metadata"),

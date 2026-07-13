@@ -30,6 +30,7 @@
     "@tsu-stack/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "hono": "catalog:",
+    "postgres": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   }

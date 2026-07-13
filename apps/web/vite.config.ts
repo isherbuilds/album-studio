@@ -50,7 +50,16 @@ const PAGES_PRERENDER_CONFIG = [
   )
 ];
 
+// Under Vitest we only need module resolution + tsx transform for node unit
+// tests; the full app pipeline (TanStack Start, Nitro, prerender, MDX, image)
+// isn't just unnecessary, it fails to load in the test module runner.
+const isVitest = process.env.VITEST === "true";
+
 export default defineConfig({
+  test: {
+    include: ["**/__tests__/**/*.test.ts"],
+    environment: "node"
+  },
   run: {
     tasks: {
       build: {
@@ -96,54 +105,56 @@ export default defineConfig({
   server: {
     port: 3000
   },
-  plugins: [
-    devtools({
-      consolePiping: { enabled: false }
-    }),
-    mdx(),
-    tanstackStart({
-      pages: PAGES_PRERENDER_CONFIG,
-      prerender: {
-        enabled: true,
-        // Only prerender paths defined in the PAGES_PRERENDER_CONFIG object
-        autoStaticPathsDiscovery: false,
-        // Disable crawling to avoid missing i18n routes, we are explicitly defining them in PAGES_PRERENDER_CONFIG
-        crawlLinks: false
-      },
-      server: {
-        build: {
-          // Don't allow changing of process.env.NODE_ENV at runtime
-          staticNodeEnv: true
-        }
-      }
-    }),
-    viteReact(),
-    /** @see {@link https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#react-compiler} */
-    babel({
-      presets: [reactCompilerPreset()]
-    }),
-    paraglideVitePlugin({
-      basePath: new URL(ENV_WEB_ISOMORPHIC.VITE_WEB_URL).pathname
-    }),
-    /** @see {@link https://tanstack.com/start/latest/docs/framework/react/guide/hosting} */
-    nitro({
-      baseURL: new URL(ENV_WEB_ISOMORPHIC.VITE_WEB_URL).pathname,
-      /**
-       * We need to add this or else we will get `Error: Cannot find module 'react'` during prod.
-       * FIXME: I haven't found a fix or related issue yet, but this is where I got the idea to trace the deps:
-       * @see {@link https://github.com/nuxt/nuxt/issues/20773}
-       * Recent Discord discussion on the matter
-       * @see {@link https://discord.com/channels/719702312431386674/1490005967067414608}
-       */
-      traceDeps: ["react", "react-dom"]
-    }),
-    tailwindcss(),
-    ohImage({
-      pl_show: true,
-      transforms: {
-        format: "webp",
-        quality: 80
-      }
-    })
-  ]
+  plugins: isVitest
+    ? []
+    : [
+        devtools({
+          consolePiping: { enabled: false }
+        }),
+        mdx(),
+        tanstackStart({
+          pages: PAGES_PRERENDER_CONFIG,
+          prerender: {
+            enabled: true,
+            // Only prerender paths defined in the PAGES_PRERENDER_CONFIG object
+            autoStaticPathsDiscovery: false,
+            // Disable crawling to avoid missing i18n routes, we are explicitly defining them in PAGES_PRERENDER_CONFIG
+            crawlLinks: false
+          },
+          server: {
+            build: {
+              // Don't allow changing of process.env.NODE_ENV at runtime
+              staticNodeEnv: true
+            }
+          }
+        }),
+        viteReact(),
+        /** @see {@link https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#react-compiler} */
+        babel({
+          presets: [reactCompilerPreset()]
+        }),
+        paraglideVitePlugin({
+          basePath: new URL(ENV_WEB_ISOMORPHIC.VITE_WEB_URL).pathname
+        }),
+        /** @see {@link https://tanstack.com/start/latest/docs/framework/react/guide/hosting} */
+        nitro({
+          baseURL: new URL(ENV_WEB_ISOMORPHIC.VITE_WEB_URL).pathname,
+          /**
+           * We need to add this or else we will get `Error: Cannot find module 'react'` during prod.
+           * FIXME: I haven't found a fix or related issue yet, but this is where I got the idea to trace the deps:
+           * @see {@link https://github.com/nuxt/nuxt/issues/20773}
+           * Recent Discord discussion on the matter
+           * @see {@link https://discord.com/channels/719702312431386674/1490005967067414608}
+           */
+          traceDeps: ["react", "react-dom"]
+        }),
+        tailwindcss(),
+        ohImage({
+          pl_show: true,
+          transforms: {
+            format: "webp",
+            quality: 80
+          }
+        })
+      ]
 });

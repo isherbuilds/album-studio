@@ -22,6 +22,8 @@ Canonical commands:
 
 Prefer package-local test commands when they exist and cover the touched surface. Use the repo wrappers when changes span packages or when package-local coverage is not available.
 
+API tests create a random schema inside the configured local PostgreSQL database, migrate it before workers start, point `DATABASE_URL` at that schema, and drop it after the run. Never remove the local-host guard or run API integration fixtures against the development `public` schema.
+
 ## Test Locations
 
 Unit tests:

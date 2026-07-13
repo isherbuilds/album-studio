@@ -128,12 +128,14 @@ beforeAll(async () => {
   await db.insert(organization).values([
     {
       createdAt: new Date(),
+      currency: "USD",
       id: fixture.organizationId,
       name: "Organization Fixture",
       slug: fixture.slug
     },
     {
       createdAt: new Date(),
+      currency: "USD",
       id: fixture.otherOrganizationId,
       name: "Other Organization Fixture",
       slug: fixture.otherOrganizationSlug

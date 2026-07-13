@@ -1,11 +1,12 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useHydrated } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
-import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
+import { authQueryKeys } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -28,6 +29,7 @@ export function SignInForm({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isPending } = useAuth();
+  const isHydrated = useHydrated();
 
   const signInMutation = useMutation({
     mutationFn: async (values: { email: string; password: string }) => {
@@ -46,8 +48,11 @@ export function SignInForm({
       toast.error(error.message || m.auth__sign_in_failed());
     },
     onSuccess: async () => {
-      // Invalidate auth cache to force refetch with new user data
-      await queryClient.invalidateQueries(getAuthUserQueryOptions());
+      await queryClient.invalidateQueries({
+        exact: true,
+        queryKey: authQueryKeys.user,
+        refetchType: "active"
+      });
       await navigate({
         to: redirectTo
       });
@@ -104,6 +109,7 @@ export function SignInForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                   type="email"
                   value={field.state.value}
+                  disabled={!isHydrated}
                   placeholder={m.auth__email_placeholder()}
                 />
                 {field.state.meta.errors.map((error) => (
@@ -126,6 +132,7 @@ export function SignInForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                   type="password"
                   value={field.state.value}
+                  disabled={!isHydrated}
                 />
                 {field.state.meta.errors.map((error) => (
                   <p className="text-sm text-destructive" key={error?.message}>
@@ -140,7 +147,7 @@ export function SignInForm({
             <Button
               light="skeuomorphic"
               type="submit"
-              disabled={signInMutation.isPending || signInMutation.isSuccess}
+              disabled={!isHydrated || signInMutation.isPending || signInMutation.isSuccess}
             >
               {signInMutation.isPending ? m.auth__signing_in() : m.auth__sign_in()}
             </Button>

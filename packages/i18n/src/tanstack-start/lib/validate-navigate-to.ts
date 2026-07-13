@@ -67,8 +67,19 @@ export function validateNavigateTo({
   // Retrieve all valid application routes with their localized paths
   const validRoutes = getRouteTreePathsLocalized(routeTree);
 
-  // Attempt to find a route matching the provided URL
-  const matchingRoute = validRoutes.find((route) => normalizeRoutePath(route.path) === pathname);
+  // A pathname can structurally match several routes (a literal and a same-shape dynamic
+  // route). Pick the most specific — fewest dynamic segments — so a literal route's
+  // include/exclude decision wins over a dynamic route that merely matches the same shape,
+  // independent of route-tree traversal order.
+  let matchingRoute: LocalizedRouteInfo | undefined;
+  for (const route of validRoutes) {
+    if (
+      routePathMatches(route.path, pathname) &&
+      (!matchingRoute || routeDynamicWeight(route.path) < routeDynamicWeight(matchingRoute.path))
+    ) {
+      matchingRoute = route;
+    }
+  }
 
   // Return fallback if:
   // 1. No matching route exists in the route tree
@@ -103,4 +114,35 @@ function normalizeRoutePath(path: string): string {
   }
 
   return path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+function routePathMatches(routePath: string, pathname: string): boolean {
+  const routeSegments = normalizeRoutePath(routePath).split("/");
+  const pathnameSegments = pathname.split("/");
+  const splatIndex = routeSegments.indexOf("$");
+
+  if (splatIndex === -1 && routeSegments.length !== pathnameSegments.length) return false;
+  if (splatIndex !== -1 && pathnameSegments.length <= splatIndex) return false;
+
+  const matchedSegments = routeSegments.slice(
+    0,
+    splatIndex === -1 ? routeSegments.length : splatIndex
+  );
+  return matchedSegments.every((segment, index) => {
+    if (isDynamicSegment(segment)) return pathnameSegments[index] !== "";
+    return segment === pathnameSegments[index];
+  });
+}
+
+function isDynamicSegment(segment: string): boolean {
+  return segment.startsWith("$") && segment.length > 1;
+}
+
+function routeDynamicWeight(routePath: string): number {
+  return normalizeRoutePath(routePath)
+    .split("/")
+    .reduce(
+      (weight, segment) => weight + (segment === "$" ? 2 : isDynamicSegment(segment) ? 1 : 0),
+      0
+    );
 }

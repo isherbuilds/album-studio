@@ -118,6 +118,12 @@ describe("ProductDefinitionSchema invariants", () => {
       }
     ],
     [
+      "zero step",
+      (value: ReturnType<typeof product>) => {
+        numeric(value).step = 0;
+      }
+    ],
+    [
       "forward requirement reference",
       (value: ReturnType<typeof product>) =>
         discrete(value, 0).values[0].requirements.push({

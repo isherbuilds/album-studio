@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@tsu-stack/auth/index";
+import { CurrencyCodeSchema } from "@tsu-stack/contract/configuration";
 import { member, organization, user } from "@tsu-stack/db/schema";
 
 import { platformAdminProcedure } from "#@/lib/procedures/factory";
@@ -14,6 +15,7 @@ const organizationSummarySchema = z.object({
 });
 
 const createOrganizationInputSchema = z.object({
+  currency: CurrencyCodeSchema,
   name: z.string().trim().min(2).max(120),
   ownerEmail: z.email().transform((email) => email.toLowerCase()),
   ownerName: z.string().trim().min(2).max(120),
@@ -150,6 +152,7 @@ export const platformRouter = {
         try {
           createdOrganization = await auth.api.createOrganization({
             body: {
+              currency: input.currency,
               keepCurrentActiveOrganization: true,
               name: input.name,
               slug: input.slug,

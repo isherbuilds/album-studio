@@ -108,6 +108,29 @@ afterAll(async () => {
 });
 
 describe("platform router authorization", () => {
+  it("defaults organization currency to INR", async () => {
+    const id = crypto.randomUUID();
+    const slug = `default-currency-${id}`;
+
+    try {
+      await db.insert(organization).values({
+        createdAt: new Date(),
+        id,
+        name: "Default Currency Organization",
+        slug
+      });
+
+      await expect(
+        db
+          .select({ currency: organization.currency })
+          .from(organization)
+          .where(eq(organization.id, id))
+      ).resolves.toEqual([{ currency: "INR" }]);
+    } finally {
+      await db.delete(organization).where(eq(organization.id, id));
+    }
+  });
+
   it("rejects a signed-in non-admin even when the request context contains a stale admin role", async () => {
     const client = createRouterClient(platformRouter, {
       context: createContext(nonAdminHeaders, "admin")
@@ -145,6 +168,7 @@ describe("platform router authorization", () => {
 
     try {
       const created = await client.organizations.create({
+        currency: "EUR",
         name: "Platform Organization",
         ownerEmail: provisionedOwnerEmail,
         ownerName: "Provisioned Owner",
@@ -160,8 +184,14 @@ describe("platform router authorization", () => {
         ownerCreated: true,
         slug
       });
+      const [persisted] = await db
+        .select({ currency: organization.currency })
+        .from(organization)
+        .where(eq(organization.slug, slug));
+      expect(persisted?.currency).toBe("EUR");
       await expect(
         client.organizations.create({
+          currency: "USD",
           name: "Duplicate Platform Organization",
           ownerEmail: provisionedOwnerEmail,
           ownerName: "Provisioned Owner",
@@ -202,6 +232,7 @@ describe("platform router authorization", () => {
 
     try {
       const created = await client.organizations.create({
+        currency: "USD",
         name: "Existing Owner Organization",
         ownerEmail,
         ownerName: "Ignored Owner Name",
