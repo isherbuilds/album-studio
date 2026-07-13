@@ -1,11 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { LogOut, Menu, X } from "lucide-react";
 import React, { Suspense } from "react";
 
-import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
-import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Button } from "@tsu-stack/ui/components/button";
@@ -16,6 +13,7 @@ import { LocaleSwitcher } from "@/components/common/locale-switcher";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { navLinks } from "@/components/navigation/nav-links";
 import { NavbarAvatar } from "@/components/navigation/navbar-avatar";
+import { useSignOut } from "@/hooks/use-auth";
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
 
@@ -76,23 +74,15 @@ export function MobileNav() {
 }
 
 function MobileNavAuth({ onNavigate }: { onNavigate: () => void }) {
-  const queryClient = useQueryClient();
-  const router = useRouter();
   const routerState = useRouterState();
   const { user } = useAuthSuspense();
+  const signOut = useSignOut();
 
   const redirect = routerState.location.search?.redirect;
 
   const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onResponse: async () => {
-          await queryClient.invalidateQueries(getAuthUserQueryOptions());
-          await router.invalidate();
-          onNavigate();
-        }
-      }
-    });
+    await signOut();
+    onNavigate();
   };
 
   if (!user) {

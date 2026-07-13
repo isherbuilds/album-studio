@@ -477,7 +477,14 @@ describe("evaluateConfiguration", () => {
         expect.objectContaining({
           groupKey: "finish",
           optionValueId: "foil",
-          reasons: expect.arrayContaining([expect.objectContaining({ code: "requirement_unmet" })])
+          reasons: expect.arrayContaining([
+            expect.objectContaining({
+              code: "requirement_unmet",
+              // The reason names the acceptable prerequisite values, not just the group,
+              // so the UI can render "Requires Linen or Leather".
+              params: { groupKey: "cover", optionValueIds: ["linen", "leather"] }
+            })
+          ])
         })
       );
     });

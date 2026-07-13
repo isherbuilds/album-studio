@@ -37,7 +37,10 @@ export const ProductOptionValueSchema = z.object({
   label: NonEmptyStringSchema,
   priceAdjustmentMinor: MinorUnitAmountSchema.nonnegative(),
   requirements: z.array(OptionValueRequirementSchema),
-  componentIds: z.array(IdSchema)
+  componentIds: z.array(IdSchema),
+  // Optional per-value preview image. Presentation-only: never read by the evaluator,
+  // so it stays nullish and existing definitions/fixtures need not supply it.
+  imageUrl: z.string().min(1).nullish()
 });
 
 const CommonOptionGroupFields = {
@@ -236,7 +239,7 @@ export const ConfigurationIssueCodeSchema = z.enum([
 
 export const ConfigurationDisplayParamsSchema = z.record(
   z.string(),
-  z.union([z.string(), z.number()])
+  z.union([z.string(), z.number(), z.array(z.string())])
 );
 
 export const ConfigurationIssueSchema = z.object({

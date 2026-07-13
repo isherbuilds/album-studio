@@ -10,7 +10,6 @@ import { redirect } from "@tsu-stack/i18n/tanstack-start/lib/redirect";
 import { stripLocalePrefix } from "@tsu-stack/i18n/tanstack-start/lib/strip-locale-prefix";
 import { validateNavigateTo } from "@tsu-stack/i18n/tanstack-start/lib/validate-navigate-to";
 
-import { AppShell } from "@/components/layout/app-shell";
 import { routeTree } from "@/routeTree.gen";
 
 /**
@@ -81,9 +80,5 @@ function RequiresAuthLayout() {
     }
   }, [user, navigate, location.href, location.pathname]);
 
-  return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  );
+  return <Outlet />;
 }

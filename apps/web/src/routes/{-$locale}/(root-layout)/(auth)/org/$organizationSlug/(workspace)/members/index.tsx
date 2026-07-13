@@ -4,7 +4,7 @@ import { OrganizationMembersPage } from "@/components/organization/organization-
 import { listInvitationsQueryOptions, listMembersQueryOptions } from "@/hooks/use-organization";
 
 export const Route = createFileRoute(
-  "/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/members/"
+  "/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/members/"
 )({
   beforeLoad: async ({ context, params }) => {
     await Promise.all([

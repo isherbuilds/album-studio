@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "catalog:",
+    "@opentelemetry/api": "catalog:",
     "better-auth": "catalog:"
   },
   "devDependencies": {

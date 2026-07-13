@@ -24,6 +24,7 @@ catalog:
   "@inlang/paraglide-js": 2.20.2
   "@lonik/oh-image": 3.3.0
   "@mdx-js/rollup": 3.1.1
+  "@opentelemetry/api": ^1.9.1
   "@orpc/client": 1.14.7
   "@orpc/json-schema": 1.14.7
   "@orpc/openapi": 1.14.7
@@ -31,6 +32,7 @@ catalog:
   "@orpc/tanstack-query": 1.14.7
   "@orpc/zod": 1.14.7
   "@paper-design/shaders-react": 0.0.77
+  "@playwright/test": ^1.61.1
   "@rolldown/plugin-babel": 0.2.3
   "@t3-oss/env-core": 0.13.11
   "@tailwindcss/vite": 4.3.2

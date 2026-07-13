@@ -30,6 +30,7 @@ import {
 } from "@/hooks/use-platform-admin";
 
 const EMPTY_FORM = {
+  currency: "USD",
   name: "",
   ownerEmail: "",
   ownerName: "",
@@ -177,6 +178,22 @@ export function PlatformOrganizationsPage() {
                     placeholder={m.platform_admin__slug_placeholder()}
                     required
                     value={form.slug}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="organization-currency">
+                    {m.platform_admin__organization_currency()}
+                  </FieldLabel>
+                  <Input
+                    id="organization-currency"
+                    maxLength={3}
+                    onChange={(event) =>
+                      setForm({ ...form, currency: event.target.value.toUpperCase() })
+                    }
+                    pattern="[A-Za-z]{3}"
+                    placeholder="USD"
+                    required
+                    value={form.currency}
                   />
                 </Field>
                 <Field>

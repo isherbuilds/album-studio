@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
-import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
+import { authQueryKeys } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -46,8 +46,11 @@ export function SignInForm({
       toast.error(error.message || m.auth__sign_in_failed());
     },
     onSuccess: async () => {
-      // Invalidate auth cache to force refetch with new user data
-      await queryClient.invalidateQueries(getAuthUserQueryOptions());
+      await queryClient.invalidateQueries({
+        exact: true,
+        queryKey: authQueryKeys.user,
+        refetchType: "active"
+      });
       await navigate({
         to: redirectTo
       });

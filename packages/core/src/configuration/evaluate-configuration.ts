@@ -142,7 +142,12 @@ export function evaluateConfiguration(input: EvaluateConfigurationInput): Config
         ) {
           reasons.push({
             code: "requirement_unmet",
-            params: { groupKey: requirement.groupKey }
+            params: {
+              groupKey: requirement.groupKey,
+              // Carry the acceptable prerequisite values so the UI can name them
+              // ("Requires Linen or Leather") instead of just the group ("Requires Cover").
+              optionValueIds: requirement.optionValueIds
+            }
           });
         }
       }

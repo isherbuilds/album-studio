@@ -94,7 +94,7 @@ app.get("/auth/open-api/generate-schema", async (c) => {
 
 app.on(["POST", "GET"], "/auth/*", async (c) => auth.handler(c.req.raw));
 
-export const openApiHandler = new OpenAPIHandler(appRouter, {
+const openApiHandler = new OpenAPIHandler(appRouter, {
   interceptors: [
     onError((error, { context }) => {
       context.logger.set({ handler: "openapi" });
@@ -160,7 +160,7 @@ export const openApiHandler = new OpenAPIHandler(appRouter, {
   ]
 });
 
-export const rpcHandler = new RPCHandler(appRouter, {
+const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
     onError((error, { context }) => {
       context.logger.set({ handler: "rpc" });

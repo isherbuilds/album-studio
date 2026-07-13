@@ -44,6 +44,10 @@ export function useCreateOrganizationMutation() {
             case "ORGANIZATION_SLUG_TAKEN":
               toast.error(m.platform_admin__slug_taken());
               return;
+            case "FORBIDDEN":
+            case "UNAUTHORIZED":
+              toast.error(error.message);
+              return;
           }
         }
         toast.error(m.platform_admin__create_failed());

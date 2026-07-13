@@ -68,7 +68,7 @@ export function validateNavigateTo({
   const validRoutes = getRouteTreePathsLocalized(routeTree);
 
   // Attempt to find a route matching the provided URL
-  const matchingRoute = validRoutes.find((route) => normalizeRoutePath(route.path) === pathname);
+  const matchingRoute = validRoutes.find((route) => routePathMatches(route.path, pathname));
 
   // Return fallback if:
   // 1. No matching route exists in the route tree
@@ -103,4 +103,16 @@ function normalizeRoutePath(path: string): string {
   }
 
   return path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+function routePathMatches(routePath: string, pathname: string): boolean {
+  const routeSegments = normalizeRoutePath(routePath).split("/");
+  const pathnameSegments = pathname.split("/");
+
+  if (routeSegments.length !== pathnameSegments.length) return false;
+
+  return routeSegments.every((segment, index) => {
+    if (segment.startsWith("$") && segment.length > 1) return pathnameSegments[index] !== "";
+    return segment === pathnameSegments[index];
+  });
 }

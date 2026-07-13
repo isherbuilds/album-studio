@@ -83,6 +83,7 @@ export const organization = pgTable(
   "organization",
   {
     createdAt: timestamp("created_at").notNull(),
+    currency: text("currency").notNull().default("USD"),
     id: text("id").primaryKey(),
     logo: text("logo"),
     metadata: text("metadata"),

@@ -15,7 +15,17 @@ export const authClient = createAuthClient({
   baseURL: API_AUTH_URL,
   plugins: [
     adminClient(),
-    organizationClient({ ac: organizationAccessControl, roles: organizationRoles })
+    organizationClient({
+      ac: organizationAccessControl,
+      roles: organizationRoles,
+      schema: {
+        organization: {
+          additionalFields: {
+            currency: { type: "string", input: true, required: true }
+          }
+        }
+      }
+    })
   ]
 });
 

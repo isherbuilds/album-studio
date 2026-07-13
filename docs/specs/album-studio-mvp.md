@@ -158,7 +158,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Depends on: Slice 2.
   - Interfaces: Consumes Organization capability context; produces `organizations.members.list`, `organizations.invitations.list`, native Better Auth invitation/member mutations in `use-organization.ts`, the invite-first `organizations.invitations.acceptNewUser` adapter, and the invitation-acceptance route contract.
 
-- [ ] Slice 4: Seeded private catalog and live configuration
+- [x] Slice 4: Seeded private catalog and live configuration
   - Acceptance: A realistic album fixture is seeded through an idempotent demo-data command; Customers see lightweight Product summaries only through valid Membership; selecting one Product loads its complete curated public evaluator/display definition once, with images lazy and independent; all steps evaluate locally without group-per-step fetching; server reads use fixed query count without group/value N+1; configurator handles required choices, sheet count, requirements, disabled explanations, selection clearing, quantity, and live integer-money totals.
   - Verify: core evaluator tests, catalog/API Organization-isolation tests, focused browser configuration journey, and `vp run -w fix`.
   - Depends on: Slice 1 and Slice 2.

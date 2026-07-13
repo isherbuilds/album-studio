@@ -96,6 +96,46 @@
   --sidebar-ring: var(--base-800);
 }
 
+/*
+ * Dark theme — a Midday-style near-black surface with a monochrome inversion:
+ * primary flips to near-white, the neutral ramp supplies elevation, and borders
+ * stay hairline. Only --destructive is chromatic. Kept strictly neutral (no warm
+ * cream/beige) per the monotone direction. Reuses the same --base-* ramp so the
+ * two modes stay in lockstep.
+ */
+.dark {
+  --background: var(--base-950);
+  --foreground: var(--base-100);
+  --card: var(--base-900);
+  --card-foreground: var(--base-100);
+  --popover: var(--base-900);
+  --popover-foreground: var(--base-100);
+  --primary: var(--base-50);
+  --primary-foreground: var(--base-950);
+  --secondary: var(--base-800);
+  --secondary-foreground: var(--base-100);
+  --muted: var(--base-900);
+  --muted-foreground: var(--base-400);
+  --accent: var(--base-800);
+  --accent-foreground: var(--base-100);
+  --border: var(--base-800);
+  --input: var(--base-700);
+  --ring: var(--base-300);
+  --chart-1: var(--base-50);
+  --chart-2: var(--base-400);
+  --chart-3: var(--base-200);
+  --chart-4: var(--base-600);
+  --chart-5: var(--base-700);
+  --sidebar: var(--base-900);
+  --sidebar-foreground: var(--base-100);
+  --sidebar-primary: var(--base-50);
+  --sidebar-primary-foreground: var(--base-950);
+  --sidebar-accent: var(--base-800);
+  --sidebar-accent-foreground: var(--base-100);
+  --sidebar-border: var(--base-800);
+  --sidebar-ring: var(--base-300);
+}
+
 @theme inline {
   --color-base-50: var(--base-50);
   --color-base-100: var(--base-100);

@@ -1,14 +1,10 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { Building2, Images, LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
 import { useState } from "react";
 
 import { can } from "@tsu-stack/auth/access-control";
-import { authClient } from "@tsu-stack/auth/react/auth-client";
-import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
-import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Separator } from "@tsu-stack/ui/components/separator";
 import {
@@ -21,7 +17,9 @@ import {
 } from "@tsu-stack/ui/components/sheet";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
+import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { NavbarAvatar } from "@/components/navigation/navbar-avatar";
+import { useSignOut } from "@/hooks/use-auth";
 
 type WorkspaceNavigationProps = {
   organizationSlug?: string;
@@ -90,8 +88,7 @@ function WorkspaceNavigation({
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const signOut = useSignOut();
   const matches = useRouterState({ select: (state) => state.matches });
   const user = matches.find((match) => match.context.user)?.context.user;
   const membershipMatch = matches.find((match) => "membership" in match.context);
@@ -125,15 +122,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       />
       <div className="mt-auto flex flex-col gap-3">
         <Separator />
-        <div className="flex items-center gap-3 px-2">
+        <div className="flex items-center justify-between gap-3 px-2">
           <NavbarAvatar avatarImgSrc={user?.image} email={user?.email} name={user?.name} />
+          <ThemeSwitcher size="icon-sm" variant="ghost" />
         </div>
         <Button
           className="w-full justify-start"
           onClick={async () => {
-            await authClient.signOut();
-            await queryClient.invalidateQueries(getAuthUserQueryOptions());
-            await navigate({ to: "/sign-in" });
+            await signOut();
             onNavigate?.();
           }}
           variant="ghost"

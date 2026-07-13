@@ -54,7 +54,14 @@ export const auth = betterAuth({
       allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
       invitationExpiresIn: ORGANIZATION_INVITATION_TTL_SECONDS,
-      roles: organizationRoles
+      roles: organizationRoles,
+      schema: {
+        organization: {
+          additionalFields: {
+            currency: { type: "string", input: true, required: true }
+          }
+        }
+      }
     }),
     openAPI({
       theme: "deepSpace"

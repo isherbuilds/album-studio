@@ -145,6 +145,7 @@ describe("platform router authorization", () => {
 
     try {
       const created = await client.organizations.create({
+        currency: "USD",
         name: "Platform Organization",
         ownerEmail: provisionedOwnerEmail,
         ownerName: "Provisioned Owner",
@@ -162,6 +163,7 @@ describe("platform router authorization", () => {
       });
       await expect(
         client.organizations.create({
+          currency: "USD",
           name: "Duplicate Platform Organization",
           ownerEmail: provisionedOwnerEmail,
           ownerName: "Provisioned Owner",
@@ -202,6 +204,7 @@ describe("platform router authorization", () => {
 
     try {
       const created = await client.organizations.create({
+        currency: "USD",
         name: "Existing Owner Organization",
         ownerEmail,
         ownerName: "Ignored Owner Name",
