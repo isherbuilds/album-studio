@@ -241,6 +241,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.delete(offlinePayment).where(eq(offlinePayment.organizationId, fixture.organizationId));
+  await db.delete(auditEvent).where(eq(auditEvent.organizationId, fixture.organizationId));
   await db.delete(customerOrder).where(eq(customerOrder.organizationId, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.otherOrganizationId));
@@ -528,6 +529,7 @@ describe("orders router", () => {
       customer.payments.record({
         amountMinor: 1_000,
         method: "cash",
+        mutationId: crypto.randomUUID(),
         note: null,
         orderNumber: placed.number,
         organizationSlug: fixture.organizationSlug
@@ -612,6 +614,16 @@ describe("orders router", () => {
       })
     ).resolves.toMatchObject({ cancellationStatus: "pending", status: "placed" });
     await expect(
+      db
+        .select({ action: auditEvent.action, actorUserId: auditEvent.actorUserId })
+        .from(auditEvent)
+        .where(eq(auditEvent.organizationId, fixture.organizationId))
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        { action: "order.cancellation_requested", actorUserId: fixture.customerId }
+      ])
+    );
+    await expect(
       customer.orders.requestCancellation({
         orderNumber: placed.number,
         organizationSlug: fixture.organizationSlug
@@ -641,17 +653,33 @@ describe("orders router", () => {
       draftId: editor.draft.id,
       organizationSlug: fixture.organizationSlug
     });
+    await db
+      .update(product)
+      .set({ basePriceMinor: 12_000 })
+      .where(eq(product.id, fixture.productId));
 
-    const duplicate = await customer.orders.duplicateToDraft({
-      orderNumber: placed.number,
-      organizationSlug: fixture.organizationSlug
-    });
+    let duplicate;
+    try {
+      duplicate = await customer.orders.duplicateToDraft({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      });
+    } finally {
+      await db
+        .update(product)
+        .set({ basePriceMinor: 10_000 })
+        .where(eq(product.id, fixture.productId));
+    }
 
     expect(duplicate.draft).toMatchObject({
       projectName: "Maya & Arjun",
       quantity: 2,
       selections: { cover: fixture.valueId },
       status: "active"
+    });
+    expect(duplicate.draft.evaluationSummary).toMatchObject({
+      orderTotal: { amountMinor: 25_000, currency: "USD" },
+      status: "valid"
     });
     expect(duplicate.draft.id).not.toBe(editor.draft.id);
   });
@@ -717,6 +745,7 @@ describe("orders router", () => {
           ...scope,
           amountMinor: 1_000,
           method: "cash",
+          mutationId: crypto.randomUUID(),
           note: null
         })
       ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
@@ -724,10 +753,15 @@ describe("orders router", () => {
         manager.payments.reverse({
           ...scope,
           amountMinor: 1_000,
+          mutationId: crypto.randomUUID(),
           note: null,
           receiptId: crypto.randomUUID()
         })
-      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(manager.payments.listByOrder(scope)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      })
     ]);
   });
 
@@ -741,13 +775,16 @@ describe("orders router", () => {
       organizationSlug: fixture.organizationSlug
     });
 
-    const receipt = await manager.payments.record({
+    const receiptInput = {
       amountMinor: 8_000,
-      method: "upi",
+      method: "upi" as const,
+      mutationId: crypto.randomUUID(),
       note: "Deposit",
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug
-    });
+    };
+    const receipt = await manager.payments.record(receiptInput);
+    await expect(manager.payments.record(receiptInput)).resolves.toEqual(receipt);
     expect(receipt.summary).toMatchObject({
       balance: { amountMinor: 13_000, currency: "USD" },
       paid: { amountMinor: 8_000, currency: "USD" },
@@ -758,6 +795,7 @@ describe("orders router", () => {
       manager.payments.record({
         amountMinor: 14_000,
         method: "cash",
+        mutationId: crypto.randomUUID(),
         note: null,
         orderNumber: placed.number,
         organizationSlug: fixture.organizationSlug
@@ -766,6 +804,7 @@ describe("orders router", () => {
 
     const reversed = await manager.payments.reverse({
       amountMinor: 3_000,
+      mutationId: crypto.randomUUID(),
       note: "Deposit correction",
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug,
@@ -805,6 +844,7 @@ describe("orders router", () => {
     const receipt = await manager.payments.record({
       amountMinor: 8_000,
       method: "cash",
+      mutationId: crypto.randomUUID(),
       note: null,
       orderNumber: firstOrder.number,
       organizationSlug: fixture.organizationSlug
@@ -821,11 +861,74 @@ describe("orders router", () => {
       db.insert(offlinePayment).values({
         actorUserId: fixture.managerId,
         amountMinor: -1_000,
+        entryType: "reversal",
         method: "cash",
+        mutationId: crypto.randomUUID(),
         note: null,
         orderId: secondOrderId,
         organizationId: fixture.organizationId,
-        reversalOfId: receipt.payment.id
+        reversalOfId: receipt.payment.id,
+        reversalTargetType: "receipt"
+      })
+    ).rejects.toThrow("Failed query");
+
+    const firstOrderRows = await db
+      .select({ id: customerOrder.id })
+      .from(customerOrder)
+      .where(eq(customerOrder.number, firstOrder.number))
+      .limit(1);
+    const firstOrderId = firstOrderRows[0]?.id;
+    if (!firstOrderId) throw new Error("First Order missing");
+    const selfId = crypto.randomUUID();
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: -1_000,
+        entryType: "reversal",
+        id: selfId,
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: firstOrderId,
+        organizationId: fixture.organizationId,
+        reversalOfId: selfId,
+        reversalTargetType: "receipt"
+      })
+    ).rejects.toThrow("Failed query");
+
+    const reversal = await manager.payments.reverse({
+      amountMinor: 1_000,
+      mutationId: crypto.randomUUID(),
+      note: null,
+      orderNumber: firstOrder.number,
+      organizationSlug: fixture.organizationSlug,
+      receiptId: receipt.payment.id
+    });
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: -1_000,
+        entryType: "reversal",
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: firstOrderId,
+        organizationId: fixture.organizationId,
+        reversalOfId: reversal.payment.id,
+        reversalTargetType: "receipt"
+      })
+    ).rejects.toThrow("Failed query");
+
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: Number.MAX_SAFE_INTEGER + 1,
+        entryType: "receipt",
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: firstOrderId,
+        organizationId: fixture.organizationId
       })
     ).rejects.toThrow("Failed query");
   });
@@ -842,6 +945,7 @@ describe("orders router", () => {
     const receiptInput = {
       amountMinor: 15_000,
       method: "cash" as const,
+      mutationId: crypto.randomUUID(),
       note: null,
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug
@@ -849,7 +953,7 @@ describe("orders router", () => {
 
     const receipts = await Promise.allSettled([
       manager.payments.record(receiptInput),
-      manager.payments.record(receiptInput)
+      manager.payments.record({ ...receiptInput, mutationId: crypto.randomUUID() })
     ]);
     const recorded = receipts.filter((result) => result.status === "fulfilled");
     const rejected = receipts.filter((result) => result.status === "rejected");
@@ -864,6 +968,7 @@ describe("orders router", () => {
 
     const reversalInput = {
       amountMinor: 10_000,
+      mutationId: crypto.randomUUID(),
       note: null,
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug,
@@ -871,7 +976,7 @@ describe("orders router", () => {
     };
     const reversals = await Promise.allSettled([
       manager.payments.reverse(reversalInput),
-      manager.payments.reverse(reversalInput)
+      manager.payments.reverse({ ...reversalInput, mutationId: crypto.randomUUID() })
     ]);
     expect(reversals.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     expect(reversals.filter((result) => result.status === "rejected")).toEqual([

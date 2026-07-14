@@ -14,10 +14,13 @@ export function createPaymentSummary(
   total: { amountMinor: number; currency: string },
   paidMinor: number
 ): PaymentSummary {
+  if (paidMinor < 0 || paidMinor > total.amountMinor) {
+    throw new Error("Paid amount is outside Order total");
+  }
   return PaymentSummarySchema.parse({
     balance: { amountMinor: total.amountMinor - paidMinor, currency: total.currency },
     paid: { amountMinor: paidMinor, currency: total.currency },
-    state: paidMinor === 0 ? "unpaid" : paidMinor === total.amountMinor ? "paid" : "partially_paid",
+    state: paidMinor === total.amountMinor ? "paid" : paidMinor === 0 ? "unpaid" : "partially_paid",
     total
   });
 }

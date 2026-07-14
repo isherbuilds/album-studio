@@ -43,6 +43,7 @@ export const paymentsRouter = {
         actorUserId: context.authSession.user.id,
         amountMinor: input.amountMinor,
         method: input.method,
+        mutationId: input.mutationId,
         note: input.note,
         orderNumber: input.orderNumber,
         organizationId: context.organization.id
@@ -60,12 +61,15 @@ export const paymentsRouter = {
         actorName: context.authSession.user.name,
         actorUserId: context.authSession.user.id,
         amountMinor: input.amountMinor,
+        mutationId: input.mutationId,
         note: input.note,
         orderNumber: input.orderNumber,
         organizationId: context.organization.id,
         receiptId: input.receiptId
       });
-      if (result.kind === "not_found") throw errors.NOT_FOUND({ message: "Receipt not found" });
+      if (result.kind === "not_found") {
+        throw errors.NOT_FOUND({ message: "Order or receipt not found" });
+      }
       if (result.kind === "overage") throw errors.PAYMENT_OVERAGE();
       return { payment: result.payment, summary: result.summary };
     })

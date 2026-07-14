@@ -17,6 +17,7 @@ import { loadPublicProductDefinition } from "#@/catalog/queries";
 import { evaluateConfiguration } from "#@/configuration/evaluate-configuration";
 import { runRepeatableReadTransaction } from "#@/database/run-repeatable-read-transaction";
 import { parseConfigurationDraftDetail } from "#@/draft/queries";
+import { createConfigurationDraftSnapshot } from "#@/draft/snapshot";
 import { parseOrderDetail } from "#@/order/queries";
 
 const validTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
@@ -344,6 +345,13 @@ export async function requestOrderCancellation(
       .returning();
     const updated = rows[0];
     if (!updated) throw new Error("Order cancellation request returned no row");
+    await recordOrderAudit(tx, {
+      action: "order.cancellation_requested",
+      actorUserId: input.customerId,
+      entityId: order.id,
+      metadata: {},
+      organizationId: input.organizationId
+    });
     return { kind: "updated", order: parseOrderDetail(updated) };
   });
 }
@@ -391,7 +399,18 @@ export async function duplicateOrderToDraft(
   input: { customerId: string; orderNumber: string; organizationId: string }
 ) {
   return runRepeatableReadTransaction(db, async (tx) => {
-    const order = await loadOrderForUpdate(tx, input);
+    const orderRows = await tx
+      .select()
+      .from(customerOrder)
+      .where(
+        and(
+          eq(customerOrder.number, input.orderNumber),
+          eq(customerOrder.organizationId, input.organizationId),
+          eq(customerOrder.customerId, input.customerId)
+        )
+      )
+      .limit(1);
+    const order = orderRows[0];
     if (!order) return undefined;
     const product = await loadPublicProductDefinition(tx, {
       lockDefinition: true,
@@ -405,24 +424,20 @@ export async function duplicateOrderToDraft(
         selection.kind === "option" ? selection.optionValueId : selection.selected
       ])
     );
+    const snapshot = createConfigurationDraftSnapshot(product, {
+      projectName: order.projectName,
+      quantity: order.snapshot.quantity,
+      selections,
+      step: { kind: "review" }
+    });
+    if (snapshot.evaluationSummary.status === "invalid") return undefined;
     const rows = await tx
       .insert(configurationDraft)
       .values({
         customerId: input.customerId,
         organizationId: input.organizationId,
         productId: order.productId,
-        snapshot: {
-          evaluationSummary: {
-            orderTotal: order.snapshot.orderTotal,
-            perUnitBreakdown: order.snapshot.perUnitBreakdown,
-            perUnitTotal: order.snapshot.perUnitTotal,
-            status: "valid"
-          },
-          projectName: order.projectName,
-          quantity: order.snapshot.quantity,
-          selections,
-          step: { kind: "review" }
-        }
+        snapshot
       })
       .returning();
     const draft = rows[0];

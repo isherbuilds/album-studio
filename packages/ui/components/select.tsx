@@ -5,8 +5,9 @@ import * as React from "react";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
 const Select = SelectPrimitive.Root;
+type StringClassName<T> = Omit<T, "className"> & { className?: string };
 
-function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
+function SelectGroup({ className, ...props }: StringClassName<SelectPrimitive.Group.Props>) {
   return (
     <SelectPrimitive.Group
       data-slot="select-group"
@@ -16,7 +17,7 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   );
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, ...props }: StringClassName<SelectPrimitive.Value.Props>) {
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
@@ -31,7 +32,7 @@ function SelectTrigger({
   size = "default",
   children,
   ...props
-}: SelectPrimitive.Trigger.Props & {
+}: StringClassName<SelectPrimitive.Trigger.Props> & {
   size?: "sm" | "default";
 }) {
   return (
@@ -61,7 +62,7 @@ function SelectContent({
   alignOffset = 0,
   alignItemWithTrigger = true,
   ...props
-}: SelectPrimitive.Popup.Props &
+}: StringClassName<SelectPrimitive.Popup.Props> &
   Pick<
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
@@ -80,7 +81,7 @@ function SelectContent({
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
           className={cn(
-            "relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/5 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "relative max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/5 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}
@@ -94,7 +95,7 @@ function SelectContent({
   );
 }
 
-function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) {
+function SelectLabel({ className, ...props }: StringClassName<SelectPrimitive.GroupLabel.Props>) {
   return (
     <SelectPrimitive.GroupLabel
       data-slot="select-label"
@@ -104,7 +105,11 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
   );
 }
 
-function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
+function SelectItem({
+  className,
+  children,
+  ...props
+}: StringClassName<SelectPrimitive.Item.Props>) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -128,7 +133,10 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
   );
 }
 
-function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Props) {
+function SelectSeparator({
+  className,
+  ...props
+}: StringClassName<SelectPrimitive.Separator.Props>) {
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
@@ -141,7 +149,7 @@ function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Prop
 function SelectScrollUpButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
+}: StringClassName<React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>>) {
   return (
     <SelectPrimitive.ScrollUpArrow
       data-slot="select-scroll-up-button"
@@ -159,7 +167,7 @@ function SelectScrollUpButton({
 function SelectScrollDownButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
+}: StringClassName<React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>>) {
   return (
     <SelectPrimitive.ScrollDownArrow
       data-slot="select-scroll-down-button"

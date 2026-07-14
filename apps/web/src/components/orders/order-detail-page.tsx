@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useHydrated, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   ChevronLeft,
@@ -39,7 +39,7 @@ import {
 import { Separator } from "@tsu-stack/ui/components/separator";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
-import { formatMinorAmount } from "@/components/catalog/format";
+import { formatMinorAmount, parseMajorAmount } from "@/components/catalog/format";
 import { nextOrderStatus, orderStatusLabel } from "@/components/orders/order-format";
 import { useOrderActions, useOrderByNumberQuery } from "@/hooks/use-orders";
 import { usePaymentActions, usePaymentLedgerQuery } from "@/hooks/use-payments";
@@ -61,15 +61,6 @@ function paymentMethodLabel(method: OfflinePaymentMethod) {
   }
 }
 
-function parseMajorAmount(value: string, fractionDigits: number) {
-  const match = value.trim().match(/^(\d+)(?:\.(\d+))?$/);
-  if (!match) return undefined;
-  const fraction = match[2] ?? "";
-  if (fraction.length > fractionDigits) return undefined;
-  const amountMinor = Number(`${match[1]}${fraction.padEnd(fractionDigits, "0")}`);
-  return Number.isSafeInteger(amountMinor) && amountMinor > 0 ? amountMinor : undefined;
-}
-
 function formText(data: FormData, key: string) {
   const value = data.get(key);
   if (typeof value !== "string") throw new Error(`Expected text form field: ${key}`);
@@ -86,6 +77,7 @@ export function OrderDetailPage({
   organizationSlug: string;
 }) {
   const navigate = useNavigate();
+  const isHydrated = useHydrated();
   const [projectNameInput, setProjectNameInput] = useState<string | undefined>(undefined);
   const { locale } = useLocale();
   const order = useOrderByNumberQuery(organizationSlug, orderNumber).data;
@@ -107,6 +99,7 @@ export function OrderDetailPage({
   const staff = organizationRole === "owner" || organizationRole === "manager";
   const next = nextOrderStatus(order.status);
   const busy =
+    !isHydrated ||
     actions.transition.isPending ||
     actions.correctProjectName.isPending ||
     actions.requestCancellation.isPending ||
@@ -116,7 +109,7 @@ export function OrderDetailPage({
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const amountMinor = parseMajorAmount(formText(data, "amount"), fractionDigits);
+    const amountMinor = parseMajorAmount(formText(data, "amount"), fractionDigits, locale);
     const method = OfflinePaymentMethodSchema.safeParse(data.get("method"));
     if (!amountMinor || !method.success) {
       toast.error(m.payments__invalid_amount());
@@ -126,6 +119,7 @@ export function OrderDetailPage({
       {
         amountMinor,
         method: method.data,
+        mutationId: crypto.randomUUID(),
         note: formText(data, "note")
       },
       { onSuccess: () => form.reset() }
@@ -294,7 +288,8 @@ export function OrderDetailPage({
                               const data = new FormData(form);
                               const amountMinor = parseMajorAmount(
                                 formText(data, "amount"),
-                                fractionDigits
+                                fractionDigits,
+                                locale
                               );
                               if (!amountMinor) {
                                 toast.error(m.payments__invalid_amount());
@@ -303,6 +298,7 @@ export function OrderDetailPage({
                               paymentActions.reverse.mutate(
                                 {
                                   amountMinor,
+                                  mutationId: crypto.randomUUID(),
                                   note: formText(data, "note"),
                                   receiptId: payment.id
                                 },
@@ -326,10 +322,14 @@ export function OrderDetailPage({
                               <FieldLabel htmlFor={`reversal-note-${payment.id}`}>
                                 {m.payments__note()}
                               </FieldLabel>
-                              <Input id={`reversal-note-${payment.id}`} name="note" />
+                              <Input
+                                id={`reversal-note-${payment.id}`}
+                                maxLength={500}
+                                name="note"
+                              />
                             </Field>
                             <Button
-                              disabled={paymentActions.reverse.isPending}
+                              disabled={!isHydrated || paymentActions.reverse.isPending}
                               type="submit"
                               variant="outline"
                             >
@@ -438,7 +438,7 @@ export function OrderDetailPage({
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <Button
-                  disabled={actions.duplicateToDraft.isPending}
+                  disabled={!isHydrated || actions.duplicateToDraft.isPending}
                   onClick={() => {
                     actions.duplicateToDraft.mutate(undefined, {
                       onSuccess: (result) =>
@@ -460,7 +460,7 @@ export function OrderDetailPage({
                 {order.status === "placed" &&
                 (order.cancellationStatus === "none" || order.cancellationStatus === "rejected") ? (
                   <Button
-                    disabled={actions.requestCancellation.isPending}
+                    disabled={!isHydrated || actions.requestCancellation.isPending}
                     onClick={() => actions.requestCancellation.mutate(undefined)}
                     variant="outline"
                   >
@@ -510,7 +510,7 @@ export function OrderDetailPage({
                       <Input id="payment-note" maxLength={500} name="note" />
                     </Field>
                   </FieldGroup>
-                  <Button disabled={paymentActions.record.isPending} type="submit">
+                  <Button disabled={!isHydrated || paymentActions.record.isPending} type="submit">
                     {paymentActions.record.isPending ? (
                       <Spinner />
                     ) : (

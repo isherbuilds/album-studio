@@ -248,12 +248,11 @@ test("customer and owner get role-specific Order follow-up controls", async ({
   const ownerErrors: string[] = [];
   monitorErrors(ownerPage, ownerErrors);
   await signIn(ownerPage, orderPath, "owner@demo-studio.test");
-  await ownerPage.waitForLoadState("networkidle");
-
   await expect(ownerPage.getByRole("heading", { name: "Order operations" })).toBeVisible();
   await expect(ownerPage.getByRole("button", { name: "Duplicate to new draft" })).toHaveCount(0);
   await expect(ownerPage.getByRole("button", { name: /Move to/ })).toHaveCount(0);
   await expect(ownerPage.getByRole("button", { name: "Cancel order" })).toHaveCount(0);
+  await expect(ownerPage.getByRole("button", { name: "Save Project Name" })).toBeEnabled();
   await ownerPage.getByLabel("Project Name").fill(`${projectName} corrected`);
   await expect(ownerPage.getByLabel("Project Name")).toHaveValue(`${projectName} corrected`);
   const correctionResponse = ownerPage.waitForResponse(
@@ -284,5 +283,5 @@ test("customer and owner get role-specific Order follow-up controls", async ({
   await ownerContext.close();
 
   await page.goto("/web/org/demo-studio/payments");
-  await expect(page).toHaveURL(/\/org\/demo-studio\/catalog$/);
+  await expect(page).toHaveURL(/\/org\/demo-studio\/catalog\/?(?:\?.*)?$/);
 });

@@ -32,6 +32,10 @@ export function useOrderByNumberQuery(organizationSlug: string, orderNumber: str
   return useQuery(getOrderByNumberQueryOptions(organizationSlug, orderNumber));
 }
 
+function showOrderUpdateError(invalidTransition: boolean) {
+  toast.error(invalidTransition ? m.orders__invalid_transition() : m.orders__update_failed());
+}
+
 export function useOrderActions(organizationSlug: string, orderNumber: string) {
   const queryClient = useQueryClient();
   const updateOrder = async (order: OrderDetail) => {
@@ -44,13 +48,8 @@ export function useOrderActions(organizationSlug: string, orderNumber: string) {
 
   const transition = useMutation({
     ...orpc.orders.transition.mutationOptions({
-      onError: (error) => {
-        toast.error(
-          isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"
-            ? m.orders__invalid_transition()
-            : m.orders__update_failed()
-        );
-      },
+      onError: (error) =>
+        showOrderUpdateError(isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"),
       onSuccess: updateOrder
     }),
     mutationFn: (input: Pick<OrderTransitionInput, "status">) =>
@@ -66,26 +65,16 @@ export function useOrderActions(organizationSlug: string, orderNumber: string) {
   });
   const requestCancellation = useMutation({
     ...orpc.orders.requestCancellation.mutationOptions({
-      onError: (error) => {
-        toast.error(
-          isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"
-            ? m.orders__invalid_transition()
-            : m.orders__update_failed()
-        );
-      },
+      onError: (error) =>
+        showOrderUpdateError(isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"),
       onSuccess: updateOrder
     }),
     mutationFn: () => orpc.orders.requestCancellation.call({ orderNumber, organizationSlug })
   });
   const decideCancellation = useMutation({
     ...orpc.orders.decideCancellation.mutationOptions({
-      onError: (error) => {
-        toast.error(
-          isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"
-            ? m.orders__invalid_transition()
-            : m.orders__update_failed()
-        );
-      },
+      onError: (error) =>
+        showOrderUpdateError(isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"),
       onSuccess: updateOrder
     }),
     mutationFn: (input: Pick<OrderDecideCancellationInput, "decision">) =>

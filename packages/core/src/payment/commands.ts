@@ -53,6 +53,23 @@ async function loadPaidMinor(
   return row.amountMinor;
 }
 
+async function loadPaymentByMutationId(
+  tx: DatabaseOrTransaction,
+  input: { mutationId: string; organizationId: string }
+) {
+  const rows = await tx
+    .select()
+    .from(offlinePayment)
+    .where(
+      and(
+        eq(offlinePayment.mutationId, input.mutationId),
+        eq(offlinePayment.organizationId, input.organizationId)
+      )
+    )
+    .limit(1);
+  return rows[0];
+}
+
 export async function recordOfflinePayment(
   db: Pick<Database, "transaction">,
   input: {
@@ -60,6 +77,7 @@ export async function recordOfflinePayment(
     actorUserId: string;
     amountMinor: number;
     method: OfflinePaymentMethod;
+    mutationId: string;
     note: string | null;
     orderNumber: string;
     organizationId: string;
@@ -68,6 +86,28 @@ export async function recordOfflinePayment(
   return db.transaction(async (tx) => {
     const order = await loadOrderForPayment(tx, input);
     if (!order) return { kind: "not_found" };
+    const existing = await loadPaymentByMutationId(tx, input);
+    if (existing) {
+      if (
+        existing.actorUserId !== input.actorUserId ||
+        existing.amountMinor !== input.amountMinor ||
+        existing.entryType !== "receipt" ||
+        existing.method !== input.method ||
+        existing.note !== input.note ||
+        existing.orderId !== order.id
+      ) {
+        throw new Error("Offline Payment mutation ID reused with different receipt input");
+      }
+      const paidMinor = await loadPaidMinor(tx, {
+        orderId: order.id,
+        organizationId: input.organizationId
+      });
+      return {
+        kind: "recorded",
+        payment: parsePayment(existing, input.actorName, order.snapshot.orderTotal.currency),
+        summary: createPaymentSummary(order.snapshot.orderTotal, paidMinor)
+      };
+    }
     const paidMinor = await loadPaidMinor(tx, {
       orderId: order.id,
       organizationId: input.organizationId
@@ -80,7 +120,9 @@ export async function recordOfflinePayment(
       .values({
         actorUserId: input.actorUserId,
         amountMinor: input.amountMinor,
+        entryType: "receipt",
         method: input.method,
+        mutationId: input.mutationId,
         note: input.note,
         orderId: order.id,
         organizationId: input.organizationId
@@ -103,6 +145,7 @@ export async function reverseOfflinePayment(
     actorUserId: string;
     amountMinor: number;
     note: string | null;
+    mutationId: string;
     orderNumber: string;
     organizationId: string;
     receiptId: string;
@@ -111,6 +154,28 @@ export async function reverseOfflinePayment(
   return db.transaction(async (tx) => {
     const order = await loadOrderForPayment(tx, input);
     if (!order) return { kind: "not_found" };
+    const existing = await loadPaymentByMutationId(tx, input);
+    if (existing) {
+      if (
+        existing.actorUserId !== input.actorUserId ||
+        existing.amountMinor !== -input.amountMinor ||
+        existing.entryType !== "reversal" ||
+        existing.note !== input.note ||
+        existing.orderId !== order.id ||
+        existing.reversalOfId !== input.receiptId
+      ) {
+        throw new Error("Offline Payment mutation ID reused with different reversal input");
+      }
+      const paidMinor = await loadPaidMinor(tx, {
+        orderId: order.id,
+        organizationId: input.organizationId
+      });
+      return {
+        kind: "recorded",
+        payment: parsePayment(existing, input.actorName, order.snapshot.orderTotal.currency),
+        summary: createPaymentSummary(order.snapshot.orderTotal, paidMinor)
+      };
+    }
     const receiptRows = await tx
       .select()
       .from(offlinePayment)
@@ -156,11 +221,14 @@ export async function reverseOfflinePayment(
       .values({
         actorUserId: input.actorUserId,
         amountMinor: -input.amountMinor,
+        entryType: "reversal",
         method: receipt.method,
+        mutationId: input.mutationId,
         note: input.note,
         orderId: order.id,
         organizationId: input.organizationId,
-        reversalOfId: receipt.id
+        reversalOfId: receipt.id,
+        reversalTargetType: "receipt"
       })
       .returning();
     const row = rows[0];

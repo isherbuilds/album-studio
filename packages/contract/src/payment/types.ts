@@ -55,10 +55,12 @@ export const PaymentListByOrderInputSchema = OrgSlugInputSchema.extend({
 export const PaymentRecordInputSchema = PaymentListByOrderInputSchema.extend({
   amountMinor: PaymentAmountMinorSchema,
   method: OfflinePaymentMethodSchema,
+  mutationId: IdSchema,
   note: PaymentNoteSchema
 });
 export const PaymentReverseInputSchema = PaymentListByOrderInputSchema.extend({
   amountMinor: PaymentAmountMinorSchema,
+  mutationId: IdSchema,
   note: PaymentNoteSchema,
   receiptId: IdSchema
 });
