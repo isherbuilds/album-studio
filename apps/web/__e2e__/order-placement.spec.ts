@@ -200,15 +200,25 @@ test("studio owner reads Orders inside workspace navigation", async ({ page }) =
   await signIn(page, "/web/org/demo-studio/orders", "owner@demo-studio.test");
 
   const openNavigation = page.getByRole("button", { name: "Open navigation" });
-  if (await openNavigation.isVisible()) {
+  const usesMobileNavigation = await openNavigation.isVisible();
+  if (usesMobileNavigation) {
     await expect(page.getByRole("banner")).toContainText("Album Studio");
   } else {
     await expect(page.getByRole("navigation", { name: "Workspace" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Orders" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Orders" })).toHaveAttribute(
+      "data-status",
+      "active"
+    );
   }
   await expect(page.getByRole("link", { name: "Catalog" })).toHaveCount(0);
   await page.goto("/web/org/demo-studio/payments");
   await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
+  if (!usesMobileNavigation) {
+    await expect(page.getByRole("link", { name: "Payments" })).toHaveAttribute(
+      "data-status",
+      "active"
+    );
+  }
   expect(errors).toEqual([]);
 });
 
