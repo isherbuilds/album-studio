@@ -138,7 +138,13 @@ export async function reverseOfflinePayment(
     const reversalRows = await tx
       .select({ amountMinor: offlinePayment.amountMinor })
       .from(offlinePayment)
-      .where(eq(offlinePayment.reversalOfId, receipt.id));
+      .where(
+        and(
+          eq(offlinePayment.reversalOfId, receipt.id),
+          eq(offlinePayment.orderId, order.id),
+          eq(offlinePayment.organizationId, input.organizationId)
+        )
+      );
     const reversedMinor = -reversalRows.reduce((sum, row) => sum + row.amountMinor, 0);
     const paidMinor = await loadPaidMinor(tx, {
       orderId: order.id,

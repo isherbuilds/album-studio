@@ -176,6 +176,27 @@ beforeAll(async () => {
       organizationId: fixture.organizationId,
       role: "owner",
       userId: fixture.ownerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.otherOrganizationId,
+      role: "customer",
+      userId: fixture.customerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.otherOrganizationId,
+      role: "manager",
+      userId: fixture.managerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.otherOrganizationId,
+      role: "owner",
+      userId: fixture.ownerId
     }
   ]);
   await db.insert(product).values({
@@ -496,6 +517,34 @@ describe("orders router", () => {
         projectName: "Customer edit"
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      customer.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "confirmed"
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      customer.payments.record({
+        amount: { amountMinor: 1_000, currency: "USD" },
+        method: "cash",
+        note: null,
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      manager.orders.duplicateToDraft({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      manager.orders.requestCancellation({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
 
     const corrected = await manager.orders.correctProjectName({
       orderNumber: placed.number,
@@ -548,7 +597,7 @@ describe("orders router", () => {
 
   it("lets Customers request cancellation and staff decide only while placed", async () => {
     const customer = clientFor(fixture.customerId);
-    const owner = clientFor(fixture.ownerId);
+    const manager = clientFor(fixture.managerId);
     const editor = await createValidDraft();
     const placed = await customer.orders.place({
       acceptedPrice: acceptedPrice(editor),
@@ -569,14 +618,14 @@ describe("orders router", () => {
       })
     ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
     await expect(
-      owner.orders.transition({
+      manager.orders.transition({
         orderNumber: placed.number,
         organizationSlug: fixture.organizationSlug,
         status: "confirmed"
       })
     ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
     await expect(
-      owner.orders.decideCancellation({
+      manager.orders.decideCancellation({
         decision: "approved",
         orderNumber: placed.number,
         organizationSlug: fixture.organizationSlug
@@ -605,6 +654,81 @@ describe("orders router", () => {
       status: "active"
     });
     expect(duplicate.draft.id).not.toBe(editor.draft.id);
+  });
+
+  it("rejects duplication when current Product is unavailable", async () => {
+    const customer = clientFor(fixture.customerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await db.update(product).set({ status: "archived" }).where(eq(product.id, fixture.productId));
+    try {
+      await expect(
+        customer.orders.duplicateToDraft({
+          orderNumber: placed.number,
+          organizationSlug: fixture.organizationSlug
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
+    } finally {
+      await db
+        .update(product)
+        .set({ status: "published" })
+        .where(eq(product.id, fixture.productId));
+    }
+  });
+
+  it("scopes every follow-up mutation to current Organization", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const owner = clientFor(fixture.ownerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const scope = { orderNumber: placed.number, organizationSlug: fixture.otherOrganizationSlug };
+
+    await Promise.all([
+      expect(
+        owner.orders.correctProjectName({ ...scope, projectName: "Cross-Organization edit" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(owner.orders.transition({ ...scope, status: "confirmed" })).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      }),
+      expect(
+        owner.orders.decideCancellation({ ...scope, decision: "approved" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(customer.orders.requestCancellation(scope)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      }),
+      expect(customer.orders.duplicateToDraft(scope)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      }),
+      expect(
+        manager.payments.record({
+          ...scope,
+          amount: { amountMinor: 1_000, currency: "USD" },
+          method: "cash",
+          note: null
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(
+        manager.payments.reverse({
+          ...scope,
+          amount: { amountMinor: 1_000, currency: "USD" },
+          note: null,
+          receiptId: crypto.randomUUID()
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true })
+    ]);
   });
 
   it("records partial offline receipts and bounded append-only reversals", async () => {

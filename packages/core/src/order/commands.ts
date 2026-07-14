@@ -267,7 +267,13 @@ export async function transitionOrder(
     const rows = await tx
       .update(customerOrder)
       .set({ status: input.status })
-      .where(and(eq(customerOrder.id, order.id), eq(customerOrder.status, order.status)))
+      .where(
+        and(
+          eq(customerOrder.id, order.id),
+          eq(customerOrder.organizationId, input.organizationId),
+          eq(customerOrder.status, order.status)
+        )
+      )
       .returning();
     const updated = rows[0];
     if (!updated) throw new Error("Order transition returned no row");
@@ -299,7 +305,9 @@ export async function correctOrderProjectName(
     const rows = await tx
       .update(customerOrder)
       .set({ projectName: input.projectName })
-      .where(eq(customerOrder.id, order.id))
+      .where(
+        and(eq(customerOrder.id, order.id), eq(customerOrder.organizationId, input.organizationId))
+      )
       .returning();
     const updated = rows[0];
     if (!updated) throw new Error("Order Project Name correction returned no row");
@@ -330,7 +338,9 @@ export async function requestOrderCancellation(
     const rows = await tx
       .update(customerOrder)
       .set({ cancellationStatus: "pending" })
-      .where(eq(customerOrder.id, order.id))
+      .where(
+        and(eq(customerOrder.id, order.id), eq(customerOrder.organizationId, input.organizationId))
+      )
       .returning();
     const updated = rows[0];
     if (!updated) throw new Error("Order cancellation request returned no row");
@@ -359,7 +369,9 @@ export async function decideOrderCancellation(
         cancellationStatus: input.decision,
         status: input.decision === "approved" ? "cancelled" : "placed"
       })
-      .where(eq(customerOrder.id, order.id))
+      .where(
+        and(eq(customerOrder.id, order.id), eq(customerOrder.organizationId, input.organizationId))
+      )
       .returning();
     const updated = rows[0];
     if (!updated) throw new Error("Order cancellation decision returned no row");
@@ -381,6 +393,12 @@ export async function duplicateOrderToDraft(
   return runRepeatableReadTransaction(db, async (tx) => {
     const order = await loadOrderForUpdate(tx, input);
     if (!order) return undefined;
+    const product = await loadPublicProductDefinition(tx, {
+      lockDefinition: true,
+      organizationId: input.organizationId,
+      productId: order.productId
+    });
+    if (!product) return undefined;
     const selections = Object.fromEntries(
       order.snapshot.selections.map((selection) => [
         selection.groupKey,
@@ -409,6 +427,6 @@ export async function duplicateOrderToDraft(
       .returning();
     const draft = rows[0];
     if (!draft) throw new Error("Order duplication returned no Configuration Draft");
-    return { draft: parseConfigurationDraftDetail(draft, order.snapshot.product.slug) };
+    return { draft: parseConfigurationDraftDetail(draft, product.slug) };
   });
 }
