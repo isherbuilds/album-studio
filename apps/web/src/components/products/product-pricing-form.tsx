@@ -16,17 +16,12 @@ import { Field, FieldError, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import { Separator } from "@tsu-stack/ui/components/separator";
 
-import { currencyFractionDigits, minorToMajorInput, parseMoneyMinor } from "./format";
+import { currencyFractionDigits, formText, minorToMajorInput, parseMoneyMinor } from "./format";
 
 type PricingInput = Omit<
   ProductEditPricingInput,
   "expectedRevision" | "organizationSlug" | "productSlug"
 >;
-
-function formText(data: FormData, key: string): string {
-  const value = data.get(key);
-  return typeof value === "string" ? value : "";
-}
 
 export function ProductPricingForm({
   editor,

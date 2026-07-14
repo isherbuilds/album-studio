@@ -291,9 +291,13 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
                   <div className="flex gap-1">
                     <Button
                       aria-label={m.organization__copy_invitation_link()}
-                      onClick={() => {
-                        void navigator.clipboard.writeText(item.invitationUrl);
-                        toast.success(m.organization__link_copied());
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(item.invitationUrl);
+                          toast.success(m.organization__link_copied());
+                        } catch {
+                          toast.error(m.organization__copy_link_failed());
+                        }
                       }}
                       size="icon-sm"
                       type="button"

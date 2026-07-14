@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { can } from "@tsu-stack/auth/access-control";
+
 import { ProductEditorPage } from "@/components/products/product-editor-page";
 import { getInventoryListQueryOptions } from "@/hooks/use-inventory";
 import { getProductQueryOptions } from "@/hooks/use-products";
@@ -22,7 +24,8 @@ function ProductDetailRoute() {
   const { membership } = Route.useRouteContext();
   return (
     <ProductEditorPage
-      canEditPricing={membership.role === "owner"}
+      canDelete={can("product.delete", { role: membership.role })}
+      canEditPricing={can("product.price", { role: membership.role })}
       organizationSlug={organizationSlug}
       productSlug={productSlug}
     />

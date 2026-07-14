@@ -401,7 +401,6 @@
   "products__group_single": "Single choice",
   "products__group_boolean": "Yes / no",
   "products__group_number": "Number",
-  "products__group_type": "Type",
   "products__group_key": "Machine key",
   "products__group_key_hint": "Stable identifier, up to 80 characters.",
   "products__group_label": "Label",

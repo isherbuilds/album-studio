@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArchiveRestore,
   ArrowLeft,
@@ -15,6 +14,8 @@ import { type ReactNode, useState } from "react";
 
 import { type ProductEditor } from "@tsu-stack/contract/product";
 import { m } from "@tsu-stack/i18n/messages";
+import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
+import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 import { Badge } from "@tsu-stack/ui/components/badge";
 import { Button } from "@tsu-stack/ui/components/button";
 import {
@@ -35,15 +36,10 @@ import { Textarea } from "@tsu-stack/ui/components/textarea";
 import { WorkspacePage, WorkspacePageHeader } from "@/components/admin/workspace";
 import { getProductQueryOptions, useProductActions } from "@/hooks/use-products";
 
-import { formatIssuePath, productStatusConfig } from "./format";
+import { formText, formatIssuePath, productStatusConfig } from "./format";
 import { ProductConfigurationEditor } from "./product-configuration-editor";
 import { ProductPreview } from "./product-preview";
 import { ProductPricingForm } from "./product-pricing-form";
-
-function formText(data: FormData, key: string): string {
-  const value = data.get(key);
-  return typeof value === "string" ? value : "";
-}
 
 type ContentDraft = {
   description: string | null;
@@ -252,10 +248,12 @@ function ConfirmButton({
 }
 
 export function ProductEditorPage({
+  canDelete,
   canEditPricing,
   organizationSlug,
   productSlug
 }: {
+  canDelete: boolean;
   canEditPricing: boolean;
   organizationSlug: string;
   productSlug: string;
@@ -472,7 +470,7 @@ export function ProductEditorPage({
                   <p className="text-xs text-muted-foreground">{m.products__unarchive_hint()}</p>
                 )}
 
-                {canEditPricing ? (
+                {canDelete ? (
                   <ConfirmButton
                     confirmLabel={m.products__remove()}
                     icon={<Trash2 data-icon="inline-start" />}

@@ -304,26 +304,36 @@ export async function replaceProductConfiguration(
       await tx.insert(optionValueComponent).values(componentLinkRows);
     }
 
-    const updatedRows = await tx
-      .update(product)
-      .set({ revision: sql`${product.revision} + 1` })
-      .where(and(eq(product.id, current.id), eq(product.organizationId, input.organizationId)))
-      .returning({ revision: product.revision });
-    const updated = updatedRows[0];
-    if (!updated) throw new Error("Product configuration update returned no row");
-
     const editor = await loadProductEditor(tx, {
       organizationId: input.organizationId,
       productId: current.id
     });
     if (!editor) throw new Error("Updated Product could not be loaded");
-    if (current.status === "published" && editor.validationIssues.length > 0) {
-      await tx
-        .update(product)
-        .set({ status: "draft" })
-        .where(and(eq(product.id, current.id), eq(product.organizationId, input.organizationId)));
-    }
+    // A published Product whose new definition no longer validates falls back to
+    // draft. Fold that into the single revision bump so `revision` advances by one
+    // (a bare `set({ status })` would re-trigger the column's `$onUpdate` and bump twice).
+    const downgraded = current.status === "published" && editor.validationIssues.length > 0;
+    const updatedRows = await tx
+      .update(product)
+      .set({
+        revision: sql`${product.revision} + 1`,
+        status: downgraded ? "draft" : current.status
+      })
+      .where(and(eq(product.id, current.id), eq(product.organizationId, input.organizationId)))
+      .returning({ revision: product.revision });
+    const updated = updatedRows[0];
+    if (!updated) throw new Error("Product configuration update returned no row");
 
+    if (downgraded) {
+      await tx.insert(auditEvent).values({
+        action: "product.status_changed",
+        actorUserId: input.actorUserId,
+        entityId: current.id,
+        entityType: "product",
+        metadata: { from: current.status, reason: "configuration_invalidated", to: "draft" },
+        organizationId: input.organizationId
+      });
+    }
     await tx.insert(auditEvent).values({
       action: "product.configuration_edited",
       actorUserId: input.actorUserId,

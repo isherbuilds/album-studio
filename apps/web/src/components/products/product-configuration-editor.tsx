@@ -393,10 +393,8 @@ export function ProductConfigurationEditor({
     setGroups(next);
     setDirty(true);
   };
-  const patchGroup = (index: number, patch: Partial<EditableGroup>) => {
-    mutate(
-      groups.map((group, i) => (i === index ? ({ ...group, ...patch } as EditableGroup) : group))
-    );
+  const updateGroup = (index: number, update: (group: EditableGroup) => EditableGroup) => {
+    mutate(groups.map((group, i) => (i === index ? update(group) : group)));
   };
   const patchValue = (groupIndex: number, valueUid: string, patch: Partial<EditableValue>) => {
     mutate(
@@ -525,7 +523,14 @@ export function ProductConfigurationEditor({
                         </FieldLabel>
                         <Input
                           id={`${group.uid}-label`}
-                          onChange={(event) => patchGroup(index, { label: event.target.value })}
+                          onChange={(event) =>
+                            updateGroup(index, (current) => {
+                              return {
+                                ...current,
+                                label: event.target.value
+                              };
+                            })
+                          }
                           value={group.label}
                         />
                       </Field>
@@ -536,7 +541,14 @@ export function ProductConfigurationEditor({
                         <Input
                           disabled={group.persisted}
                           id={`${group.uid}-key`}
-                          onChange={(event) => patchGroup(index, { key: event.target.value })}
+                          onChange={(event) =>
+                            updateGroup(index, (current) => {
+                              return {
+                                ...current,
+                                key: event.target.value
+                              };
+                            })
+                          }
                           value={group.key}
                         />
                         <FieldDescription>
@@ -551,7 +563,11 @@ export function ProductConfigurationEditor({
                       <Checkbox
                         checked={group.required}
                         id={`${group.uid}-required`}
-                        onCheckedChange={(next) => patchGroup(index, { required: next === true })}
+                        onCheckedChange={(next) =>
+                          updateGroup(index, (current) => {
+                            return { ...current, required: next === true };
+                          })
+                        }
                       />
                       {m.products__required()}
                     </Label>
@@ -561,25 +577,41 @@ export function ProductConfigurationEditor({
                         <NumberField
                           id={`${group.uid}-min`}
                           label={m.products__group_number_min()}
-                          onChange={(value) => patchGroup(index, { minimum: value })}
+                          onChange={(value) =>
+                            updateGroup(index, (current) =>
+                              current.type === "number" ? { ...current, minimum: value } : current
+                            )
+                          }
                           value={group.minimum}
                         />
                         <NumberField
                           id={`${group.uid}-max`}
                           label={m.products__group_number_max()}
-                          onChange={(value) => patchGroup(index, { maximum: value })}
+                          onChange={(value) =>
+                            updateGroup(index, (current) =>
+                              current.type === "number" ? { ...current, maximum: value } : current
+                            )
+                          }
                           value={group.maximum}
                         />
                         <NumberField
                           id={`${group.uid}-step`}
                           label={m.products__group_number_step()}
-                          onChange={(value) => patchGroup(index, { step: value })}
+                          onChange={(value) =>
+                            updateGroup(index, (current) =>
+                              current.type === "number" ? { ...current, step: value } : current
+                            )
+                          }
                           value={group.step}
                         />
                         <NumberField
                           id={`${group.uid}-included`}
                           label={m.products__group_number_included()}
-                          onChange={(value) => patchGroup(index, { included: value })}
+                          onChange={(value) =>
+                            updateGroup(index, (current) =>
+                              current.type === "number" ? { ...current, included: value } : current
+                            )
+                          }
                           value={group.included}
                         />
                       </div>
@@ -594,20 +626,25 @@ export function ProductConfigurationEditor({
                           </div>
                           <Button
                             onClick={() =>
-                              patchGroup(index, {
-                                values: [
-                                  ...group.values,
-                                  {
-                                    componentIds: [],
-                                    id: `value-${group.values.length + 1}`,
-                                    imageUrl: null,
-                                    label: "",
-                                    persisted: false,
-                                    requirements: [],
-                                    uid: nextUid()
-                                  }
-                                ]
-                              } as Partial<EditableGroup>)
+                              updateGroup(index, (current) =>
+                                current.type === "number"
+                                  ? current
+                                  : {
+                                      ...current,
+                                      values: [
+                                        ...current.values,
+                                        {
+                                          componentIds: [],
+                                          id: crypto.randomUUID(),
+                                          imageUrl: null,
+                                          label: "",
+                                          persisted: false,
+                                          requirements: [],
+                                          uid: nextUid()
+                                        }
+                                      ]
+                                    }
+                              )
                             }
                             size="sm"
                             type="button"
@@ -634,9 +671,16 @@ export function ProductConfigurationEditor({
                                 key={value.uid}
                                 onChange={(patch) => patchValue(index, value.uid, patch)}
                                 onRemove={() =>
-                                  patchGroup(index, {
-                                    values: group.values.filter((item) => item.uid !== value.uid)
-                                  } as Partial<EditableGroup>)
+                                  updateGroup(index, (current) =>
+                                    current.type === "number"
+                                      ? current
+                                      : {
+                                          ...current,
+                                          values: current.values.filter(
+                                            (item) => item.uid !== value.uid
+                                          )
+                                        }
+                                  )
                                 }
                                 value={value}
                               />
@@ -656,7 +700,14 @@ export function ProductConfigurationEditor({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Select onValueChange={(value) => addGroup(value as GroupType)} value="">
+            <Select
+              onValueChange={(value) => {
+                if (value === "single" || value === "boolean" || value === "number") {
+                  addGroup(value);
+                }
+              }}
+              value=""
+            >
               <SelectTrigger aria-label={m.products__add_group()} className="w-40">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Plus />

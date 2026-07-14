@@ -12,6 +12,12 @@ export const productStatusConfig: Record<ProductStatus, { dotClass: string; labe
     published: { dotClass: "bg-success", label: m.products__status_published }
   };
 
+/** Reads a text form field, returning "" when the field is absent or non-string. */
+export function formText(data: FormData, key: string): string {
+  const value = data.get(key);
+  return typeof value === "string" ? value : "";
+}
+
 /** Maximum fraction digits for a currency in the active locale. */
 export function currencyFractionDigits(currency: string, locale: string): number {
   return (

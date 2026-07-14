@@ -491,4 +491,72 @@ describe("products router", () => {
       })
     ).resolves.toMatchObject({ status: "archived" });
   });
+
+  it("downgrades a published Product to draft when a configuration edit invalidates it and bumps revision once", async () => {
+    const owner = clientFor(fixture.ownerId);
+    const created = await owner.products.create({
+      ...content,
+      organizationSlug: fixture.organizationSlug
+    });
+    const configured = await owner.products.editConfiguration({
+      expectedRevision: created.revision,
+      groups: configuration(),
+      organizationSlug: fixture.organizationSlug,
+      productSlug: created.slug
+    });
+    const priced = await owner.products.editPricing({
+      basePriceMinor: 10_000,
+      expectedRevision: configured.revision,
+      numericGroupPrices: [{ additionalUnitPriceMinor: 250, groupKey: "sheets" }],
+      optionValuePrices: [{ optionValueId: "linen", priceAdjustmentMinor: 500 }],
+      organizationSlug: fixture.organizationSlug,
+      productSlug: configured.slug
+    });
+    const published = await owner.products.publish({
+      expectedRevision: priced.revision,
+      organizationSlug: fixture.organizationSlug,
+      productSlug: priced.slug
+    });
+    expect(published.status).toBe("published");
+
+    // Adding a second, unpriced Option Value invalidates the definition, which
+    // must drop the published Product back to draft while advancing revision by
+    // exactly one (a bare status update would re-trigger the column's $onUpdate).
+    const downgraded = await owner.products.editConfiguration({
+      expectedRevision: published.revision,
+      groups: [
+        {
+          key: "cover",
+          label: "Cover",
+          required: true,
+          type: "single" as const,
+          values: [
+            {
+              componentIds: [fixture.componentId],
+              id: "linen",
+              imageUrl: null,
+              label: "Linen",
+              requirements: []
+            },
+            { componentIds: [], id: "leather", imageUrl: null, label: "Leather", requirements: [] }
+          ]
+        },
+        {
+          included: 10,
+          key: "sheets",
+          label: "Sheets",
+          maximum: 30,
+          minimum: 10,
+          required: true,
+          step: 2,
+          type: "number" as const
+        }
+      ],
+      organizationSlug: fixture.organizationSlug,
+      productSlug: published.slug
+    });
+    expect(downgraded.status).toBe("draft");
+    expect(downgraded.revision).toBe(published.revision + 1);
+    expect(downgraded.validationIssues.length).toBeGreaterThan(0);
+  });
 });

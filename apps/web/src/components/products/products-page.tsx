@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, PackagePlus, Plus, Search } from "lucide-react";
 import { useState } from "react";
 
 import { type ProductStatus } from "@tsu-stack/contract/product";
 import { m } from "@tsu-stack/i18n/messages";
+import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Badge } from "@tsu-stack/ui/components/badge";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Card, CardContent } from "@tsu-stack/ui/components/card";
@@ -47,13 +47,7 @@ import {
 } from "@/components/admin/workspace";
 import { getProductsQueryOptions, useProductActions } from "@/hooks/use-products";
 
-import { productStatusConfig } from "./format";
-
-function formText(data: FormData, key: string): string {
-  const value = data.get(key);
-  if (typeof value !== "string") throw new Error(`Expected text form field: ${key}`);
-  return value;
-}
+import { formText, productStatusConfig } from "./format";
 
 function productStatusFilterLabel(value: "all" | ProductStatus) {
   return value === "all" ? m.products__all_statuses() : productStatusConfig[value].label();
@@ -144,6 +138,7 @@ function CreateProductDialog({
 
 export function ProductsPage({ organizationSlug }: { organizationSlug: string }) {
   const productsQuery = useQuery(getProductsQueryOptions(organizationSlug));
+  if (productsQuery.isError) throw productsQuery.error;
   const products = productsQuery.data ?? [];
   const { create } = useProductActions(organizationSlug);
   const [query, setQuery] = useState("");

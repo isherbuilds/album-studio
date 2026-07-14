@@ -210,7 +210,7 @@ export async function loadProductEditor(
 }
 
 export function parseProductEditorDefinition(
-  editor: ProductEditor
+  editor: Omit<ProductEditor, "validationIssues">
 ):
   | { definition: ProductDefinition; issues: []; success: true }
   | { issues: ProductDefinitionValidationIssue[]; success: false } {
@@ -234,7 +234,7 @@ export function parseProductEditorDefinition(
 function validateProductEditorDefinition(
   editor: Omit<ProductEditor, "validationIssues">
 ): ProductDefinitionValidationIssue[] {
-  return parseProductEditorDefinition({ ...editor, validationIssues: [] } as ProductEditor).issues;
+  return parseProductEditorDefinition(editor).issues;
 }
 
 export async function loadProductAvailability(
