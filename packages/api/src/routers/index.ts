@@ -3,6 +3,7 @@ import { type RouterClient } from "@orpc/server";
 import { catalogRouter } from "#@/routers/catalog/index";
 import { draftsRouter } from "#@/routers/drafts/index";
 import { healthRouter } from "#@/routers/health/index";
+import { inventoryRouter } from "#@/routers/inventory/index";
 import { ordersRouter } from "#@/routers/orders/index";
 import { organizationsRouter } from "#@/routers/organizations/index";
 import { paymentsRouter } from "#@/routers/payments/index";
@@ -13,6 +14,7 @@ export const appRouter = {
   catalog: catalogRouter,
   drafts: draftsRouter,
   health: healthRouter,
+  inventory: inventoryRouter,
   organizations: organizationsRouter,
   orders: ordersRouter,
   payments: paymentsRouter,

@@ -11,6 +11,7 @@ export {
 export {
   component,
   componentAvailabilityOverride,
+  inventoryMovement,
   optionValueComponent
 } from "#@/schema/component.schema";
 export { configurationDraft, configurationDraftStatus } from "#@/schema/draft.schema";

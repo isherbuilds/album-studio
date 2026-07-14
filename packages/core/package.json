@@ -12,6 +12,7 @@
     "./configuration": "./src/configuration/index.ts",
     "./draft": "./src/draft/index.ts",
     "./health": "./src/health/index.ts",
+    "./inventory": "./src/inventory/index.ts",
     "./organization": "./src/organization/index.ts",
     "./order": "./src/order/index.ts",
     "./payment": "./src/payment/index.ts",

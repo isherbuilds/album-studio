@@ -298,6 +298,12 @@ describe("orders router", () => {
       status: "placed"
     });
     expect(placed.number).toMatch(/^AS-S\d{11}$/);
+    await expect(
+      db
+        .select({ quantity: component.quantity })
+        .from(component)
+        .where(eq(component.id, fixture.componentId))
+    ).resolves.toEqual([{ quantity: "10.0000" }]);
 
     await db
       .update(product)
