@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 
 import {
   type ComponentAvailabilityOverride,
@@ -12,6 +12,9 @@ import { type Database } from "@tsu-stack/db";
 import { auditEvent, component, inventoryMovement } from "@tsu-stack/db/schema";
 
 type ComponentRow = typeof component.$inferSelect;
+
+const minimumQuantity = "-9999999999.9999";
+const maximumQuantity = "9999999999.9999";
 
 export async function createComponent(
   db: Pick<Database, "transaction">,
@@ -140,11 +143,29 @@ export async function recordInventoryMovement(
       .update(component)
       .set({ quantity: sql`${component.quantity} + ${input.delta}::numeric` })
       .where(
-        and(eq(component.id, input.componentId), eq(component.organizationId, input.organizationId))
+        and(
+          eq(component.id, input.componentId),
+          eq(component.organizationId, input.organizationId),
+          gte(sql`${component.quantity} + ${input.delta}::numeric`, minimumQuantity),
+          lte(sql`${component.quantity} + ${input.delta}::numeric`, maximumQuantity)
+        )
       )
       .returning();
     const componentRow = componentRows[0];
-    if (!componentRow) return { kind: "not_found" } as const;
+    if (!componentRow) {
+      const existingRows = await tx
+        .select({ id: component.id })
+        .from(component)
+        .where(
+          and(
+            eq(component.id, input.componentId),
+            eq(component.organizationId, input.organizationId)
+          )
+        )
+        .limit(1);
+      if (existingRows[0]) return { kind: "quantity_out_of_range" } as const;
+      return { kind: "not_found" } as const;
+    }
 
     const movementRows = await tx
       .insert(inventoryMovement)

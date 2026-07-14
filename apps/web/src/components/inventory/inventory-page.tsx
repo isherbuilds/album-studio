@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Boxes, History, PackagePlus, Scale } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,9 +35,9 @@ import { cn } from "@tsu-stack/ui/lib/utils";
 
 import {
   type InventoryComponent,
-  useInventoryActions,
-  useInventoryListQuery,
-  useInventoryMovementsQuery
+  getInventoryListQueryOptions,
+  getInventoryMovementsQueryOptions,
+  useInventoryActions
 } from "@/hooks/use-inventory";
 
 const statusConfig: Record<ComponentAvailabilityStatus, { dotClass: string; label: () => string }> =
@@ -158,7 +159,7 @@ function ComponentInspector({
   organizationSlug: string;
 }) {
   const { locale } = useLocale();
-  const movements = useInventoryMovementsQuery(organizationSlug, component.id);
+  const movements = useQuery(getInventoryMovementsQueryOptions(organizationSlug, component.id));
 
   return (
     <Card size="sm">
@@ -368,6 +369,10 @@ function ComponentInspector({
             <div className="grid min-h-20 place-items-center">
               <Spinner />
             </div>
+          ) : movements.isError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {m.inventory__history_load_failed()}
+            </p>
           ) : movements.data?.length ? (
             <ol className="divide-y">
               {movements.data.map((movement) => (
@@ -394,7 +399,8 @@ function ComponentInspector({
 }
 
 export function InventoryPage({ organizationSlug }: { organizationSlug: string }) {
-  const components = useInventoryListQuery(organizationSlug).data ?? [];
+  const componentsQuery = useQuery(getInventoryListQueryOptions(organizationSlug));
+  const components = componentsQuery.data ?? [];
   const actions = useInventoryActions(organizationSlug);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
@@ -444,7 +450,11 @@ export function InventoryPage({ organizationSlug }: { organizationSlug: string }
             </div>
           </CardHeader>
           <CardContent className="px-0">
-            {components.length === 0 ? (
+            {componentsQuery.isPending ? (
+              <div className="grid min-h-48 place-items-center">
+                <Spinner />
+              </div>
+            ) : components.length === 0 ? (
               <Empty className="py-14">
                 <EmptyMedia variant="icon">
                   <Boxes />

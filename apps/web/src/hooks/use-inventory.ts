@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
+import { isDefinedError, type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 import {
   type InventoryCreateComponentInput,
   type InventoryEditComponentInput,
@@ -20,14 +20,6 @@ export function getInventoryMovementsQueryOptions(organizationSlug: string, comp
   return orpc.inventory.listMovements.queryOptions({
     input: { componentId, organizationSlug }
   });
-}
-
-export function useInventoryListQuery(organizationSlug: string) {
-  return useQuery(getInventoryListQueryOptions(organizationSlug));
-}
-
-export function useInventoryMovementsQuery(organizationSlug: string, componentId: string) {
-  return useQuery(getInventoryMovementsQueryOptions(organizationSlug, componentId));
 }
 
 export function useInventoryActions(organizationSlug: string) {
@@ -60,7 +52,15 @@ export function useInventoryActions(organizationSlug: string) {
     onSuccess: (component) => refresh(component.id)
   });
   const recordMovement = useMutation({
-    ...orpc.inventory.recordMovement.mutationOptions({ onError }),
+    ...orpc.inventory.recordMovement.mutationOptions({
+      onError: (error) => {
+        toast.error(
+          isDefinedError(error) && error.code === "QUANTITY_OUT_OF_RANGE"
+            ? m.inventory__quantity_out_of_range()
+            : m.inventory__update_failed()
+        );
+      }
+    }),
     mutationFn: (input: Omit<InventoryRecordMovementInput, "organizationSlug">) =>
       orpc.inventory.recordMovement.call({ ...input, organizationSlug }),
     onSuccess: ({ component }) => refresh(component.id)

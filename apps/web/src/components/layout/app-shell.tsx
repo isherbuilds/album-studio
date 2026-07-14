@@ -32,6 +32,7 @@ import { useSignOut } from "@/hooks/use-auth";
 
 type WorkspaceNavigationProps = {
   organizationSlug?: string;
+  showInventoryNavigation: boolean;
   showMemberNavigation: boolean;
   onNavigate?: () => void;
   showPlatformNavigation: boolean;
@@ -40,6 +41,7 @@ type WorkspaceNavigationProps = {
 function WorkspaceNavigation({
   onNavigate,
   organizationSlug,
+  showInventoryNavigation,
   showMemberNavigation,
   showPlatformNavigation
 }: WorkspaceNavigationProps) {
@@ -105,16 +107,18 @@ function WorkspaceNavigation({
             <ReceiptText />
             {m.payments__title()}
           </Link>
-          <Link
-            activeProps={activeProps}
-            className={itemClass}
-            onClick={onNavigate}
-            params={{ organizationSlug }}
-            to="/org/$organizationSlug/inventory"
-          >
-            <Boxes />
-            {m.inventory__title()}
-          </Link>
+          {showInventoryNavigation ? (
+            <Link
+              activeProps={activeProps}
+              className={itemClass}
+              onClick={onNavigate}
+              params={{ organizationSlug }}
+              to="/org/$organizationSlug/inventory"
+            >
+              <Boxes />
+              {m.inventory__title()}
+            </Link>
+          ) : null}
           {showMemberNavigation ? (
             <Link
               activeProps={activeProps}
@@ -144,6 +148,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       ? membershipMatch.params.organizationSlug
       : undefined;
   const showMemberNavigation = membership ? can("member.read", { role: membership.role }) : false;
+  const showInventoryNavigation = membership
+    ? can("inventory.manage", { role: membership.role })
+    : false;
   const showPlatformNavigation = matches.some((match) => match.routeId.includes("/(auth)/admin"));
 
   return (
@@ -163,6 +170,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <WorkspaceNavigation
         onNavigate={onNavigate}
         organizationSlug={organizationSlug}
+        showInventoryNavigation={showInventoryNavigation}
         showMemberNavigation={showMemberNavigation}
         showPlatformNavigation={showPlatformNavigation}
       />

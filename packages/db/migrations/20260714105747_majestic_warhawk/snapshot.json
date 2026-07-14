@@ -3243,7 +3243,7 @@
         "organization_id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "RESTRICT",
+      "onDelete": "CASCADE",
       "name": "inventory_movement_component_organization_fkey",
       "entityType": "fks",
       "schema": "public",

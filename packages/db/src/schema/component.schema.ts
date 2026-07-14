@@ -112,7 +112,7 @@ export const inventoryMovement = pgTable(
       name: "inventory_movement_component_organization_fkey",
       columns: [table.componentId, table.organizationId],
       foreignColumns: [component.id, component.organizationId]
-    }).onDelete("restrict"),
+    }).onDelete("cascade"),
     check("inventory_movement_nonzero_delta_check", sql`${table.delta} <> 0`)
   ]
 );

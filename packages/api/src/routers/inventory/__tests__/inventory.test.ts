@@ -131,6 +131,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  await db.delete(auditEvent).where(eq(auditEvent.organizationId, fixture.organizationId));
   await db
     .delete(inventoryMovement)
     .where(eq(inventoryMovement.organizationId, fixture.organizationId));
@@ -279,6 +280,67 @@ describe("inventory router", () => {
     expect(movements).toHaveLength(2);
   });
 
+  it("rejects a Movement that would exceed the quantity column range", async () => {
+    const owner = clientFor(fixture.ownerId);
+    const created = await owner.inventory.createComponent({
+      lowStockThreshold: "0",
+      name: "Overflowing adhesive",
+      organizationSlug: fixture.organizationSlug,
+      unit: "litre"
+    });
+    await db
+      .update(component)
+      .set({ quantity: "9999999999.9999" })
+      .where(eq(component.id, created.id));
+
+    await expect(
+      owner.inventory.recordMovement({
+        componentId: created.id,
+        delta: "0.0001",
+        organizationSlug: fixture.organizationSlug,
+        reason: "One drop too many"
+      })
+    ).rejects.toMatchObject({ code: "QUANTITY_OUT_OF_RANGE", defined: true });
+
+    await expect(
+      owner.inventory.listMovements({
+        componentId: created.id,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toEqual([]);
+  });
+
+  it("limits Movement history to the newest 200 records", async () => {
+    const owner = clientFor(fixture.ownerId);
+    const created = await owner.inventory.createComponent({
+      lowStockThreshold: "0",
+      name: "History-bound component",
+      organizationSlug: fixture.organizationSlug,
+      unit: "sheet"
+    });
+    const start = Date.now();
+    await db.insert(inventoryMovement).values(
+      Array.from({ length: 201 }, (_, index) => {
+        return {
+          actorUserId: fixture.ownerId,
+          componentId: created.id,
+          createdAt: new Date(start + index),
+          delta: "1",
+          organizationId: fixture.organizationId,
+          reason: `Movement ${index}`
+        };
+      })
+    );
+
+    const movements = await owner.inventory.listMovements({
+      componentId: created.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    expect(movements).toHaveLength(200);
+    expect(movements[0]?.reason).toBe("Movement 200");
+    expect(movements.at(-1)?.reason).toBe("Movement 1");
+  });
+
   it("allows stock to fall below zero and derives out", async () => {
     const owner = clientFor(fixture.ownerId);
     const created = await owner.inventory.createComponent({
@@ -393,5 +455,38 @@ describe("inventory router", () => {
         })
       ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true })
     ]);
+  });
+
+  it("deletes Movement history when its Organization is deleted", async () => {
+    const organizationId = crypto.randomUUID();
+    const componentId = crypto.randomUUID();
+    await db.insert(organization).values({
+      createdAt: new Date(),
+      currency: "USD",
+      id: organizationId,
+      name: "Delete inventory organization",
+      slug: `delete-inventory-${crypto.randomUUID()}`
+    });
+    await db.insert(component).values({
+      id: componentId,
+      lowStockThreshold: "0",
+      name: "Deleted component",
+      organizationId,
+      quantity: "1",
+      unit: "unit"
+    });
+    await db.insert(inventoryMovement).values({
+      actorUserId: fixture.ownerId,
+      componentId,
+      delta: "1",
+      organizationId,
+      reason: "Seed teardown test"
+    });
+
+    await db.delete(organization).where(eq(organization.id, organizationId));
+
+    await expect(
+      db.select().from(inventoryMovement).where(eq(inventoryMovement.componentId, componentId))
+    ).resolves.toEqual([]);
   });
 });

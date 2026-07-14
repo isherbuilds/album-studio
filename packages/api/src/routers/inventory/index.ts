@@ -99,7 +99,8 @@ export const inventoryRouter = {
             eq(inventoryMovement.organizationId, context.organization.id)
           )
         )
-        .orderBy(desc(inventoryMovement.createdAt), desc(inventoryMovement.id));
+        .orderBy(desc(inventoryMovement.createdAt), desc(inventoryMovement.id))
+        .limit(200);
       return movements.map((row) => serializeMovement(row.movement, row.actorName));
     }),
   createComponent: organizationActionProcedure(
@@ -138,6 +139,9 @@ export const inventoryRouter = {
     "inventory.manage"
   )
     .route({ description: "Append a stock Movement", method: "POST" })
+    .errors({
+      QUANTITY_OUT_OF_RANGE: { message: "Movement exceeds quantity range", status: 422 }
+    })
     .output(movementMutationOutputSchema)
     .handler(async ({ context, errors, input }) => {
       const result = await recordInventoryMovement(context.db, {
@@ -148,6 +152,7 @@ export const inventoryRouter = {
         reason: input.reason
       });
       if (result.kind === "not_found") throw errors.NOT_FOUND({ message: "Component not found" });
+      if (result.kind === "quantity_out_of_range") throw errors.QUANTITY_OUT_OF_RANGE();
       return {
         component: serializeComponent(result.component),
         movement: serializeMovement(result.movement, context.authSession.user.name)
