@@ -1,5 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import {
+  Boxes,
   Building2,
   Images,
   LayoutDashboard,
@@ -103,6 +104,16 @@ function WorkspaceNavigation({
           >
             <ReceiptText />
             {m.payments__title()}
+          </Link>
+          <Link
+            activeProps={activeProps}
+            className={itemClass}
+            onClick={onNavigate}
+            params={{ organizationSlug }}
+            to="/org/$organizationSlug/inventory"
+          >
+            <Boxes />
+            {m.inventory__title()}
           </Link>
           {showMemberNavigation ? (
             <Link

@@ -6,7 +6,6 @@ import {
 } from "@tsu-stack/contract/catalog";
 import {
   type ComponentAvailability,
-  type ComponentAvailabilityStatus,
   CurrencyCodeSchema,
   type OptionValueRequirement,
   ProductDefinitionSchema
@@ -22,23 +21,7 @@ import {
   product
 } from "@tsu-stack/db/schema";
 
-/**
- * Derives a Component's effective availability: an explicit override wins; under
- * `automatic`, qty <= 0 is `out`, qty <= threshold is `low`, else `available`.
- */
-export function computeEffectiveAvailability(
-  input: Pick<
-    typeof component.$inferSelect,
-    "availabilityOverride" | "lowStockThreshold" | "quantity"
-  >
-): ComponentAvailabilityStatus {
-  if (input.availabilityOverride !== "automatic") return input.availabilityOverride;
-  const qty = Number(input.quantity);
-  const threshold = Number(input.lowStockThreshold);
-  if (qty <= 0) return "out";
-  if (qty <= threshold) return "low";
-  return "available";
-}
+import { computeEffectiveAvailability } from "#@/inventory/queries";
 
 /**
  * Lists an Organization's published Products as customer-facing catalog cards in

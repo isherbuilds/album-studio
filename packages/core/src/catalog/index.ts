@@ -1,5 +1,1 @@
-export {
-  computeEffectiveAvailability,
-  listPublishedProductSummaries,
-  loadPublicProductDefinition
-} from "#@/catalog/queries";
+export { listPublishedProductSummaries, loadPublicProductDefinition } from "#@/catalog/queries";

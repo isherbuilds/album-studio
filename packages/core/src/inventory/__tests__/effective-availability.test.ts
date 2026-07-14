@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { computeEffectiveAvailability } from "@tsu-stack/core/catalog";
+import { computeEffectiveAvailability } from "@tsu-stack/core/inventory";
 
-describe("computeEffectiveAvailability", () => {
+describe("inventory effective availability", () => {
   describe("override precedence", () => {
     it("returns an explicit `available` override verbatim even when quantity would say out", () => {
       expect(

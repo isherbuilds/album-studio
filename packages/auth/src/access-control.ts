@@ -18,6 +18,7 @@ export function hasAdminRole(role: string | null | undefined): boolean {
 
 export const organizationAccessControl = createAccessControl({
   invitation: ["create", "cancel", "read"],
+  inventory: ["manage"],
   member: ["create", "update", "delete", "read"],
   order: ["manage"],
   payment: ["manage"],
@@ -27,11 +28,13 @@ export const organizationAccessControl = createAccessControl({
 export const organizationRoles = {
   customer: organizationAccessControl.newRole({}),
   manager: organizationAccessControl.newRole({
+    inventory: ["manage"],
     order: ["manage"],
     payment: ["manage"]
   }),
   owner: organizationAccessControl.newRole({
     invitation: ["create", "cancel", "read"],
+    inventory: ["manage"],
     member: ["create", "update", "delete", "read"],
     order: ["manage"],
     payment: ["manage"],
@@ -43,6 +46,7 @@ const organizationActionPermissions = {
   "invitation.cancel": { invitation: ["cancel"] },
   "invitation.create": { invitation: ["create"] },
   "invitation.read": { invitation: ["read"] },
+  "inventory.manage": { inventory: ["manage"] },
   "member.create": { member: ["create"] },
   "member.delete": { member: ["delete"] },
   "member.read": { member: ["read"] },

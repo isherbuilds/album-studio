@@ -183,7 +183,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Depends on: Slice 6.
   - Interfaces: Produces `orders.transition`, `orders.correctProjectName`, `orders.requestCancellation`, `orders.decideCancellation`, `orders.duplicateToDraft`, `payments.listByOrder`, `payments.record`, `payments.reverse`, and shared Order/payment status contracts.
 
-- [ ] Slice 8: Component inventory operations
+- [x] Slice 8: Component inventory operations
   - Acceptance: Owners and Managers create/edit Components, append stock Movements, set availability overrides, and see low/out stock; Customers see only derived availability; no Order path reserves or deducts material; every movement updates quantity atomically.
   - Verify: inventory oRPC tests for decimal deltas, effective status, permissions, and Organization isolation; checkout availability regression; then `vp run -w fix`.
   - Depends on: Slice 2 and Slice 6.

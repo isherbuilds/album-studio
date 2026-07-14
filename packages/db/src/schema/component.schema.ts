@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   foreignKey,
   index,
   numeric,
@@ -10,7 +12,7 @@ import {
   unique
 } from "drizzle-orm/pg-core";
 
-import { organization } from "#@/schema/auth.schema";
+import { organization, user } from "#@/schema/auth.schema";
 import { optionValue } from "#@/schema/product.schema";
 
 export const componentAvailabilityOverride = pgEnum("component_availability_override", [
@@ -81,5 +83,36 @@ export const optionValueComponent = pgTable(
       columns: [table.optionValueId, table.organizationId],
       foreignColumns: [optionValue.id, optionValue.organizationId]
     }).onDelete("cascade")
+  ]
+);
+
+/** Append-only stock adjustment. Component quantity changes in the same transaction. */
+export const inventoryMovement = pgTable(
+  "inventory_movement",
+  {
+    actorUserId: text("actor_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    componentId: text("component_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    delta: numeric("delta", { precision: 14, scale: 4 }).notNull(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    organizationId: text("organization_id").notNull(),
+    reason: text("reason").notNull()
+  },
+  (table) => [
+    index("inventory_movement_component_created_idx").on(
+      table.organizationId,
+      table.componentId,
+      table.createdAt
+    ),
+    foreignKey({
+      name: "inventory_movement_component_organization_fkey",
+      columns: [table.componentId, table.organizationId],
+      foreignColumns: [component.id, component.organizationId]
+    }).onDelete("restrict"),
+    check("inventory_movement_nonzero_delta_check", sql`${table.delta} <> 0`)
   ]
 );
