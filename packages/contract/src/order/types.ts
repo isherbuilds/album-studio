@@ -7,7 +7,10 @@ import {
   OptionValueIdSchema,
   PriceBreakdownLineSchema
 } from "@tsu-stack/contract/configuration";
-import { ConfigurationDraftProjectNameSchema } from "@tsu-stack/contract/draft";
+import {
+  ConfigurationDraftDetailSchema,
+  ConfigurationDraftProjectNameSchema
+} from "@tsu-stack/contract/draft";
 import { OrgSlugInputSchema } from "@tsu-stack/contract/organization";
 
 const IdSchema = z.string().min(1);
@@ -19,6 +22,8 @@ export const OrderStatusSchema = z.enum([
   "completed",
   "cancelled"
 ]);
+
+export const CancellationRequestStatusSchema = z.enum(["none", "pending", "approved", "rejected"]);
 
 export const OrderSnapshotSelectionSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -48,6 +53,7 @@ export const OrderSnapshotSchema = z.object({
 });
 
 export const OrderDetailSchema = z.object({
+  cancellationStatus: CancellationRequestStatusSchema,
   createdAt: z.iso.datetime(),
   number: z.string().min(1),
   projectName: ConfigurationDraftProjectNameSchema,
@@ -87,10 +93,39 @@ export const OrderByNumberInputSchema = OrgSlugInputSchema.extend({
   orderNumber: z.string().min(1)
 });
 
+export const OrderTransitionInputSchema = OrderByNumberInputSchema.extend({
+  status: OrderStatusSchema
+});
+
+export const OrderCorrectProjectNameInputSchema = OrderByNumberInputSchema.extend({
+  projectName: ConfigurationDraftProjectNameSchema
+});
+
+export const OrderRequestCancellationInputSchema = OrderByNumberInputSchema;
+
+export const OrderDecideCancellationInputSchema = OrderByNumberInputSchema.extend({
+  decision: z.enum(["approved", "rejected"])
+});
+
+export const OrderDuplicateToDraftInputSchema = OrderByNumberInputSchema;
+export const OrderDuplicateToDraftOutputSchema = z.object({
+  draft: ConfigurationDraftDetailSchema
+});
+
 export type OrderSnapshot = z.infer<typeof OrderSnapshotSchema>;
+export type OrderSnapshotSelection = z.infer<typeof OrderSnapshotSelectionSchema>;
 export type OrderStatus = z.infer<typeof OrderStatusSchema>;
+export type CancellationRequestStatus = z.infer<typeof CancellationRequestStatusSchema>;
 export type OrderDetail = z.infer<typeof OrderDetailSchema>;
 export type OrderListItem = z.infer<typeof OrderListItemSchema>;
 export type OrderPlaceInput = z.infer<typeof OrderPlaceInputSchema>;
+export type OrderListInput = z.infer<typeof OrderListInputSchema>;
+export type OrderByNumberInput = z.infer<typeof OrderByNumberInputSchema>;
 export type OrderPriceChange = z.infer<typeof OrderPriceChangeSchema>;
 export type OrderPriceComparison = z.infer<typeof OrderPriceComparisonSchema>;
+export type OrderTransitionInput = z.infer<typeof OrderTransitionInputSchema>;
+export type OrderCorrectProjectNameInput = z.infer<typeof OrderCorrectProjectNameInputSchema>;
+export type OrderRequestCancellationInput = z.infer<typeof OrderRequestCancellationInputSchema>;
+export type OrderDecideCancellationInput = z.infer<typeof OrderDecideCancellationInputSchema>;
+export type OrderDuplicateToDraftInput = z.infer<typeof OrderDuplicateToDraftInputSchema>;
+export type OrderDuplicateToDraftOutput = z.infer<typeof OrderDuplicateToDraftOutputSchema>;

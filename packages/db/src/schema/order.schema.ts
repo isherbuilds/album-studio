@@ -24,10 +24,18 @@ export const orderStatus = pgEnum("order_status", [
   "cancelled"
 ]);
 
+export const cancellationRequestStatus = pgEnum("cancellation_request_status", [
+  "none",
+  "pending",
+  "approved",
+  "rejected"
+]);
+
 export const customerOrder = pgTable(
   "customer_order",
   {
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    cancellationStatus: cancellationRequestStatus("cancellation_status").notNull().default("none"),
     customerId: text("customer_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -53,6 +61,7 @@ export const customerOrder = pgTable(
   (table) => [
     uniqueIndex("customer_order_number_uidx").on(table.number),
     uniqueIndex("customer_order_draft_uidx").on(table.draftId),
+    uniqueIndex("customer_order_id_organization_uidx").on(table.id, table.organizationId),
     index("customer_order_organization_created_idx").on(table.organizationId, table.createdAt),
     index("customer_order_customer_created_idx").on(
       table.organizationId,

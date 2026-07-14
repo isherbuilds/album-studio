@@ -3,17 +3,69 @@ import { and, eq } from "drizzle-orm";
 import { type ConfigurationEvaluation } from "@tsu-stack/contract/configuration";
 import {
   OrderPriceComparisonSchema,
+  type CancellationRequestStatus,
+  type OrderDetail,
   OrderSnapshotSchema,
+  type OrderStatus,
   type OrderPriceComparison,
   type OrderSnapshot
 } from "@tsu-stack/contract/order";
 import { type Database, type DatabaseOrTransaction } from "@tsu-stack/db";
-import { configurationDraft, customerOrder } from "@tsu-stack/db/schema";
+import { auditEvent, configurationDraft, customerOrder } from "@tsu-stack/db/schema";
 
 import { loadPublicProductDefinition } from "#@/catalog/queries";
 import { evaluateConfiguration } from "#@/configuration/evaluate-configuration";
 import { runRepeatableReadTransaction } from "#@/database/run-repeatable-read-transaction";
+import { parseConfigurationDraftDetail } from "#@/draft/queries";
+import { createConfigurationDraftSnapshot } from "#@/draft/snapshot";
 import { parseOrderDetail } from "#@/order/queries";
+
+const validTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
+  cancelled: [],
+  completed: [],
+  confirmed: ["in_production", "cancelled"],
+  in_production: ["completed", "cancelled"],
+  placed: ["confirmed", "cancelled"]
+};
+
+async function loadOrderForUpdate(
+  tx: DatabaseOrTransaction,
+  input: { customerId?: string; orderNumber: string; organizationId: string }
+) {
+  const rows = await tx
+    .select()
+    .from(customerOrder)
+    .where(
+      and(
+        eq(customerOrder.number, input.orderNumber),
+        eq(customerOrder.organizationId, input.organizationId),
+        input.customerId ? eq(customerOrder.customerId, input.customerId) : undefined
+      )
+    )
+    .limit(1)
+    .for("update");
+  return rows[0];
+}
+
+async function recordOrderAudit(
+  tx: DatabaseOrTransaction,
+  input: {
+    action: string;
+    actorUserId: string;
+    entityId: string;
+    metadata: Record<string, string | null>;
+    organizationId: string;
+  }
+) {
+  await tx.insert(auditEvent).values({
+    action: input.action,
+    actorUserId: input.actorUserId,
+    entityId: input.entityId,
+    entityType: "order",
+    metadata: input.metadata,
+    organizationId: input.organizationId
+  });
+}
 
 type ValidEvaluation = Extract<ConfigurationEvaluation, { status: "valid" }>;
 
@@ -186,5 +238,209 @@ export async function placeOrder(
     if (!converted[0]) throw new Error("Configuration Draft conversion returned no row");
 
     return { kind: "placed" as const, order: parseOrderDetail(order) };
+  });
+}
+
+type OrderMutationResult =
+  | { kind: "invalid_transition" }
+  | { kind: "not_found" }
+  | { kind: "updated"; order: OrderDetail };
+
+export async function transitionOrder(
+  db: Pick<Database, "transaction">,
+  input: {
+    actorUserId: string;
+    orderNumber: string;
+    organizationId: string;
+    status: OrderStatus;
+  }
+): Promise<OrderMutationResult> {
+  return runRepeatableReadTransaction(db, async (tx) => {
+    const order = await loadOrderForUpdate(tx, input);
+    if (!order) return { kind: "not_found" };
+    if (
+      !validTransitions[order.status].includes(input.status) ||
+      order.cancellationStatus === "pending"
+    ) {
+      return { kind: "invalid_transition" };
+    }
+
+    const rows = await tx
+      .update(customerOrder)
+      .set({ status: input.status })
+      .where(
+        and(
+          eq(customerOrder.id, order.id),
+          eq(customerOrder.organizationId, input.organizationId),
+          eq(customerOrder.status, order.status)
+        )
+      )
+      .returning();
+    const updated = rows[0];
+    if (!updated) throw new Error("Order transition returned no row");
+    await recordOrderAudit(tx, {
+      action: "order.status_updated",
+      actorUserId: input.actorUserId,
+      entityId: order.id,
+      metadata: { from: order.status, to: input.status },
+      organizationId: input.organizationId
+    });
+    return { kind: "updated", order: parseOrderDetail(updated) };
+  });
+}
+
+export async function correctOrderProjectName(
+  db: Pick<Database, "transaction">,
+  input: {
+    actorUserId: string;
+    orderNumber: string;
+    organizationId: string;
+    projectName: string | null;
+  }
+): Promise<OrderDetail | undefined> {
+  return runRepeatableReadTransaction(db, async (tx) => {
+    const order = await loadOrderForUpdate(tx, input);
+    if (!order) return undefined;
+    if (order.projectName === input.projectName) return parseOrderDetail(order);
+
+    const rows = await tx
+      .update(customerOrder)
+      .set({ projectName: input.projectName })
+      .where(
+        and(eq(customerOrder.id, order.id), eq(customerOrder.organizationId, input.organizationId))
+      )
+      .returning();
+    const updated = rows[0];
+    if (!updated) throw new Error("Order Project Name correction returned no row");
+    await recordOrderAudit(tx, {
+      action: "order.project_name_corrected",
+      actorUserId: input.actorUserId,
+      entityId: order.id,
+      metadata: { from: order.projectName, to: input.projectName },
+      organizationId: input.organizationId
+    });
+    return parseOrderDetail(updated);
+  });
+}
+
+export async function requestOrderCancellation(
+  db: Pick<Database, "transaction">,
+  input: { customerId: string; orderNumber: string; organizationId: string }
+): Promise<OrderMutationResult> {
+  return runRepeatableReadTransaction(db, async (tx) => {
+    const order = await loadOrderForUpdate(tx, input);
+    if (!order) return { kind: "not_found" };
+    if (
+      order.status !== "placed" ||
+      (order.cancellationStatus !== "none" && order.cancellationStatus !== "rejected")
+    ) {
+      return { kind: "invalid_transition" };
+    }
+    const rows = await tx
+      .update(customerOrder)
+      .set({ cancellationStatus: "pending" })
+      .where(
+        and(eq(customerOrder.id, order.id), eq(customerOrder.organizationId, input.organizationId))
+      )
+      .returning();
+    const updated = rows[0];
+    if (!updated) throw new Error("Order cancellation request returned no row");
+    await recordOrderAudit(tx, {
+      action: "order.cancellation_requested",
+      actorUserId: input.customerId,
+      entityId: order.id,
+      metadata: {},
+      organizationId: input.organizationId
+    });
+    return { kind: "updated", order: parseOrderDetail(updated) };
+  });
+}
+
+export async function decideOrderCancellation(
+  db: Pick<Database, "transaction">,
+  input: {
+    actorUserId: string;
+    decision: Extract<CancellationRequestStatus, "approved" | "rejected">;
+    orderNumber: string;
+    organizationId: string;
+  }
+): Promise<OrderMutationResult> {
+  return runRepeatableReadTransaction(db, async (tx) => {
+    const order = await loadOrderForUpdate(tx, input);
+    if (!order) return { kind: "not_found" };
+    if (order.status !== "placed" || order.cancellationStatus !== "pending") {
+      return { kind: "invalid_transition" };
+    }
+    const rows = await tx
+      .update(customerOrder)
+      .set({
+        cancellationStatus: input.decision,
+        status: input.decision === "approved" ? "cancelled" : "placed"
+      })
+      .where(
+        and(eq(customerOrder.id, order.id), eq(customerOrder.organizationId, input.organizationId))
+      )
+      .returning();
+    const updated = rows[0];
+    if (!updated) throw new Error("Order cancellation decision returned no row");
+    await recordOrderAudit(tx, {
+      action: "order.cancellation_decided",
+      actorUserId: input.actorUserId,
+      entityId: order.id,
+      metadata: { decision: input.decision },
+      organizationId: input.organizationId
+    });
+    return { kind: "updated", order: parseOrderDetail(updated) };
+  });
+}
+
+export async function duplicateOrderToDraft(
+  db: Pick<Database, "transaction">,
+  input: { customerId: string; orderNumber: string; organizationId: string }
+) {
+  return runRepeatableReadTransaction(db, async (tx) => {
+    const orderRows = await tx
+      .select()
+      .from(customerOrder)
+      .where(
+        and(
+          eq(customerOrder.number, input.orderNumber),
+          eq(customerOrder.organizationId, input.organizationId),
+          eq(customerOrder.customerId, input.customerId)
+        )
+      )
+      .limit(1);
+    const order = orderRows[0];
+    if (!order) return undefined;
+    const product = await loadPublicProductDefinition(tx, {
+      lockDefinition: true,
+      organizationId: input.organizationId,
+      productId: order.productId
+    });
+    if (!product) return undefined;
+    const selections = Object.fromEntries(
+      order.snapshot.selections.map((selection) => [
+        selection.groupKey,
+        selection.kind === "option" ? selection.optionValueId : selection.selected
+      ])
+    );
+    const snapshot = createConfigurationDraftSnapshot(product, {
+      projectName: order.projectName,
+      quantity: order.snapshot.quantity,
+      selections,
+      step: { kind: "review" }
+    });
+    const rows = await tx
+      .insert(configurationDraft)
+      .values({
+        customerId: input.customerId,
+        organizationId: input.organizationId,
+        productId: order.productId,
+        snapshot
+      })
+      .returning();
+    const draft = rows[0];
+    if (!draft) throw new Error("Order duplication returned no Configuration Draft");
+    return { draft: parseConfigurationDraftDetail(draft, product.slug) };
   });
 }

@@ -1,13 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { isDefinedError, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 import { type ConfigurationIssue } from "@tsu-stack/contract/configuration";
 import { type ConfigurationDraftEditor } from "@tsu-stack/contract/draft";
 import {
+  type OrderCorrectProjectNameInput,
+  type OrderDecideCancellationInput,
   type OrderDetail,
   type OrderPlaceInput,
-  type OrderPriceChange
+  type OrderPriceChange,
+  type OrderTransitionInput
 } from "@tsu-stack/contract/order";
+import { m } from "@tsu-stack/i18n/messages";
 
 import { getDraftByIdQueryOptions, getDraftListQueryOptions } from "@/hooks/use-drafts";
 
@@ -25,6 +30,73 @@ export function useOrderListQuery(organizationSlug: string) {
 
 export function useOrderByNumberQuery(organizationSlug: string, orderNumber: string) {
   return useQuery(getOrderByNumberQueryOptions(organizationSlug, orderNumber));
+}
+
+function showOrderUpdateError(invalidTransition: boolean) {
+  toast.error(invalidTransition ? m.orders__invalid_transition() : m.orders__update_failed());
+}
+
+export function useOrderActions(organizationSlug: string, orderNumber: string) {
+  const queryClient = useQueryClient();
+  const updateOrder = async (order: OrderDetail) => {
+    queryClient.setQueryData(
+      getOrderByNumberQueryOptions(organizationSlug, orderNumber).queryKey,
+      order
+    );
+    await queryClient.invalidateQueries(getOrderListQueryOptions(organizationSlug));
+  };
+
+  const transition = useMutation({
+    ...orpc.orders.transition.mutationOptions({
+      onError: (error) =>
+        showOrderUpdateError(isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"),
+      onSuccess: updateOrder
+    }),
+    mutationFn: (input: Pick<OrderTransitionInput, "status">) =>
+      orpc.orders.transition.call({ ...input, orderNumber, organizationSlug })
+  });
+  const correctProjectName = useMutation({
+    ...orpc.orders.correctProjectName.mutationOptions({
+      onError: () => toast.error(m.orders__update_failed()),
+      onSuccess: updateOrder
+    }),
+    mutationFn: (input: Pick<OrderCorrectProjectNameInput, "projectName">) =>
+      orpc.orders.correctProjectName.call({ ...input, orderNumber, organizationSlug })
+  });
+  const requestCancellation = useMutation({
+    ...orpc.orders.requestCancellation.mutationOptions({
+      onError: (error) =>
+        showOrderUpdateError(isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"),
+      onSuccess: updateOrder
+    }),
+    mutationFn: () => orpc.orders.requestCancellation.call({ orderNumber, organizationSlug })
+  });
+  const decideCancellation = useMutation({
+    ...orpc.orders.decideCancellation.mutationOptions({
+      onError: (error) =>
+        showOrderUpdateError(isDefinedError(error) && error.code === "INVALID_ORDER_TRANSITION"),
+      onSuccess: updateOrder
+    }),
+    mutationFn: (input: Pick<OrderDecideCancellationInput, "decision">) =>
+      orpc.orders.decideCancellation.call({ ...input, orderNumber, organizationSlug })
+  });
+  const duplicateToDraft = useMutation({
+    ...orpc.orders.duplicateToDraft.mutationOptions({
+      onError: () => toast.error(m.orders__duplicate_failed()),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries(getDraftListQueryOptions(organizationSlug));
+      }
+    }),
+    mutationFn: () => orpc.orders.duplicateToDraft.call({ orderNumber, organizationSlug })
+  });
+
+  return {
+    correctProjectName,
+    decideCancellation,
+    duplicateToDraft,
+    requestCancellation,
+    transition
+  };
 }
 
 export function usePlaceOrderMutation(

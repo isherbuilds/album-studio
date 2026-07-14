@@ -19,15 +19,22 @@ export function hasAdminRole(role: string | null | undefined): boolean {
 export const organizationAccessControl = createAccessControl({
   invitation: ["create", "cancel", "read"],
   member: ["create", "update", "delete", "read"],
+  order: ["manage"],
+  payment: ["manage"],
   organization: ["update"]
 });
 
 export const organizationRoles = {
   customer: organizationAccessControl.newRole({}),
-  manager: organizationAccessControl.newRole({}),
+  manager: organizationAccessControl.newRole({
+    order: ["manage"],
+    payment: ["manage"]
+  }),
   owner: organizationAccessControl.newRole({
     invitation: ["create", "cancel", "read"],
     member: ["create", "update", "delete", "read"],
+    order: ["manage"],
+    payment: ["manage"],
     organization: ["update"]
   })
 };
@@ -40,7 +47,9 @@ const organizationActionPermissions = {
   "member.delete": { member: ["delete"] },
   "member.read": { member: ["read"] },
   "member.update": { member: ["update"] },
-  "organization.update": { organization: ["update"] }
+  "order.manage": { order: ["manage"] },
+  "organization.update": { organization: ["update"] },
+  "payment.manage": { payment: ["manage"] }
 } as const;
 
 export type OrganizationAction = keyof typeof organizationActionPermissions;

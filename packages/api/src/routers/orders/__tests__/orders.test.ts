@@ -8,9 +8,11 @@ import { type OrderPriceComparison } from "@tsu-stack/contract/order";
 import { placeOrder as placeOrderCore } from "@tsu-stack/core/order";
 import { db } from "@tsu-stack/db";
 import {
+  auditEvent,
   component,
   customerOrder,
   member,
+  offlinePayment,
   optionGroup,
   optionValue,
   optionValueComponent,
@@ -25,7 +27,9 @@ import { appRouter } from "#@/routers/index";
 const fixture = {
   componentId: crypto.randomUUID(),
   customerId: crypto.randomUUID(),
+  managerId: crypto.randomUUID(),
   otherCustomerId: crypto.randomUUID(),
+  ownerId: crypto.randomUUID(),
   organizationId: crypto.randomUUID(),
   organizationSlug: `orders-${crypto.randomUUID()}`,
   otherOrganizationId: crypto.randomUUID(),
@@ -118,7 +122,7 @@ function priceForBase(basePriceMinor: number): OrderPriceComparison {
 
 beforeAll(async () => {
   await db.insert(user).values(
-    [fixture.customerId, fixture.otherCustomerId].map((id) => {
+    [fixture.customerId, fixture.managerId, fixture.otherCustomerId, fixture.ownerId].map((id) => {
       return {
         email: `${id}@example.com`,
         emailVerified: true,
@@ -158,6 +162,41 @@ beforeAll(async () => {
       organizationId: fixture.organizationId,
       role: "customer",
       userId: fixture.otherCustomerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.organizationId,
+      role: "manager",
+      userId: fixture.managerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.organizationId,
+      role: "owner",
+      userId: fixture.ownerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.otherOrganizationId,
+      role: "customer",
+      userId: fixture.customerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.otherOrganizationId,
+      role: "manager",
+      userId: fixture.managerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.otherOrganizationId,
+      role: "owner",
+      userId: fixture.ownerId
     }
   ]);
   await db.insert(product).values({
@@ -201,11 +240,15 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await db.delete(offlinePayment).where(eq(offlinePayment.organizationId, fixture.organizationId));
+  await db.delete(auditEvent).where(eq(auditEvent.organizationId, fixture.organizationId));
   await db.delete(customerOrder).where(eq(customerOrder.organizationId, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.otherOrganizationId));
   await db.delete(user).where(eq(user.id, fixture.customerId));
   await db.delete(user).where(eq(user.id, fixture.otherCustomerId));
+  await db.delete(user).where(eq(user.id, fixture.managerId));
+  await db.delete(user).where(eq(user.id, fixture.ownerId));
 });
 
 describe("orders router", () => {
@@ -456,5 +499,573 @@ describe("orders router", () => {
         organizationSlug: fixture.otherOrganizationSlug
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
+  });
+
+  it("supports staff follow-up while keeping submitted Orders immutable to Customers", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await expect(
+      customer.orders.correctProjectName({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        projectName: "Customer edit"
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      customer.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "confirmed"
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      customer.payments.record({
+        amountMinor: 1_000,
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      manager.orders.duplicateToDraft({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+    await expect(
+      manager.orders.requestCancellation({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+
+    const corrected = await manager.orders.correctProjectName({
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug,
+      projectName: "Maya & Arjun — Reception"
+    });
+    expect(corrected.projectName).toBe("Maya & Arjun — Reception");
+
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "completed"
+      })
+    ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
+
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "confirmed"
+      })
+    ).resolves.toMatchObject({ status: "confirmed" });
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "in_production"
+      })
+    ).resolves.toMatchObject({ status: "in_production" });
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "completed"
+      })
+    ).resolves.toMatchObject({ status: "completed" });
+
+    const audits = await db
+      .select({ action: auditEvent.action, metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.organizationId, fixture.organizationId));
+    expect(audits).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "order.project_name_corrected" }),
+        expect.objectContaining({ action: "order.status_updated" })
+      ])
+    );
+  });
+
+  it("lets Customers request cancellation and staff decide only while placed", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await expect(
+      customer.orders.requestCancellation({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toMatchObject({ cancellationStatus: "pending", status: "placed" });
+    await expect(
+      db
+        .select({ action: auditEvent.action, actorUserId: auditEvent.actorUserId })
+        .from(auditEvent)
+        .where(eq(auditEvent.organizationId, fixture.organizationId))
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        { action: "order.cancellation_requested", actorUserId: fixture.customerId }
+      ])
+    );
+    await expect(
+      customer.orders.requestCancellation({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "confirmed"
+      })
+    ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
+    await expect(
+      manager.orders.decideCancellation({
+        decision: "approved",
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toMatchObject({ cancellationStatus: "approved", status: "cancelled" });
+  });
+
+  it("duplicates immutable Order configuration into a new active Draft", async () => {
+    const customer = clientFor(fixture.customerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    await db
+      .update(product)
+      .set({ basePriceMinor: 12_000 })
+      .where(eq(product.id, fixture.productId));
+
+    let duplicate;
+    try {
+      duplicate = await customer.orders.duplicateToDraft({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      });
+    } finally {
+      await db
+        .update(product)
+        .set({ basePriceMinor: 10_000 })
+        .where(eq(product.id, fixture.productId));
+    }
+
+    expect(duplicate.draft).toMatchObject({
+      projectName: "Maya & Arjun",
+      quantity: 2,
+      selections: { cover: fixture.valueId },
+      status: "active"
+    });
+    expect(duplicate.draft.evaluationSummary).toMatchObject({
+      orderTotal: { amountMinor: 25_000, currency: "USD" },
+      status: "valid"
+    });
+    expect(duplicate.draft.id).not.toBe(editor.draft.id);
+  });
+
+  it("rejects duplication when current Product is unavailable", async () => {
+    const customer = clientFor(fixture.customerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await db.update(product).set({ status: "archived" }).where(eq(product.id, fixture.productId));
+    try {
+      await expect(
+        customer.orders.duplicateToDraft({
+          orderNumber: placed.number,
+          organizationSlug: fixture.organizationSlug
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
+    } finally {
+      await db
+        .update(product)
+        .set({ status: "published" })
+        .where(eq(product.id, fixture.productId));
+    }
+  });
+
+  it("duplicates an Order with a now-unavailable selection into an editable invalid Draft", async () => {
+    const customer = clientFor(fixture.customerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await db.update(component).set({ quantity: "0" }).where(eq(component.id, fixture.componentId));
+    let duplicate;
+    try {
+      duplicate = await customer.orders.duplicateToDraft({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      });
+    } finally {
+      await db
+        .update(component)
+        .set({ quantity: "10" })
+        .where(eq(component.id, fixture.componentId));
+    }
+
+    expect(duplicate.draft).toMatchObject({ projectName: "Maya & Arjun", status: "active" });
+    expect(duplicate.draft.evaluationSummary.status).toBe("invalid");
+    expect(duplicate.draft.id).not.toBe(editor.draft.id);
+  });
+
+  it("scopes every follow-up mutation to current Organization", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const owner = clientFor(fixture.ownerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const scope = { orderNumber: placed.number, organizationSlug: fixture.otherOrganizationSlug };
+
+    await Promise.all([
+      expect(
+        owner.orders.correctProjectName({ ...scope, projectName: "Cross-Organization edit" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(owner.orders.transition({ ...scope, status: "confirmed" })).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      }),
+      expect(
+        owner.orders.decideCancellation({ ...scope, decision: "approved" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(customer.orders.requestCancellation(scope)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      }),
+      expect(customer.orders.duplicateToDraft(scope)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      }),
+      expect(
+        manager.payments.record({
+          ...scope,
+          amountMinor: 1_000,
+          method: "cash",
+          mutationId: crypto.randomUUID(),
+          note: null
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(
+        manager.payments.reverse({
+          ...scope,
+          amountMinor: 1_000,
+          mutationId: crypto.randomUUID(),
+          note: null,
+          receiptId: crypto.randomUUID()
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true }),
+      expect(manager.payments.listByOrder(scope)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        defined: true
+      })
+    ]);
+  });
+
+  it("records partial offline receipts and bounded append-only reversals", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    const receiptInput = {
+      amountMinor: 8_000,
+      method: "upi" as const,
+      mutationId: crypto.randomUUID(),
+      note: "Deposit",
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    };
+    const receipt = await manager.payments.record(receiptInput);
+    await expect(manager.payments.record(receiptInput)).resolves.toEqual(receipt);
+    expect(receipt.summary).toMatchObject({
+      balance: { amountMinor: 13_000, currency: "USD" },
+      paid: { amountMinor: 8_000, currency: "USD" },
+      state: "partially_paid"
+    });
+
+    await expect(
+      manager.payments.record({
+        amountMinor: 14_000,
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "PAYMENT_OVERAGE", defined: true });
+
+    const reversed = await manager.payments.reverse({
+      amountMinor: 3_000,
+      mutationId: crypto.randomUUID(),
+      note: "Deposit correction",
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug,
+      receiptId: receipt.payment.id
+    });
+    expect(reversed).toMatchObject({
+      payment: { amount: { amountMinor: -3_000, currency: "USD" } },
+      summary: {
+        balance: { amountMinor: 16_000, currency: "USD" },
+        paid: { amountMinor: 5_000, currency: "USD" },
+        state: "partially_paid"
+      }
+    });
+
+    const ledger = await customer.payments.listByOrder({
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    });
+    expect(ledger.payments).toHaveLength(2);
+  });
+
+  it("rejects new receipts on cancelled Orders but still allows reversals", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const scope = { orderNumber: placed.number, organizationSlug: fixture.organizationSlug };
+
+    const receipt = await manager.payments.record({
+      ...scope,
+      amountMinor: 8_000,
+      method: "upi",
+      mutationId: crypto.randomUUID(),
+      note: "Deposit before cancellation"
+    });
+
+    await customer.orders.requestCancellation(scope);
+    await expect(
+      manager.orders.decideCancellation({ ...scope, decision: "approved" })
+    ).resolves.toMatchObject({ status: "cancelled" });
+
+    await expect(
+      manager.payments.record({
+        ...scope,
+        amountMinor: 1_000,
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
+
+    await expect(
+      manager.payments.reverse({
+        ...scope,
+        amountMinor: 8_000,
+        mutationId: crypto.randomUUID(),
+        note: "Refund after cancellation",
+        receiptId: receipt.payment.id
+      })
+    ).resolves.toMatchObject({
+      payment: { amount: { amountMinor: -8_000, currency: "USD" } },
+      summary: { paid: { amountMinor: 0, currency: "USD" }, state: "unpaid" }
+    });
+  });
+
+  it("rejects a reversal linked to a receipt from another Order", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const firstEditor = await createValidDraft();
+    const firstOrder = await customer.orders.place({
+      acceptedPrice: acceptedPrice(firstEditor),
+      draftId: firstEditor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const secondEditor = await createValidDraft();
+    const secondOrder = await customer.orders.place({
+      acceptedPrice: acceptedPrice(secondEditor),
+      draftId: secondEditor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const receipt = await manager.payments.record({
+      amountMinor: 8_000,
+      method: "cash",
+      mutationId: crypto.randomUUID(),
+      note: null,
+      orderNumber: firstOrder.number,
+      organizationSlug: fixture.organizationSlug
+    });
+    const secondOrderRows = await db
+      .select({ id: customerOrder.id })
+      .from(customerOrder)
+      .where(eq(customerOrder.number, secondOrder.number))
+      .limit(1);
+    const secondOrderId = secondOrderRows[0]?.id;
+    if (!secondOrderId) throw new Error("Second Order missing");
+
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: -1_000,
+        entryType: "reversal",
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: secondOrderId,
+        organizationId: fixture.organizationId,
+        reversalOfId: receipt.payment.id,
+        reversalTargetType: "receipt"
+      })
+    ).rejects.toThrow("Failed query");
+
+    const firstOrderRows = await db
+      .select({ id: customerOrder.id })
+      .from(customerOrder)
+      .where(eq(customerOrder.number, firstOrder.number))
+      .limit(1);
+    const firstOrderId = firstOrderRows[0]?.id;
+    if (!firstOrderId) throw new Error("First Order missing");
+    const selfId = crypto.randomUUID();
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: -1_000,
+        entryType: "reversal",
+        id: selfId,
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: firstOrderId,
+        organizationId: fixture.organizationId,
+        reversalOfId: selfId,
+        reversalTargetType: "receipt"
+      })
+    ).rejects.toThrow("Failed query");
+
+    const reversal = await manager.payments.reverse({
+      amountMinor: 1_000,
+      mutationId: crypto.randomUUID(),
+      note: null,
+      orderNumber: firstOrder.number,
+      organizationSlug: fixture.organizationSlug,
+      receiptId: receipt.payment.id
+    });
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: -1_000,
+        entryType: "reversal",
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: firstOrderId,
+        organizationId: fixture.organizationId,
+        reversalOfId: reversal.payment.id,
+        reversalTargetType: "receipt"
+      })
+    ).rejects.toThrow("Failed query");
+
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: Number.MAX_SAFE_INTEGER + 1,
+        entryType: "receipt",
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null,
+        orderId: firstOrderId,
+        organizationId: fixture.organizationId
+      })
+    ).rejects.toThrow("Failed query");
+  });
+
+  it("serializes concurrent receipts and reversals against Order balance", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const receiptInput = {
+      amountMinor: 15_000,
+      method: "cash" as const,
+      mutationId: crypto.randomUUID(),
+      note: null,
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    };
+
+    const receipts = await Promise.allSettled([
+      manager.payments.record(receiptInput),
+      manager.payments.record({ ...receiptInput, mutationId: crypto.randomUUID() })
+    ]);
+    const recorded = receipts.filter((result) => result.status === "fulfilled");
+    const rejected = receipts.filter((result) => result.status === "rejected");
+    expect(recorded).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({
+      reason: { code: "PAYMENT_OVERAGE", defined: true },
+      status: "rejected"
+    });
+    const receipt = recorded[0]?.value;
+    if (!receipt) throw new Error("Expected one concurrent receipt");
+
+    const reversalInput = {
+      amountMinor: 10_000,
+      mutationId: crypto.randomUUID(),
+      note: null,
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug,
+      receiptId: receipt.payment.id
+    };
+    const reversals = await Promise.allSettled([
+      manager.payments.reverse(reversalInput),
+      manager.payments.reverse({ ...reversalInput, mutationId: crypto.randomUUID() })
+    ]);
+    expect(reversals.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(reversals.filter((result) => result.status === "rejected")).toEqual([
+      expect.objectContaining({ reason: expect.objectContaining({ code: "PAYMENT_OVERAGE" }) })
+    ]);
+
+    await expect(
+      manager.payments.listByOrder({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toMatchObject({
+      summary: { paid: { amountMinor: 5_000, currency: "USD" } }
+    });
   });
 });

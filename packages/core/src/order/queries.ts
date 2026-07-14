@@ -11,6 +11,7 @@ import { customerOrder } from "@tsu-stack/db/schema";
 
 export function parseOrderDetail(row: typeof customerOrder.$inferSelect): OrderDetail {
   return OrderDetailSchema.parse({
+    cancellationStatus: row.cancellationStatus,
     createdAt: row.createdAt.toISOString(),
     number: row.number,
     projectName: row.projectName,

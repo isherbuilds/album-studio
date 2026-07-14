@@ -6,6 +6,7 @@ import {
   LogOut,
   Menu,
   PackageCheck,
+  ReceiptText,
   Users
 } from "lucide-react";
 import { useState } from "react";
@@ -23,7 +24,6 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@tsu-stack/ui/components/sheet";
-import { cn } from "@tsu-stack/ui/lib/utils";
 
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { NavbarAvatar } from "@/components/navigation/navbar-avatar";
@@ -42,26 +42,27 @@ function WorkspaceNavigation({
   showMemberNavigation,
   showPlatformNavigation
 }: WorkspaceNavigationProps) {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const itemClass = (active: boolean) =>
-    cn(
-      "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-      active && "bg-muted text-foreground"
-    );
-  const organizationPath = organizationSlug ? `/org/${organizationSlug}` : undefined;
-  const isMembers = organizationPath ? pathname.includes(`${organizationPath}/members`) : false;
-  const isOrders = organizationPath ? pathname.includes(`${organizationPath}/orders`) : false;
+  const itemClass =
+    "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+  const activeProps = { className: "bg-muted text-foreground" };
 
   return (
     <nav aria-label={m.app_shell__workspace()} className="flex flex-col gap-1">
       {showPlatformNavigation ? (
         <>
-          <Link className={itemClass(pathname.endsWith("/admin"))} onClick={onNavigate} to="/admin">
+          <Link
+            activeOptions={{ exact: true }}
+            activeProps={activeProps}
+            className={itemClass}
+            onClick={onNavigate}
+            to="/admin"
+          >
             <LayoutDashboard />
             {m.app_shell__overview()}
           </Link>
           <Link
-            className={itemClass(pathname.includes("/admin/organizations"))}
+            activeProps={activeProps}
+            className={itemClass}
             onClick={onNavigate}
             to="/admin/organizations"
           >
@@ -73,7 +74,9 @@ function WorkspaceNavigation({
       {organizationSlug ? (
         <>
           <Link
-            className={itemClass(!isMembers && !isOrders)}
+            activeOptions={{ exact: true }}
+            activeProps={activeProps}
+            className={itemClass}
             onClick={onNavigate}
             params={{ organizationSlug }}
             to="/org/$organizationSlug"
@@ -82,7 +85,8 @@ function WorkspaceNavigation({
             {m.app_shell__studio_overview()}
           </Link>
           <Link
-            className={itemClass(isOrders)}
+            activeProps={activeProps}
+            className={itemClass}
             onClick={onNavigate}
             params={{ organizationSlug }}
             to="/org/$organizationSlug/orders"
@@ -90,9 +94,20 @@ function WorkspaceNavigation({
             <PackageCheck />
             {m.orders__title()}
           </Link>
+          <Link
+            activeProps={activeProps}
+            className={itemClass}
+            onClick={onNavigate}
+            params={{ organizationSlug }}
+            to="/org/$organizationSlug/payments"
+          >
+            <ReceiptText />
+            {m.payments__title()}
+          </Link>
           {showMemberNavigation ? (
             <Link
-              className={itemClass(isMembers)}
+              activeProps={activeProps}
+              className={itemClass}
               onClick={onNavigate}
               params={{ organizationSlug }}
               to="/org/$organizationSlug/members"
