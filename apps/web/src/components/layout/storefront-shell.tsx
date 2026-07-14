@@ -37,10 +37,7 @@ export function StorefrontShell({
           >
             {brand}
           </Link>
-          <nav
-            aria-label={organizationName}
-            className="order-3 flex w-full items-center gap-1 sm:order-none sm:w-auto"
-          >
+          <nav className="order-3 flex w-full items-center gap-1 sm:order-0 sm:w-auto">
             <Link
               activeProps={{ className: "bg-muted text-foreground" }}
               className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"

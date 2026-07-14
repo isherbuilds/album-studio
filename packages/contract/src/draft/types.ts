@@ -33,7 +33,7 @@ export const ConfigurationDraftProjectNameSchema = z
 
 export const ConfigurationDraftStateSchema = z.object({
   projectName: ConfigurationDraftProjectNameSchema,
-  quantity: z.number().min(Number.MIN_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
+  quantity: z.number().min(1).max(Number.MAX_SAFE_INTEGER),
   selections: ConfigurationDraftSelectionsSchema,
   step: ConfigurationDraftStepSchema
 });

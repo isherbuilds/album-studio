@@ -61,7 +61,7 @@ export function ProductStartPage({
         </div>
       </div>
 
-      <Card className="top-22 lg:sticky">
+      <Card className="top-24 lg:sticky">
         <CardHeader>
           <CardTitle>{product.name}</CardTitle>
           <CardDescription>
