@@ -221,7 +221,7 @@ test("customer and owner get role-specific Order follow-up controls", async ({
   const projectName = `Follow-up ${Date.now()}`;
   await openValidReview(page, projectName);
   await placeOrder(page);
-  await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-[A-F0-9]{12}$/);
+  await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-S\d{11}$/);
   const orderPath = new URL(page.url()).pathname;
 
   await expect(page.getByRole("button", { name: "Duplicate to new draft" })).toBeVisible();
