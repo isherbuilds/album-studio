@@ -1,2 +1,2 @@
 export * from "#@/order/commands";
-export * from "#@/order/queries";
+export { listOrders, loadOrderByNumber } from "#@/order/queries";

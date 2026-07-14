@@ -361,6 +361,7 @@ function EstimatePanel({
   evaluation,
   guidance,
   isPlacing,
+  isSaving,
   locale,
   onPlaceOrder,
   priceChange,
@@ -371,6 +372,7 @@ function EstimatePanel({
   evaluation: ConfigurationEvaluation;
   guidance: string | undefined;
   isPlacing: boolean;
+  isSaving: boolean;
   locale: string;
   onPlaceOrder: (acceptedPrice: OrderPriceComparison) => void;
   priceChange: OrderPriceChange | null;
@@ -439,7 +441,7 @@ function EstimatePanel({
               ))}
             </div>
             <Button
-              disabled={isPlacing}
+              disabled={isPlacing || isSaving}
               onClick={() => onPlaceOrder(priceChange.current)}
               type="button"
             >
@@ -451,7 +453,7 @@ function EstimatePanel({
       ) : (
         <Button
           className="w-full"
-          disabled={evaluation.status !== "valid" || isPlacing}
+          disabled={evaluation.status !== "valid" || isPlacing || isSaving}
           onClick={() => {
             if (evaluation.status === "valid") {
               onPlaceOrder({
@@ -904,6 +906,7 @@ export function DraftConfigurator({
               evaluation={evaluation}
               guidance={guidance}
               isPlacing={isPlacing}
+              isSaving={isSaving}
               locale={locale}
               onPlaceOrder={onPlaceOrder}
               priceChange={priceChange}
@@ -944,6 +947,7 @@ export function DraftConfigurator({
                   evaluation={evaluation}
                   guidance={guidance}
                   isPlacing={isPlacing}
+                  isSaving={isSaving}
                   locale={locale}
                   onPlaceOrder={onPlaceOrder}
                   priceChange={priceChange}

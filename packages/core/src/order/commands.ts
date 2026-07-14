@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { type ConfigurationEvaluation } from "@tsu-stack/contract/configuration";
 import {
+  OrderPriceComparisonSchema,
   OrderSnapshotSchema,
   type OrderPriceComparison,
   type OrderSnapshot
@@ -15,6 +16,10 @@ import { runRepeatableReadTransaction } from "#@/database/run-repeatable-read-tr
 import { parseOrderDetail } from "#@/order/queries";
 
 type ValidEvaluation = Extract<ConfigurationEvaluation, { status: "valid" }>;
+
+function canonicalPrice(price: OrderPriceComparison) {
+  return JSON.stringify(OrderPriceComparisonSchema.parse(price));
+}
 
 function createOrderSnapshot(
   product: NonNullable<Awaited<ReturnType<typeof loadPublicProductDefinition>>>,
@@ -109,7 +114,7 @@ export async function placeOrder(
     if (reference.status === "converted") return loadPlacedOrder(tx, input);
 
     const product = await loadPublicProductDefinition(tx, {
-      lockProduct: true,
+      lockDefinition: true,
       organizationId: input.organizationId,
       productId: reference.productId
     });
@@ -150,7 +155,7 @@ export async function placeOrder(
       perUnitBreakdown: evaluation.perUnitBreakdown,
       perUnitTotal: evaluation.perUnitTotal
     };
-    if (JSON.stringify(currentPrice) !== JSON.stringify(input.acceptedPrice)) {
+    if (canonicalPrice(currentPrice) !== canonicalPrice(input.acceptedPrice)) {
       return {
         current: currentPrice,
         kind: "price_changed" as const,

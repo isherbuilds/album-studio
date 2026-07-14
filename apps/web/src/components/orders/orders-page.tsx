@@ -16,6 +16,7 @@ import {
 } from "@tsu-stack/ui/components/empty";
 
 import { formatMinorAmount } from "@/components/catalog/format";
+import { orderStatusLabel } from "@/components/orders/order-format";
 import { useOrderListQuery } from "@/hooks/use-orders";
 
 export function OrdersPage({
@@ -75,7 +76,7 @@ export function OrdersPage({
                     </p>
                   </div>
                   <div className="flex items-center justify-between gap-3 sm:justify-end">
-                    <Badge variant="outline">{m.orders__status_placed()}</Badge>
+                    <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
                     <span className="font-medium tabular-nums">
                       {formatMinorAmount(
                         order.orderTotal.amountMinor,

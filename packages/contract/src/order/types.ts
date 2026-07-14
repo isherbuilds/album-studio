@@ -48,7 +48,7 @@ export const OrderSnapshotSchema = z.object({
 });
 
 export const OrderDetailSchema = z.object({
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
   number: z.string().min(1),
   projectName: ConfigurationDraftProjectNameSchema,
   snapshot: OrderSnapshotSchema,
@@ -88,6 +88,7 @@ export const OrderByNumberInputSchema = OrgSlugInputSchema.extend({
 });
 
 export type OrderSnapshot = z.infer<typeof OrderSnapshotSchema>;
+export type OrderStatus = z.infer<typeof OrderStatusSchema>;
 export type OrderDetail = z.infer<typeof OrderDetailSchema>;
 export type OrderListItem = z.infer<typeof OrderListItemSchema>;
 export type OrderPlaceInput = z.infer<typeof OrderPlaceInputSchema>;

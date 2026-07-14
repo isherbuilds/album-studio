@@ -55,7 +55,10 @@ export function StorefrontShell({
               {m.storefront__drafts()}
             </Link>
             <Link
-              activeProps={{ className: "bg-muted text-foreground" }}
+              activeProps={{
+                className:
+                  "rounded-md bg-muted px-3 py-1.5 text-sm text-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              }}
               className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
               to="/org/$organizationSlug/orders"

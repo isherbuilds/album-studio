@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@tsu-stack/ui/componen
 import { Separator } from "@tsu-stack/ui/components/separator";
 
 import { formatMinorAmount } from "@/components/catalog/format";
+import { orderStatusLabel } from "@/components/orders/order-format";
 import { useOrderByNumberQuery } from "@/hooks/use-orders";
 
 export function OrderDetailPage({
@@ -40,7 +41,7 @@ export function OrderDetailPage({
             {order.projectName ?? order.snapshot.product.name}
           </h1>
         </div>
-        <Badge variant="outline">{m.orders__status_placed()}</Badge>
+        <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
       </header>
       <Card>
         <CardHeader>

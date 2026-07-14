@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { CurrencyCodeSchema } from "@tsu-stack/contract/configuration";
 import { type ConfigurationDraftEditor } from "@tsu-stack/contract/draft";
 import { type OrderPriceComparison } from "@tsu-stack/contract/order";
+import { placeOrder as placeOrderCore } from "@tsu-stack/core/order";
 import { db } from "@tsu-stack/db";
 import {
   component,
@@ -253,7 +254,7 @@ describe("orders router", () => {
       },
       status: "placed"
     });
-    expect(placed.number).toMatch(/^AS-[A-F0-9]{12}$/);
+    expect(placed.number).toMatch(/^AS-S\d{11}$/);
 
     await db
       .update(product)
@@ -270,10 +271,49 @@ describe("orders router", () => {
       .from(customerOrder)
       .where(eq(customerOrder.draftId, editor.draft.id));
     expect(rows).toHaveLength(1);
+    await expect(
+      db.insert(customerOrder).values({
+        customerId: fixture.otherCustomerId,
+        draftId: editor.draft.id,
+        organizationId: fixture.organizationId,
+        productId: fixture.productId,
+        projectName: placed.projectName,
+        snapshot: placed.snapshot
+      })
+    ).rejects.toThrow("Failed query");
     await db
       .update(product)
       .set({ basePriceMinor: 10_000, name: "Wedding Album" })
       .where(eq(product.id, fixture.productId));
+
+    await expect(
+      client.orders.list({ organizationSlug: fixture.organizationSlug })
+    ).resolves.toEqual([
+      expect.objectContaining({
+        number: placed.number,
+        orderTotal: { amountMinor: 21_000, currency: "USD" },
+        productName: "Wedding Album",
+        quantity: 2,
+        status: "placed"
+      })
+    ]);
+  });
+
+  it("accepts equivalent prices independent of property insertion order", async () => {
+    const editor = await createValidDraft();
+    const accepted = acceptedPrice(editor);
+    const result = await placeOrderCore(db, {
+      acceptedPrice: {
+        perUnitTotal: accepted.perUnitTotal,
+        perUnitBreakdown: accepted.perUnitBreakdown,
+        orderTotal: accepted.orderTotal
+      },
+      customerId: fixture.customerId,
+      draftId: editor.draft.id,
+      organizationId: fixture.organizationId
+    });
+
+    expect(result).toMatchObject({ kind: "placed" });
   });
 
   it("requires explicit acceptance after authoritative price change", async () => {

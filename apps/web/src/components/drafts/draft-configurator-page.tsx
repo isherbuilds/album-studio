@@ -174,7 +174,7 @@ function DraftEditor({
     setCheckoutError(null);
     setPriceChange(null);
     if (hasUnsavedChanges && !(await saveCheckpoint(snapshot))) return;
-    placeOrder.mutate({ acceptedPrice, draftId: currentEditor.draft.id });
+    placeOrder.mutate({ acceptedPrice });
   };
 
   const blocker = useBlocker({

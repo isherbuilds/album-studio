@@ -31,15 +31,13 @@ export const customerOrder = pgTable(
     customerId: text("customer_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
-    draftId: text("draft_id")
-      .notNull()
-      .references(() => configurationDraft.id, { onDelete: "restrict" }),
+    draftId: text("draft_id").notNull(),
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     number: text("number")
       .notNull()
-      .default(sql`'AS-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12))`),
+      .default(sql`'AS-S' || lpad(nextval('customer_order_number_seq')::text, 11, '0')`),
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "restrict" }),
@@ -61,6 +59,16 @@ export const customerOrder = pgTable(
       table.customerId,
       table.createdAt
     ),
+    foreignKey({
+      name: "customer_order_draft_scope_fkey",
+      columns: [table.draftId, table.customerId, table.organizationId, table.productId],
+      foreignColumns: [
+        configurationDraft.id,
+        configurationDraft.customerId,
+        configurationDraft.organizationId,
+        configurationDraft.productId
+      ]
+    }).onDelete("restrict"),
     foreignKey({
       name: "customer_order_product_organization_fkey",
       columns: [table.productId, table.organizationId],

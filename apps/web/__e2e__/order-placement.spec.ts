@@ -132,7 +132,7 @@ test("checkout checkpoints dirty Draft, confirms price race, and opens immutable
       .first()
       .click();
 
-    await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-[A-F0-9]{12}$/);
+    await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-S\d{11}$/);
     expect(errors).toEqual([]);
     await expect(page.getByText("Placed", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Price race/ })).toBeVisible();

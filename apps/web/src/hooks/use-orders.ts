@@ -59,8 +59,8 @@ export function usePlaceOrderMutation(
         handlers.onFailure();
       }
     }),
-    mutationFn: (input: Omit<OrderPlaceInput, "organizationSlug">) =>
-      orpc.orders.place.call({ ...input, organizationSlug }),
+    mutationFn: (input: Omit<OrderPlaceInput, "draftId" | "organizationSlug">) =>
+      orpc.orders.place.call({ ...input, draftId, organizationSlug }),
     onSuccess: async (order) => {
       queryClient.removeQueries(getDraftByIdQueryOptions(organizationSlug, draftId));
       queryClient.setQueryData(

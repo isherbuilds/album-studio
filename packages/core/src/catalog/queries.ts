@@ -81,7 +81,7 @@ export async function listPublishedProductSummaries(
  */
 export async function loadPublicProductDefinition(
   db: DatabaseOrTransaction,
-  input: { lockProduct?: boolean; organizationId: string } & (
+  input: { lockDefinition?: boolean; lockProduct?: boolean; organizationId: string } & (
     | { productId: string }
     | { productSlug: string }
   )
@@ -108,60 +108,69 @@ export async function loadPublicProductDefinition(
       )
     )
     .limit(1);
-  const productRows = input.lockProduct
-    ? await productQuery.for("share", { of: product })
-    : await productQuery;
+  const productRows =
+    input.lockProduct || input.lockDefinition
+      ? await productQuery.for("share", { of: product })
+      : await productQuery;
 
   const productRow = productRows[0];
   if (!productRow) return undefined;
 
-  const groupRows = await db
+  const groupQuery = db
     .select()
     .from(optionGroup)
     .where(eq(optionGroup.productId, productRow.id))
     .orderBy(asc(optionGroup.position));
+  const groupRows = input.lockDefinition ? await groupQuery.for("share") : await groupQuery;
 
   const groupIds = groupRows.map((group) => group.id);
+  const valueQuery = db
+    .select()
+    .from(optionValue)
+    .where(inArray(optionValue.optionGroupId, groupIds))
+    .orderBy(asc(optionValue.optionGroupId), asc(optionValue.position), asc(optionValue.id));
   const valueRows =
-    groupIds.length > 0
-      ? await db
-          .select()
-          .from(optionValue)
-          .where(inArray(optionValue.optionGroupId, groupIds))
-          .orderBy(asc(optionValue.optionGroupId), asc(optionValue.position), asc(optionValue.id))
-      : [];
+    groupIds.length === 0
+      ? []
+      : input.lockDefinition
+        ? await valueQuery.for("share")
+        : await valueQuery;
 
   // Requirement edges and component links both key off valueIds and don't depend on
   // each other — fetch them in one round-trip instead of two serial awaits.
   const valueIds = valueRows.map((value) => value.id);
-  const [requirementRows, valueComponentRows] = await Promise.all([
-    valueIds.length > 0
-      ? db
-          .select()
-          .from(optionValueRequirement)
-          .where(inArray(optionValueRequirement.optionValueId, valueIds))
-      : [],
-    valueIds.length > 0
-      ? db
-          .select()
-          .from(optionValueComponent)
-          .where(inArray(optionValueComponent.optionValueId, valueIds))
-      : []
-  ]);
+  const requirementQuery = db
+    .select()
+    .from(optionValueRequirement)
+    .where(inArray(optionValueRequirement.optionValueId, valueIds));
+  const valueComponentQuery = db
+    .select()
+    .from(optionValueComponent)
+    .where(inArray(optionValueComponent.optionValueId, valueIds));
+  const [requirementRows, valueComponentRows] =
+    valueIds.length === 0
+      ? [[], []]
+      : await Promise.all([
+          input.lockDefinition ? requirementQuery.for("share") : requirementQuery,
+          input.lockDefinition ? valueComponentQuery.for("share") : valueComponentQuery
+        ]);
 
   const referencedComponentIds = [...new Set(valueComponentRows.map((link) => link.componentId))];
+  const componentQuery = db
+    .select()
+    .from(component)
+    .where(
+      and(
+        inArray(component.id, referencedComponentIds),
+        eq(component.organizationId, input.organizationId)
+      )
+    );
   const componentRows =
-    referencedComponentIds.length > 0
-      ? await db
-          .select()
-          .from(component)
-          .where(
-            and(
-              inArray(component.id, referencedComponentIds),
-              eq(component.organizationId, input.organizationId)
-            )
-          )
-      : [];
+    referencedComponentIds.length === 0
+      ? []
+      : input.lockDefinition
+        ? await componentQuery.for("share")
+        : await componentQuery;
 
   const groupById = new Map(groupRows.map((group) => [group.id, group]));
   const valueById = new Map(valueRows.map((value) => [value.id, value]));
