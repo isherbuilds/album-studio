@@ -108,7 +108,9 @@ describe("Configuration Draft contracts", () => {
       createdAt: new Date().toISOString(),
       evaluationSummary: {
         status: "valid" as const,
-        orderTotal: { amountMinor: 10_000, currency: "USD" }
+        orderTotal: { amountMinor: 10_000, currency: "USD" },
+        perUnitBreakdown: [{ amountMinor: 10_000, kind: "base" as const }],
+        perUnitTotal: { amountMinor: 10_000, currency: "USD" }
       },
       id: "draft-1",
       productId: "product-1",

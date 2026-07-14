@@ -8,7 +8,8 @@ import {
   pgEnum,
   pgTable,
   text,
-  timestamp
+  timestamp,
+  uniqueIndex
 } from "drizzle-orm/pg-core";
 
 import { type ConfigurationDraftSnapshot } from "@tsu-stack/contract/draft";
@@ -42,6 +43,12 @@ export const configurationDraft = pgTable(
       .notNull()
   },
   (table) => [
+    uniqueIndex("configuration_draft_order_reference_uidx").on(
+      table.id,
+      table.customerId,
+      table.organizationId,
+      table.productId
+    ),
     index("configuration_draft_customer_active_updated_idx").on(
       table.organizationId,
       table.customerId,

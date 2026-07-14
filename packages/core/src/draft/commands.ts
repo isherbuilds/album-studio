@@ -10,29 +10,9 @@ import { type Database, type DatabaseOrTransaction } from "@tsu-stack/db";
 import { configurationDraft } from "@tsu-stack/db/schema";
 
 import { loadPublicProductDefinition } from "#@/catalog/queries";
+import { runRepeatableReadTransaction } from "#@/database/run-repeatable-read-transaction";
 import { loadConfigurationDraftReference, parseConfigurationDraftDetail } from "#@/draft/queries";
 import { createConfigurationDraftSnapshot } from "#@/draft/snapshot";
-
-async function runDraftTransaction<T>(
-  db: Pick<Database, "transaction">,
-  operation: (tx: DatabaseOrTransaction) => Promise<T>
-): Promise<T> {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await db.transaction(operation, { isolationLevel: "repeatable read" });
-    } catch (error) {
-      const cause = error instanceof Error ? error.cause : undefined;
-      if (
-        attempt > 0 ||
-        !(cause instanceof Error) ||
-        !("code" in cause) ||
-        cause.code !== "40001"
-      ) {
-        throw error;
-      }
-    }
-  }
-}
 
 export async function createConfigurationDraft(
   db: Pick<Database, "transaction">,
@@ -43,7 +23,7 @@ export async function createConfigurationDraft(
     projectName: ConfigurationDraftProjectName | undefined;
   }
 ): Promise<ConfigurationDraftEditor | undefined> {
-  return runDraftTransaction(db, async (tx) => {
+  return runRepeatableReadTransaction(db, async (tx) => {
     const productDefinition = await loadPublicProductDefinition(tx, {
       lockProduct: true,
       organizationId: input.organizationId,
@@ -98,7 +78,7 @@ export async function saveConfigurationDraft(
   db: Pick<Database, "transaction">,
   input: SaveConfigurationDraftInput
 ): Promise<SaveConfigurationDraftResult> {
-  return runDraftTransaction(db, async (tx) => {
+  return runRepeatableReadTransaction(db, async (tx) => {
     const candidate = await loadConfigurationDraftReference(tx, input);
     if (!candidate) return { kind: "not_found" };
     if (candidate.revision !== input.expectedRevision) {

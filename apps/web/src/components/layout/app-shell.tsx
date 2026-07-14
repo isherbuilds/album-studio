@@ -1,5 +1,13 @@
 import { useRouterState } from "@tanstack/react-router";
-import { Building2, Images, LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
+import {
+  Building2,
+  Images,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PackageCheck,
+  Users
+} from "lucide-react";
 import { useState } from "react";
 
 import { can } from "@tsu-stack/auth/access-control";
@@ -40,6 +48,9 @@ function WorkspaceNavigation({
       "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
       active && "bg-muted text-foreground"
     );
+  const organizationPath = organizationSlug ? `/org/${organizationSlug}` : undefined;
+  const isMembers = organizationPath ? pathname.includes(`${organizationPath}/members`) : false;
+  const isOrders = organizationPath ? pathname.includes(`${organizationPath}/orders`) : false;
 
   return (
     <nav aria-label={m.app_shell__workspace()} className="flex flex-col gap-1">
@@ -62,7 +73,7 @@ function WorkspaceNavigation({
       {organizationSlug ? (
         <>
           <Link
-            className={itemClass(!pathname.includes("/members"))}
+            className={itemClass(!isMembers && !isOrders)}
             onClick={onNavigate}
             params={{ organizationSlug }}
             to="/org/$organizationSlug"
@@ -70,9 +81,18 @@ function WorkspaceNavigation({
             <Images />
             {m.app_shell__studio_overview()}
           </Link>
+          <Link
+            className={itemClass(isOrders)}
+            onClick={onNavigate}
+            params={{ organizationSlug }}
+            to="/org/$organizationSlug/orders"
+          >
+            <PackageCheck />
+            {m.orders__title()}
+          </Link>
           {showMemberNavigation ? (
             <Link
-              className={itemClass(pathname.includes("/members"))}
+              className={itemClass(isMembers)}
               onClick={onNavigate}
               params={{ organizationSlug }}
               to="/org/$organizationSlug/members"

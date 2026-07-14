@@ -7,6 +7,7 @@ import { DEFAULT_ORGANIZATION_CURRENCY } from "@tsu-stack/contract/configuration
 import { db } from "@tsu-stack/db";
 import {
   component,
+  configurationDraft,
   member,
   optionGroup,
   optionValue,
@@ -30,7 +31,6 @@ const SEEDED_COMPONENT_NAMES = [
   "Foil Roll",
   "Gift Box Stock"
 ];
-
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required to seed demo data");
 const databaseHost = new URL(databaseUrl).hostname;
@@ -88,8 +88,6 @@ const existingCustomerMembers = await db
   .where(and(eq(member.organizationId, organizationId), eq(member.userId, customerId)))
   .limit(1);
 if (existingCustomerMembers.length === 0) {
-  // Membership lifecycle belongs to Better Auth, not a raw insert — go through the
-  // supported server API so the org plugin owns creation (custom "customer" role included).
   await auth.api.addMember({
     body: {
       organizationId,
@@ -100,9 +98,22 @@ if (existingCustomerMembers.length === 0) {
 }
 
 await db.transaction(async (tx) => {
-  await tx
-    .delete(product)
+  const seededProducts = await tx
+    .select({ id: product.id })
+    .from(product)
     .where(and(eq(product.organizationId, organizationId), eq(product.slug, PRODUCT_SLUG)));
+  const seededProduct = seededProducts[0];
+  if (seededProduct) {
+    await tx
+      .delete(configurationDraft)
+      .where(
+        and(
+          eq(configurationDraft.productId, seededProduct.id),
+          eq(configurationDraft.status, "active")
+        )
+      );
+    await tx.delete(optionGroup).where(eq(optionGroup.productId, seededProduct.id));
+  }
   await tx
     .delete(component)
     .where(
@@ -129,7 +140,7 @@ await db.transaction(async (tx) => {
     leatherHide: crypto.randomUUID(),
     linenFabric: crypto.randomUUID(),
     pagesGroup: crypto.randomUUID(),
-    product: crypto.randomUUID(),
+    product: seededProduct?.id ?? crypto.randomUUID(),
     silkRoll: crypto.randomUUID(),
     velvetFabric: crypto.randomUUID()
   };
@@ -185,7 +196,7 @@ await db.transaction(async (tx) => {
     }
   ]);
 
-  await tx.insert(product).values({
+  const seededProductValues: typeof product.$inferInsert = {
     basePriceMinor: 15000,
     description:
       "A premium linen-and-leather wedding album, configurable by cover, finish, page count, and gift box.",
@@ -195,7 +206,12 @@ await db.transaction(async (tx) => {
     organizationId,
     slug: PRODUCT_SLUG,
     status: "published"
-  });
+  };
+  if (seededProduct) {
+    await tx.update(product).set(seededProductValues).where(eq(product.id, seededProduct.id));
+  } else {
+    await tx.insert(product).values(seededProductValues);
+  }
 
   await tx.insert(optionGroup).values([
     {
@@ -346,7 +362,7 @@ await db.transaction(async (tx) => {
   ]);
 });
 
-process.stdout.write("Demo data refreshed.\n");
+process.stdout.write("Demo data ready.\n");
 process.stdout.write(`  Organization: ${ORGANIZATION_SLUG}\n`);
 process.stdout.write(`  Customer login: ${CUSTOMER_EMAIL} / ${DEMO_PASSWORD}\n`);
 process.stdout.write(

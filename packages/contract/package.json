@@ -12,6 +12,7 @@
     "./draft": "./src/draft/index.ts",
     "./health": "./src/health/index.ts",
     "./organization": "./src/organization/index.ts",
+    "./order": "./src/order/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {
