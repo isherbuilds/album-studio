@@ -1,5 +1,13 @@
 import { useRouterState } from "@tanstack/react-router";
-import { Building2, Images, LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
+import {
+  Building2,
+  Images,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PackageCheck,
+  Users
+} from "lucide-react";
 import { useState } from "react";
 
 import { can } from "@tsu-stack/auth/access-control";
@@ -62,13 +70,22 @@ function WorkspaceNavigation({
       {organizationSlug ? (
         <>
           <Link
-            className={itemClass(!pathname.includes("/members"))}
+            className={itemClass(!pathname.includes("/members") && !pathname.includes("/orders"))}
             onClick={onNavigate}
             params={{ organizationSlug }}
             to="/org/$organizationSlug"
           >
             <Images />
             {m.app_shell__studio_overview()}
+          </Link>
+          <Link
+            className={itemClass(pathname.includes("/orders"))}
+            onClick={onNavigate}
+            params={{ organizationSlug }}
+            to="/org/$organizationSlug/orders"
+          >
+            <PackageCheck />
+            {m.orders__title()}
           </Link>
           {showMemberNavigation ? (
             <Link

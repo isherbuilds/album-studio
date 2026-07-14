@@ -54,6 +54,14 @@ export function StorefrontShell({
             >
               {m.storefront__drafts()}
             </Link>
+            <Link
+              activeProps={{ className: "bg-muted text-foreground" }}
+              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              params={{ organizationSlug }}
+              to="/org/$organizationSlug/orders"
+            >
+              {m.storefront__orders()}
+            </Link>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <ThemeSwitcher size="icon-sm" variant="ghost" />

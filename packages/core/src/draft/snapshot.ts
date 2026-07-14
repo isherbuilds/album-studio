@@ -29,7 +29,12 @@ export function createConfigurationDraftSnapshot(
   return {
     evaluationSummary:
       evaluation.status === "valid"
-        ? { status: "valid", orderTotal: evaluation.orderTotal }
+        ? {
+            status: "valid",
+            orderTotal: evaluation.orderTotal,
+            perUnitBreakdown: evaluation.perUnitBreakdown,
+            perUnitTotal: evaluation.perUnitTotal
+          }
         : { status: "invalid", issues: evaluation.issues },
     projectName: state.projectName,
     quantity: state.quantity,

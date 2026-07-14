@@ -523,7 +523,12 @@ describe("drafts router", () => {
     });
     expect(normalized.draft.evaluationSummary).toEqual(
       persistedEvaluation.status === "valid"
-        ? { status: "valid", orderTotal: persistedEvaluation.orderTotal }
+        ? {
+            status: "valid",
+            orderTotal: persistedEvaluation.orderTotal,
+            perUnitBreakdown: persistedEvaluation.perUnitBreakdown,
+            perUnitTotal: persistedEvaluation.perUnitTotal
+          }
         : { status: "invalid", issues: persistedEvaluation.issues }
     );
 

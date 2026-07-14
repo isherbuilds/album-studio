@@ -6,7 +6,8 @@ import {
   ConfigurationSelectionsSchema,
   MAX_PRODUCT_OPTION_GROUPS,
   MoneySchema,
-  OptionGroupKeySchema
+  OptionGroupKeySchema,
+  PriceBreakdownLineSchema
 } from "@tsu-stack/contract/configuration";
 import { OrgSlugInputSchema } from "@tsu-stack/contract/organization";
 
@@ -33,14 +34,19 @@ export const ConfigurationDraftProjectNameSchema = z
 
 export const ConfigurationDraftStateSchema = z.object({
   projectName: ConfigurationDraftProjectNameSchema,
-  quantity: z.number().min(1).max(Number.MAX_SAFE_INTEGER),
+  quantity: z.number().finite().min(Number.MIN_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
   selections: ConfigurationDraftSelectionsSchema,
   step: ConfigurationDraftStepSchema
 });
 
 export const ConfigurationDraftSnapshotSchema = z.object({
   evaluationSummary: z.discriminatedUnion("status", [
-    z.object({ status: z.literal("valid"), orderTotal: MoneySchema }),
+    z.object({
+      status: z.literal("valid"),
+      orderTotal: MoneySchema,
+      perUnitBreakdown: z.array(PriceBreakdownLineSchema),
+      perUnitTotal: MoneySchema
+    }),
     z.object({ status: z.literal("invalid"), issues: z.array(ConfigurationIssueSchema).min(1) })
   ]),
   ...ConfigurationDraftStateSchema.shape

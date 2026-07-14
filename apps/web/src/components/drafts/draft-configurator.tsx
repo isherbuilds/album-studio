@@ -12,10 +12,12 @@ import {
   type ProductOptionGroup
 } from "@tsu-stack/contract/configuration";
 import { type ConfigurationDraftState } from "@tsu-stack/contract/draft";
+import { type OrderPriceChange, type OrderPriceComparison } from "@tsu-stack/contract/order";
 import { evaluateConfiguration } from "@tsu-stack/core/configuration";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useLocale } from "@tsu-stack/i18n/tanstack-start/components/locale-provider";
+import { Alert, AlertDescription, AlertTitle } from "@tsu-stack/ui/components/alert";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@tsu-stack/ui/components/card";
 import { Field, FieldLabel } from "@tsu-stack/ui/components/field";
@@ -29,6 +31,7 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@tsu-stack/ui/components/sheet";
+import { Spinner } from "@tsu-stack/ui/components/spinner";
 import { Stepper as WizardStepper, type StepperStep } from "@tsu-stack/ui/components/stepper";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
@@ -39,21 +42,10 @@ import { Image } from "@/components/common/image";
 export type DraftCheckpointStatus = "conflict" | "dirty" | "error" | "saved" | "saving";
 export type DraftSnapshotPatch = Partial<ConfigurationDraftState>;
 
-/** Disabled reasons keyed by group, then option value — nested so keys can't collide. */
 type DisabledMap = Map<string, Map<string, DisabledOptionReason[]>>;
 
 const listFormatterByLocale = new Map<string, Intl.ListFormat>();
 
-function formatDisjunction(locale: string, labels: string[]): string {
-  let formatter = listFormatterByLocale.get(locale);
-  if (!formatter) {
-    formatter = new Intl.ListFormat(locale, { style: "long", type: "disjunction" });
-    listFormatterByLocale.set(locale, formatter);
-  }
-  return formatter.format(labels);
-}
-
-/** First actionable issue, translated into buyer guidance. */
 function guidanceForEvaluation(
   evaluation: ConfigurationEvaluation,
   product: ProductDefinition
@@ -89,13 +81,16 @@ function disabledReasonText(
   if (reason.code === "component_unavailable") return m.catalog__out_of_stock();
   const groupKey = String(reason.params.groupKey);
   const optionValueIds = reason.params.optionValueIds;
-  // Name the acceptable prerequisite values ("Linen or Leather"); fall back to the
-  // group label if the reason ever arrives without them.
   const labels = Array.isArray(optionValueIds)
     ? optionValueIds.map((id) => labelForOption(product.groups, groupKey, id))
     : [labelForGroup(product.groups, groupKey)];
+  let formatter = listFormatterByLocale.get(locale);
+  if (!formatter) {
+    formatter = new Intl.ListFormat(locale, { style: "long", type: "disjunction" });
+    listFormatterByLocale.set(locale, formatter);
+  }
   return m.catalog__requires({
-    values: formatDisjunction(locale, labels)
+    values: formatter.format(labels)
   });
 }
 
@@ -142,7 +137,6 @@ function OptionButton({
       {showImageSlot ? (
         <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md bg-muted">
           {imageUrl ? (
-            // Decorative — the visible label below is the button's accessible name.
             <Image
               alt=""
               className="size-full object-cover"
@@ -188,8 +182,6 @@ function DiscreteGroup({
   product: ProductDefinition;
   selection: ConfigurationSelectionValue | undefined;
 }) {
-  // Keep option cards a uniform height: if any value in the group has an image,
-  // every card reserves the image slot (missing ones show a neutral placeholder).
   const showImageSlot = group.values.some((value) => value.imageUrl != null);
   return (
     <fieldset className="flex flex-col gap-2">
@@ -238,8 +230,6 @@ function NumberStepper({
   step: number;
   value: number;
 }) {
-  // Keep partial input editable while authoritative reloads synchronize its source
-  // without remounting the control and dropping focus.
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -253,7 +243,6 @@ function NumberStepper({
     return Math.max(bounded, min);
   };
 
-  // Bound to range, then snap to the nearest step offset from min.
   const normalize = (next: number) => clamp(min + Math.round((clamp(next) - min) / step) * step);
 
   const commit = (next: number) => {
@@ -357,7 +346,6 @@ function NumberGroup({
   );
 }
 
-/** The image of a group's current selection, if that option carries one. */
 function selectedOptionImage(
   group: ProductOptionGroup | undefined,
   selections: ConfigurationSelections
@@ -368,23 +356,24 @@ function selectedOptionImage(
   return group.values.find((value) => value.id === selected)?.imageUrl ?? null;
 }
 
-/**
- * The running estimate shown on both surfaces (desktop sticky card and mobile
- * sheet): price breakdown, first-issue guidance, and the pending checkout action.
- * Single source so the two never drift.
- */
 function EstimatePanel({
   currency,
   evaluation,
   guidance,
+  isPlacing,
   locale,
+  onPlaceOrder,
+  priceChange,
   product,
   quantity
 }: {
   currency: string;
   evaluation: ConfigurationEvaluation;
   guidance: string | undefined;
+  isPlacing: boolean;
   locale: string;
+  onPlaceOrder: (acceptedPrice: OrderPriceComparison) => void;
+  priceChange: OrderPriceChange | null;
   product: ProductDefinition;
   quantity: number;
 }) {
@@ -398,10 +387,86 @@ function EstimatePanel({
         quantity={quantity}
       />
       {guidance ? <p className="text-sm text-muted-foreground">{guidance}</p> : null}
-      <Button className="w-full" disabled type="button">
-        {m.catalog__place_order()}
-      </Button>
-      <p className="text-center text-xs text-muted-foreground">{m.catalog__checkout_soon()}</p>
+      {priceChange ? (
+        <Alert>
+          <AlertTitle>{m.orders__price_changed()}</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3">
+            <p>{m.orders__price_changed_description()}</p>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-muted-foreground">{m.orders__previous_total()}</dt>
+                <dd className="font-medium tabular-nums">
+                  {formatMinorAmount(
+                    priceChange.previous.orderTotal.amountMinor,
+                    priceChange.previous.orderTotal.currency,
+                    locale
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{m.orders__current_total()}</dt>
+                <dd className="font-medium tabular-nums">
+                  {formatMinorAmount(
+                    priceChange.current.orderTotal.amountMinor,
+                    priceChange.current.orderTotal.currency,
+                    locale
+                  )}
+                </dd>
+              </div>
+            </dl>
+            <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+              {[priceChange.previous, priceChange.current].map((comparison, index) => (
+                <ul className="flex flex-col gap-1" key={index === 0 ? "previous" : "current"}>
+                  {comparison.perUnitBreakdown.map((line, lineIndex) => (
+                    <li className="flex justify-between gap-2" key={`${line.kind}-${lineIndex}`}>
+                      <span>
+                        {line.kind === "base"
+                          ? m.catalog__base_price()
+                          : line.kind === "option"
+                            ? labelForOption(product.groups, line.groupKey, line.optionValueId)
+                            : labelForGroup(product.groups, line.groupKey)}
+                      </span>
+                      <span className="tabular-nums">
+                        {formatMinorAmount(
+                          line.amountMinor,
+                          comparison.perUnitTotal.currency,
+                          locale
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+            <Button
+              disabled={isPlacing}
+              onClick={() => onPlaceOrder(priceChange.current)}
+              type="button"
+            >
+              {isPlacing ? <Spinner data-icon="inline-start" /> : null}
+              {m.orders__accept_price_and_place()}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Button
+          className="w-full"
+          disabled={evaluation.status !== "valid" || isPlacing}
+          onClick={() => {
+            if (evaluation.status === "valid") {
+              onPlaceOrder({
+                orderTotal: evaluation.orderTotal,
+                perUnitBreakdown: evaluation.perUnitBreakdown,
+                perUnitTotal: evaluation.perUnitTotal
+              });
+            }
+          }}
+          type="button"
+        >
+          {isPlacing ? <Spinner data-icon="inline-start" /> : null}
+          {isPlacing ? m.orders__placing() : m.catalog__place_order()}
+        </Button>
+      )}
     </>
   );
 }
@@ -491,28 +556,36 @@ function DraftSaveState({
 }
 
 export function DraftConfigurator({
+  checkoutError,
   conflictReloadFailed,
+  isPlacing,
   isSaving,
   onAcceptServer,
   onOverwriteLocal,
+  onPlaceOrder,
   onSaveChanges,
   onSnapshotChange,
   onStepTransition,
   organizationSlug,
   payload,
+  priceChange,
   projectNameInputRef,
   saveStatus,
   snapshot
 }: {
+  checkoutError: "failed" | "invalid" | null;
   conflictReloadFailed: boolean;
+  isPlacing: boolean;
   isSaving: boolean;
   onAcceptServer: () => void;
   onOverwriteLocal: () => void;
+  onPlaceOrder: (acceptedPrice: OrderPriceComparison) => void;
   onSaveChanges: () => void;
   onSnapshotChange: (patch: DraftSnapshotPatch) => void;
   onStepTransition: (snapshot: ConfigurationDraftState) => Promise<boolean>;
   organizationSlug: string;
   payload: PublicProductDefinition;
+  priceChange: OrderPriceChange | null;
   projectNameInputRef: Ref<HTMLInputElement>;
   saveStatus: DraftCheckpointStatus;
   snapshot: ConfigurationDraftState;
@@ -532,9 +605,6 @@ export function DraftConfigurator({
     quantity
   });
 
-  // Evaluate-and-normalize in the handler (never in render): committing the
-  // evaluator's normalizedSelections is what cascades the clear of any later
-  // choice this change just invalidated.
   const handleSelect = (groupKey: string, value: ConfigurationSelectionValue) => {
     const next = evaluateConfiguration({
       product,
@@ -566,12 +636,9 @@ export function DraftConfigurator({
       : groups.findIndex((group) => group.key === draftStep.groupKey);
   if (activeStep < 0) throw new Error("Draft step references an unavailable product group");
 
-  // The furthest step reached, so already-visited steps stay clickable/"complete"
-  // even after the buyer jumps back.
   const [maxStepReached, setMaxStepReached] = useState(activeStep);
   const maxReachableStep = Math.max(maxStepReached, activeStep);
 
-  // Group keys with an unresolved blocking issue in the current evaluation.
   const blockedGroupKeys = new Set<string>();
   if (evaluation.status === "invalid") {
     for (const issue of evaluation.issues) {
@@ -627,27 +694,18 @@ export function DraftConfigurator({
   };
   const goBack = () => void transitionTo(Math.max(0, activeStep - 1));
 
-  // First configurator step still carrying a blocking issue — lets the Review
-  // step send the buyer straight to what needs fixing (spec: navigate to the
-  // failing step).
   const firstFailingStep = groups.findIndex((group) => blockedGroupKeys.has(group.key));
 
   const guidance = guidanceForEvaluation(evaluation, product);
   const activeGroup = activeStep < reviewStep ? groups[activeStep] : undefined;
   const activeSelection = activeGroup ? selections[activeGroup.key] : undefined;
 
-  // Hero reflects the option you're touching, else the album's cover (first group
-  // with a chosen image), else the product's own photo.
   const heroSrc =
     selectedOptionImage(activeGroup, selections) ??
     groups.map((group) => selectedOptionImage(group, selections)).find(Boolean) ??
     payload.imageUrls[0] ??
     null;
 
-  // Only assert a headline figure once the configuration is valid: a partial
-  // configuration has no honest order total (base price alone would understate an
-  // already-costed selection), so show a dash — matching the desktop summary, which
-  // omits the total line entirely until valid.
   const orderTotalLabel =
     evaluation.status === "valid"
       ? formatMinorAmount(evaluation.orderTotal.amountMinor, currency, locale)
@@ -732,6 +790,21 @@ export function DraftConfigurator({
               </div>
 
               <Separator />
+
+              {checkoutError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>
+                    {checkoutError === "invalid"
+                      ? m.orders__configuration_invalid()
+                      : m.orders__placement_failed()}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {checkoutError === "invalid"
+                      ? m.orders__configuration_invalid_description()
+                      : m.orders__placement_failed_description()}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
               <div className="flex flex-col gap-6" key={activeStep}>
                 {activeGroup ? (
@@ -830,7 +903,10 @@ export function DraftConfigurator({
               currency={currency}
               evaluation={evaluation}
               guidance={guidance}
+              isPlacing={isPlacing}
               locale={locale}
+              onPlaceOrder={onPlaceOrder}
+              priceChange={priceChange}
               product={product}
               quantity={quantity}
             />
@@ -848,7 +924,10 @@ export function DraftConfigurator({
             <span className="text-xs text-muted-foreground">{m.catalog__order_total()}</span>
             <span className="text-lg font-semibold tabular-nums">{orderTotalLabel}</span>
           </div>
-          <Sheet>
+          <Sheet
+            defaultOpen={priceChange !== null}
+            key={priceChange ? JSON.stringify(priceChange.current) : (checkoutError ?? "ready")}
+          >
             <SheetTrigger asChild>
               <Button type="button" variant="outline">
                 {m.catalog__view_summary()}
@@ -864,7 +943,10 @@ export function DraftConfigurator({
                   currency={currency}
                   evaluation={evaluation}
                   guidance={guidance}
+                  isPlacing={isPlacing}
                   locale={locale}
+                  onPlaceOrder={onPlaceOrder}
+                  priceChange={priceChange}
                   product={product}
                   quantity={quantity}
                 />

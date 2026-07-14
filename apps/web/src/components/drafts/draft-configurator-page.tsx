@@ -1,4 +1,4 @@
-import { useBlocker } from "@tanstack/react-router";
+import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 
 import {
@@ -6,6 +6,7 @@ import {
   type ConfigurationDraftEditor,
   type ConfigurationDraftState
 } from "@tsu-stack/contract/draft";
+import { type OrderPriceChange, type OrderPriceComparison } from "@tsu-stack/contract/order";
 import { m } from "@tsu-stack/i18n/messages";
 import { Button } from "@tsu-stack/ui/components/button";
 import {
@@ -27,6 +28,7 @@ import {
   useReloadDraftMutation,
   useSaveDraftMutation
 } from "@/hooks/use-drafts";
+import { usePlaceOrderMutation } from "@/hooks/use-orders";
 
 function snapshotFromDraft(draft: ConfigurationDraftDetail): ConfigurationDraftState {
   return {
@@ -49,6 +51,9 @@ function DraftEditor({
   const [configuratorVersion, setConfiguratorVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState<DraftCheckpointStatus>("saved");
   const [conflictRevision, setConflictRevision] = useState<number | null>(null);
+  const [checkoutError, setCheckoutError] = useState<"failed" | "invalid" | null>(null);
+  const [priceChange, setPriceChange] = useState<OrderPriceChange | null>(null);
+  const navigate = useNavigate();
   const projectNameInputRef = useRef<HTMLInputElement>(null);
   const requestInFlight = useRef(false);
   const restoreEditorFocus = useRef(false);
@@ -57,8 +62,46 @@ function DraftEditor({
     setSaveStatus(revision === null ? "error" : "conflict");
   });
   const reloadDraft = useReloadDraftMutation(organizationSlug, editor.draft.id);
+  const placeOrder = usePlaceOrderMutation(organizationSlug, editor.draft.id, {
+    onConfigurationInvalid: ({ issues, product }) => {
+      setCurrentEditor((current) => {
+        return { ...current, product };
+      });
+      setCheckoutError("invalid");
+      const location = issues
+        .map((issue) => issue.location)
+        .find(
+          (issueLocation) =>
+            issueLocation.kind === "group" &&
+            product.definition.groups.some((group) => group.key === issueLocation.groupKey)
+        );
+      setSnapshot((current) => {
+        return {
+          ...current,
+          step:
+            location?.kind === "group"
+              ? { groupKey: location.groupKey, kind: "group" }
+              : { kind: "review" }
+        };
+      });
+    },
+    onFailure: () => setCheckoutError("failed"),
+    onPlaced: (order) => {
+      void navigate({
+        params: { orderNumber: order.number, organizationSlug },
+        replace: true,
+        to: "/org/$organizationSlug/orders/$orderNumber"
+      });
+    },
+    onPriceChanged: (change) => {
+      setCurrentEditor((current) => {
+        return { ...current, product: change.product };
+      });
+      setPriceChange(change);
+    }
+  });
   const isSaving = saveStatus === "saving";
-  const isBusy = isSaving || reloadDraft.isPending;
+  const isBusy = isSaving || reloadDraft.isPending || placeOrder.isPending;
   const hasUnsavedChanges = saveStatus !== "saved";
 
   const adoptEditor = (savedEditor: ConfigurationDraftEditor) => {
@@ -70,6 +113,8 @@ function DraftEditor({
   };
 
   const changeSnapshot = (patch: DraftSnapshotPatch) => {
+    setCheckoutError(null);
+    setPriceChange(null);
     setSnapshot((current) => {
       return { ...current, ...patch };
     });
@@ -125,6 +170,13 @@ function DraftEditor({
     return saveCheckpoint(snapshot, conflictRevision);
   };
 
+  const place = async (acceptedPrice: OrderPriceComparison) => {
+    setCheckoutError(null);
+    setPriceChange(null);
+    if (hasUnsavedChanges && !(await saveCheckpoint(snapshot))) return;
+    placeOrder.mutate({ acceptedPrice, draftId: currentEditor.draft.id });
+  };
+
   const blocker = useBlocker({
     enableBeforeUnload: () => hasUnsavedChanges,
     shouldBlockFn: () => hasUnsavedChanges,
@@ -134,19 +186,23 @@ function DraftEditor({
   return (
     <>
       <DraftConfigurator
+        checkoutError={checkoutError}
         conflictReloadFailed={reloadDraft.isError}
         isSaving={isBusy}
+        isPlacing={placeOrder.isPending}
         key={JSON.stringify([
           configuratorVersion,
           currentEditor.product.definition.groups.map((group) => group.key)
         ])}
         onAcceptServer={() => void loadSavedVersion()}
         onOverwriteLocal={() => void overwriteLocal()}
+        onPlaceOrder={(acceptedPrice) => void place(acceptedPrice)}
         onSaveChanges={() => void saveCheckpoint(snapshot)}
         onSnapshotChange={changeSnapshot}
         onStepTransition={transitionStep}
         organizationSlug={organizationSlug}
         payload={currentEditor.product}
+        priceChange={priceChange}
         projectNameInputRef={projectNameInputRef}
         saveStatus={saveStatus}
         snapshot={snapshot}
