@@ -1,27 +1,39 @@
-import { type EvaluateConfigurationInput } from "@tsu-stack/contract/configuration";
-import { type ConfigurationDraftSnapshot } from "@tsu-stack/contract/draft";
+import { type PublicProductDefinition } from "@tsu-stack/contract/catalog";
+import {
+  type ConfigurationDraftSnapshot,
+  type ConfigurationDraftState
+} from "@tsu-stack/contract/draft";
 
 import { evaluateConfiguration } from "#@/configuration/evaluate-configuration";
+import { normalizeConfigurationDraftStep } from "#@/draft/step";
 
 export function createConfigurationDraftSnapshot(
-  input: EvaluateConfigurationInput & Pick<ConfigurationDraftSnapshot, "projectName" | "step">
+  product: PublicProductDefinition,
+  state: ConfigurationDraftState
 ): ConfigurationDraftSnapshot {
-  const initial = evaluateConfiguration(input);
-  const selectionKeys = Object.keys(input.selections);
+  const evaluationInput = {
+    availability: product.availability,
+    currency: product.currency,
+    product: product.definition,
+    quantity: state.quantity,
+    selections: state.selections
+  };
+  const initial = evaluateConfiguration(evaluationInput);
+  const selectionKeys = Object.keys(state.selections);
   const evaluation =
     selectionKeys.length === Object.keys(initial.normalizedSelections).length &&
-    selectionKeys.every((key) => input.selections[key] === initial.normalizedSelections[key])
+    selectionKeys.every((key) => state.selections[key] === initial.normalizedSelections[key])
       ? initial
-      : evaluateConfiguration({ ...input, selections: initial.normalizedSelections });
+      : evaluateConfiguration({ ...evaluationInput, selections: initial.normalizedSelections });
 
   return {
     evaluationSummary:
       evaluation.status === "valid"
         ? { status: "valid", orderTotal: evaluation.orderTotal }
         : { status: "invalid", issues: evaluation.issues },
-    projectName: input.projectName,
-    quantity: input.quantity,
+    projectName: state.projectName,
+    quantity: state.quantity,
     selections: evaluation.normalizedSelections,
-    step: input.step
+    step: normalizeConfigurationDraftStep(state.step, product.definition)
   };
 }

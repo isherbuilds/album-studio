@@ -2,7 +2,6 @@ import { and, desc, eq } from "drizzle-orm";
 
 import {
   ConfigurationDraftDetailSchema,
-  ConfigurationDraftEditorSchema,
   ConfigurationDraftListItemSchema,
   type ConfigurationDraftDetail,
   type ConfigurationDraftEditor,
@@ -13,6 +12,12 @@ import { configurationDraft, product } from "@tsu-stack/db/schema";
 
 import { loadPublicProductDefinition } from "#@/catalog/queries";
 import { normalizeConfigurationDraftStep } from "#@/draft/step";
+
+type ConfigurationDraftScope = {
+  customerId: string;
+  draftId: string;
+  organizationId: string;
+};
 
 export function parseConfigurationDraftDetail(
   row: typeof configurationDraft.$inferSelect,
@@ -36,11 +41,12 @@ export async function listConfigurationDrafts(
 ): Promise<ConfigurationDraftListItem[]> {
   const rows = await db
     .select({
-      draft: configurationDraft,
+      id: configurationDraft.id,
       productImageUrls: product.imageUrls,
       productName: product.name,
-      productSlug: product.slug,
-      productStatus: product.status
+      productStatus: product.status,
+      snapshot: configurationDraft.snapshot,
+      updatedAt: configurationDraft.updatedAt
     })
     .from(configurationDraft)
     .innerJoin(
@@ -59,23 +65,26 @@ export async function listConfigurationDrafts(
     )
     .orderBy(desc(configurationDraft.updatedAt), desc(configurationDraft.id));
 
-  return rows.map((row) => {
-    const draft = parseConfigurationDraftDetail(row.draft, row.productSlug);
-    return ConfigurationDraftListItemSchema.parse({
-      ...draft,
+  return rows.map((row) =>
+    ConfigurationDraftListItemSchema.parse({
+      evaluationSummary: row.snapshot.evaluationSummary,
+      id: row.id,
       productName: row.productName,
+      projectName: row.snapshot.projectName,
+      quantity: row.snapshot.quantity,
       resumable: row.productStatus === "published",
-      thumbnailUrl: row.productImageUrls[0] ?? null
-    });
-  });
+      thumbnailUrl: row.productImageUrls[0] ?? null,
+      updatedAt: row.updatedAt.toISOString()
+    })
+  );
 }
 
-export async function loadConfigurationDraft(
+export async function loadConfigurationDraftReference(
   db: DatabaseOrTransaction,
-  input: { customerId: string; draftId: string; organizationId: string }
-): Promise<ConfigurationDraftDetail | undefined> {
+  input: ConfigurationDraftScope
+): Promise<{ productId: string; revision: number } | undefined> {
   const rows = await db
-    .select({ draft: configurationDraft, productSlug: product.slug })
+    .select({ productId: configurationDraft.productId, revision: configurationDraft.revision })
     .from(configurationDraft)
     .innerJoin(
       product,
@@ -94,28 +103,40 @@ export async function loadConfigurationDraft(
       )
     )
     .limit(1);
-  const row = rows[0];
-  return row ? parseConfigurationDraftDetail(row.draft, row.productSlug) : undefined;
+  return rows[0];
 }
 
 export async function loadConfigurationDraftEditor(
   db: DatabaseOrTransaction,
-  input: { customerId: string; draftId: string; organizationId: string }
+  input: ConfigurationDraftScope
 ): Promise<ConfigurationDraftEditor | undefined> {
-  const draft = await loadConfigurationDraft(db, input);
-  if (!draft) return undefined;
+  const rows = await db
+    .select()
+    .from(configurationDraft)
+    .where(
+      and(
+        eq(configurationDraft.id, input.draftId),
+        eq(configurationDraft.organizationId, input.organizationId),
+        eq(configurationDraft.customerId, input.customerId),
+        eq(configurationDraft.status, "active")
+      )
+    )
+    .limit(1);
+  const row = rows[0];
+  if (!row) return undefined;
 
   const productDefinition = await loadPublicProductDefinition(db, {
     organizationId: input.organizationId,
-    productId: draft.productId
+    productId: row.productId
   });
   if (!productDefinition) return undefined;
+  const draft = parseConfigurationDraftDetail(row, productDefinition.slug);
 
-  return ConfigurationDraftEditorSchema.parse({
+  return {
     draft: {
       ...draft,
       step: normalizeConfigurationDraftStep(draft.step, productDefinition.definition)
     },
     product: productDefinition
-  });
+  };
 }

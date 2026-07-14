@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 import {
-  ConfigurationDraftDetailSchema,
   ConfigurationDraftEditorSchema,
   ConfigurationDraftListItemSchema,
+  ConfigurationDraftRevisionSchema,
   DraftByIdInputSchema,
   DraftCreateInputSchema,
   DraftListInputSchema,
@@ -76,7 +76,7 @@ export const draftsRouter = {
     .route({ description: "Save a full Configuration Draft snapshot", method: "POST" })
     .errors({
       DRAFT_CONFLICT: {
-        data: z.object({ draft: ConfigurationDraftDetailSchema }),
+        data: z.object({ revision: ConfigurationDraftRevisionSchema }),
         message: "Configuration Draft changed in another session",
         status: 409
       }
@@ -97,7 +97,7 @@ export const draftsRouter = {
         throw errors.NOT_FOUND({ message: "Configuration Draft not found" });
       }
       if (result.kind === "conflict") {
-        throw errors.DRAFT_CONFLICT({ data: { draft: result.draft } });
+        throw errors.DRAFT_CONFLICT({ data: { revision: result.revision } });
       }
       return result.editor;
     })

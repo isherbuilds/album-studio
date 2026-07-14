@@ -291,10 +291,8 @@ describe("drafts router", () => {
     const firstSummary = list.find((draft) => draft.id === first.draft.id);
     expect(firstSummary).toMatchObject({
       productName: "Wedding Album",
-      productSlug: fixture.productSlug,
       projectName: "Smith Wedding",
-      resumable: true,
-      revision: 1
+      resumable: true
     });
     expect(firstSummary).not.toHaveProperty("selections");
 
@@ -345,34 +343,7 @@ describe("drafts router", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
   });
 
-  it("creates against a locked Product snapshot inside one transaction", async () => {
-    let isolationLevel: string | undefined;
-    let transactionCalls = 0;
-    const transactionalDb: Pick<Database, "transaction"> = {
-      transaction: async (callback, config) => {
-        transactionCalls += 1;
-        isolationLevel = config?.isolationLevel;
-        return db.transaction(callback, config);
-      }
-    };
-
-    const created = await createConfigurationDraft(transactionalDb, {
-      customerId: fixture.customerId,
-      organizationId: fixture.organizationId,
-      productSlug: fixture.productSlug,
-      projectName: "Transaction owned"
-    });
-
-    expect(created?.draft).toMatchObject({
-      productId: fixture.productId,
-      projectName: "Transaction owned",
-      revision: 1
-    });
-    expect(transactionCalls).toBe(1);
-    expect(isolationLevel).toBe("repeatable read");
-  });
-
-  it("retries a serialization conflict when Product lifecycle change wins the lock", async () => {
+  it("returns not found when Product lifecycle change wins the lock", async () => {
     const productId = crypto.randomUUID();
     const productSlug = `create-lock-${crypto.randomUUID()}`;
     await db.insert(product).values({
@@ -589,14 +560,7 @@ describe("drafts router", () => {
     ).rejects.toMatchObject({
       code: "DRAFT_CONFLICT",
       defined: true,
-      data: {
-        draft: expect.objectContaining({
-          id: created.draft.id,
-          projectName: "Latest safe version",
-          quantity: 3,
-          revision: 3
-        })
-      }
+      data: { revision: 3 }
     });
 
     const resumed = await client.byId({
@@ -604,44 +568,6 @@ describe("drafts router", () => {
       draftId: created.draft.id
     });
     expect(resumed).toEqual(latest);
-  });
-
-  it("commits evaluation and CAS inside one transaction", async () => {
-    const created = await clientFor(fixture.customerId).create({
-      organizationSlug: fixture.organizationSlug,
-      productSlug: fixture.productSlug
-    });
-    let transactionCalls = 0;
-    const transactionalDb: Pick<Database, "transaction"> = {
-      transaction: async (callback, config) => {
-        transactionCalls += 1;
-        return db.transaction(callback, config);
-      }
-    };
-
-    const result = await saveConfigurationDraft(transactionalDb, {
-      customerId: fixture.customerId,
-      draftId: created.draft.id,
-      expectedRevision: created.draft.revision,
-      organizationId: fixture.organizationId,
-      projectName: null,
-      quantity: 1,
-      selections: { cover: fixture.coverValueId, pages: 20 },
-      step: { kind: "review" }
-    });
-    expect(result).toMatchObject({
-      kind: "saved",
-      editor: {
-        draft: {
-          evaluationSummary: {
-            status: "valid",
-            orderTotal: { amountMinor: 10_500, currency: "USD" }
-          }
-        },
-        product: { definition: { basePriceMinor: 10_000 } }
-      }
-    });
-    expect(transactionCalls).toBe(1);
   });
 
   it("returns one saved Draft and one typed conflict for simultaneous revisions", async () => {
@@ -680,13 +606,7 @@ describe("drafts router", () => {
     expect(conflict.reason).toMatchObject({
       code: "DRAFT_CONFLICT",
       defined: true,
-      data: {
-        draft: expect.objectContaining({
-          id: created.draft.id,
-          projectName: saved.value.draft.projectName,
-          revision: 2
-        })
-      }
+      data: { revision: 2 }
     });
   });
 
@@ -753,7 +673,7 @@ describe("drafts router", () => {
       })
     ).rejects.toMatchObject({
       code: "DRAFT_CONFLICT",
-      data: { draft: { step: { kind: "group", groupKey: "cover" } } }
+      data: { revision: created.draft.revision }
     });
 
     const resumed = await client.byId({

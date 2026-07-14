@@ -11,6 +11,7 @@ import {
   type ProductDefinition,
   type ProductOptionGroup
 } from "@tsu-stack/contract/configuration";
+import { type ConfigurationDraftState } from "@tsu-stack/contract/draft";
 import { evaluateConfiguration } from "@tsu-stack/core/configuration";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
@@ -34,10 +35,9 @@ import { cn } from "@tsu-stack/ui/lib/utils";
 import { formatMinorAmount, labelForGroup, labelForOption } from "@/components/catalog/format";
 import { PriceSummary } from "@/components/catalog/price-summary";
 import { Image } from "@/components/common/image";
-import { type DraftSaveSnapshot } from "@/hooks/use-drafts";
 
 export type DraftCheckpointStatus = "conflict" | "dirty" | "error" | "saved" | "saving";
-export type DraftSnapshotPatch = Partial<DraftSaveSnapshot>;
+export type DraftSnapshotPatch = Partial<ConfigurationDraftState>;
 
 /** Disabled reasons keyed by group, then option value — nested so keys can't collide. */
 type DisabledMap = Map<string, Map<string, DisabledOptionReason[]>>;
@@ -510,12 +510,12 @@ export function DraftConfigurator({
   onOverwriteLocal: () => void;
   onSaveChanges: () => void;
   onSnapshotChange: (patch: DraftSnapshotPatch) => void;
-  onStepTransition: (snapshot: DraftSaveSnapshot) => Promise<boolean>;
+  onStepTransition: (snapshot: ConfigurationDraftState) => Promise<boolean>;
   organizationSlug: string;
   payload: PublicProductDefinition;
   projectNameInputRef: Ref<HTMLInputElement>;
   saveStatus: DraftCheckpointStatus;
-  snapshot: DraftSaveSnapshot;
+  snapshot: ConfigurationDraftState;
 }) {
   const { locale } = useLocale();
   const isHydrated = useHydrated();
@@ -607,7 +607,7 @@ export function DraftConfigurator({
 
   const transitionTo = async (index: number) => {
     if (index < 0 || index > reviewStep || index === activeStep || isSaving) return;
-    const nextSnapshot: DraftSaveSnapshot = {
+    const nextSnapshot: ConfigurationDraftState = {
       ...snapshot,
       step:
         index === reviewStep ? { kind: "review" } : { kind: "group", groupKey: groups[index].key }

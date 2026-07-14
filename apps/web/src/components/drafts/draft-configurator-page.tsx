@@ -3,7 +3,8 @@ import { useRef, useState } from "react";
 
 import {
   type ConfigurationDraftDetail,
-  type ConfigurationDraftEditor
+  type ConfigurationDraftEditor,
+  type ConfigurationDraftState
 } from "@tsu-stack/contract/draft";
 import { m } from "@tsu-stack/i18n/messages";
 import { Button } from "@tsu-stack/ui/components/button";
@@ -22,13 +23,12 @@ import {
   type DraftSnapshotPatch
 } from "@/components/drafts/draft-configurator";
 import {
-  type DraftSaveSnapshot,
   useDraftByIdQuery,
   useReloadDraftMutation,
   useSaveDraftMutation
 } from "@/hooks/use-drafts";
 
-function snapshotFromDraft(draft: ConfigurationDraftDetail): DraftSaveSnapshot {
+function snapshotFromDraft(draft: ConfigurationDraftDetail): ConfigurationDraftState {
   return {
     projectName: draft.projectName,
     quantity: draft.quantity,
@@ -48,26 +48,25 @@ function DraftEditor({
   const [snapshot, setSnapshot] = useState(() => snapshotFromDraft(editor.draft));
   const [configuratorVersion, setConfiguratorVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState<DraftCheckpointStatus>("saved");
-  const [conflictDraft, setConflictDraft] = useState<ConfigurationDraftDetail | null>(null);
+  const [conflictRevision, setConflictRevision] = useState<number | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement>(null);
   const requestInFlight = useRef(false);
   const restoreEditorFocus = useRef(false);
-  const saveDraft = useSaveDraftMutation(organizationSlug, (conflict) => {
-    setConflictDraft(conflict);
-    setSaveStatus(conflict ? "conflict" : "error");
+  const saveDraft = useSaveDraftMutation(organizationSlug, (revision) => {
+    setConflictRevision(revision);
+    setSaveStatus(revision === null ? "error" : "conflict");
   });
   const reloadDraft = useReloadDraftMutation(organizationSlug, editor.draft.id);
   const isSaving = saveStatus === "saving";
   const isBusy = isSaving || reloadDraft.isPending;
   const hasUnsavedChanges = saveStatus !== "saved";
 
-  const adoptEditor = (savedEditor: ConfigurationDraftEditor, resetStepHistory = false) => {
+  const adoptEditor = (savedEditor: ConfigurationDraftEditor) => {
     setCurrentEditor(savedEditor);
     setSnapshot(snapshotFromDraft(savedEditor.draft));
-    setConflictDraft(null);
+    setConflictRevision(null);
     reloadDraft.reset();
     setSaveStatus("saved");
-    if (resetStepHistory) setConfiguratorVersion((version) => version + 1);
   };
 
   const changeSnapshot = (patch: DraftSnapshotPatch) => {
@@ -78,7 +77,7 @@ function DraftEditor({
   };
 
   const saveCheckpoint = async (
-    next: DraftSaveSnapshot,
+    next: ConfigurationDraftState,
     expectedRevision = currentEditor.draft.revision
   ) => {
     if (requestInFlight.current) return false;
@@ -101,17 +100,18 @@ function DraftEditor({
     }
   };
 
-  const transitionStep = (next: DraftSaveSnapshot) => {
+  const transitionStep = (next: ConfigurationDraftState) => {
     if (saveStatus === "conflict") return Promise.resolve(false);
     return saveCheckpoint(next);
   };
 
   const loadSavedVersion = async () => {
-    if (!conflictDraft || requestInFlight.current) return false;
+    if (conflictRevision === null || requestInFlight.current) return false;
     requestInFlight.current = true;
     reloadDraft.reset();
     try {
-      adoptEditor(await reloadDraft.mutateAsync(), true);
+      adoptEditor(await reloadDraft.mutateAsync());
+      setConfiguratorVersion((version) => version + 1);
       return true;
     } catch {
       return false;
@@ -121,8 +121,8 @@ function DraftEditor({
   };
 
   const overwriteLocal = () => {
-    if (!conflictDraft) return Promise.resolve(false);
-    return saveCheckpoint(snapshot, conflictDraft.revision);
+    if (conflictRevision === null) return Promise.resolve(false);
+    return saveCheckpoint(snapshot, conflictRevision);
   };
 
   const blocker = useBlocker({

@@ -9,11 +9,6 @@ import {
   type DraftSaveInput
 } from "@tsu-stack/contract/draft";
 
-export type DraftSaveSnapshot = Omit<
-  DraftSaveInput,
-  "draftId" | "expectedRevision" | "organizationSlug"
->;
-
 export function getDraftListQueryOptions(organizationSlug: string) {
   return orpc.drafts.list.queryOptions({ input: { organizationSlug } });
 }
@@ -82,14 +77,14 @@ export function useRemoveDraftMutation(organizationSlug: string) {
 
 export function useSaveDraftMutation(
   organizationSlug: string,
-  onFailure: (conflict: ConfigurationDraftEditor["draft"] | null) => void
+  onFailure: (conflictRevision: number | null) => void
 ) {
   const queryClient = useQueryClient();
   return useMutation({
     ...orpc.drafts.save.mutationOptions({
       onError: (error) => {
         onFailure(
-          isDefinedError(error) && error.code === "DRAFT_CONFLICT" ? error.data.draft : null
+          isDefinedError(error) && error.code === "DRAFT_CONFLICT" ? error.data.revision : null
         );
       },
       onSuccess: async (editor) => {

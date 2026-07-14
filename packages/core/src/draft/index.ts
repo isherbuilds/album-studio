@@ -1,12 +1,7 @@
 export {
   createConfigurationDraft,
   removeConfigurationDraft,
-  saveConfigurationDraft,
-  type SaveConfigurationDraftResult
+  saveConfigurationDraft
 } from "#@/draft/commands";
-export {
-  listConfigurationDrafts,
-  loadConfigurationDraft,
-  loadConfigurationDraftEditor
-} from "#@/draft/queries";
+export { listConfigurationDrafts, loadConfigurationDraftEditor } from "#@/draft/queries";
 export { normalizeConfigurationDraftStep } from "#@/draft/step";

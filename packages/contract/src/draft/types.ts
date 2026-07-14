@@ -12,7 +12,7 @@ import { OrgSlugInputSchema } from "@tsu-stack/contract/organization";
 
 const IdSchema = z.string().min(1);
 
-export const ConfigurationDraftStatusSchema = z.enum(["active", "converted"]);
+export const ConfigurationDraftRevisionSchema = z.int().positive();
 
 export const ConfigurationDraftSelectionsSchema = ConfigurationSelectionsSchema.refine(
   (selections) => Object.keys(selections).length <= MAX_PRODUCT_OPTION_GROUPS,
@@ -31,22 +31,19 @@ export const ConfigurationDraftProjectNameSchema = z
   .transform((projectName) => projectName || null)
   .nullable();
 
-export const ConfigurationDraftQuantitySchema = z
-  .number()
-  .min(Number.MIN_SAFE_INTEGER)
-  .max(Number.MAX_SAFE_INTEGER);
-
-export const ConfigurationDraftEvaluationSummarySchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("valid"), orderTotal: MoneySchema }),
-  z.object({ status: z.literal("invalid"), issues: z.array(ConfigurationIssueSchema).min(1) })
-]);
-
-export const ConfigurationDraftSnapshotSchema = z.object({
-  evaluationSummary: ConfigurationDraftEvaluationSummarySchema,
+export const ConfigurationDraftStateSchema = z.object({
   projectName: ConfigurationDraftProjectNameSchema,
-  quantity: ConfigurationDraftQuantitySchema,
+  quantity: z.number().min(Number.MIN_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
   selections: ConfigurationDraftSelectionsSchema,
   step: ConfigurationDraftStepSchema
+});
+
+export const ConfigurationDraftSnapshotSchema = z.object({
+  evaluationSummary: z.discriminatedUnion("status", [
+    z.object({ status: z.literal("valid"), orderTotal: MoneySchema }),
+    z.object({ status: z.literal("invalid"), issues: z.array(ConfigurationIssueSchema).min(1) })
+  ]),
+  ...ConfigurationDraftStateSchema.shape
 });
 
 export const ConfigurationDraftDetailSchema = z.object({
@@ -54,8 +51,8 @@ export const ConfigurationDraftDetailSchema = z.object({
   id: IdSchema,
   productId: IdSchema,
   productSlug: IdSchema,
-  revision: z.number().int().positive(),
-  status: ConfigurationDraftStatusSchema,
+  revision: ConfigurationDraftRevisionSchema,
+  status: z.enum(["active", "converted"]),
   updatedAt: z.string().datetime(),
   ...ConfigurationDraftSnapshotSchema.shape
 });
@@ -63,11 +60,8 @@ export const ConfigurationDraftDetailSchema = z.object({
 export const ConfigurationDraftListItemSchema = ConfigurationDraftDetailSchema.pick({
   evaluationSummary: true,
   id: true,
-  productId: true,
-  productSlug: true,
   projectName: true,
   quantity: true,
-  revision: true,
   updatedAt: true
 }).extend({
   productName: z.string().min(1),
@@ -91,25 +85,17 @@ export const DraftCreateInputSchema = OrgSlugInputSchema.extend({
 
 export const DraftSaveInputSchema = OrgSlugInputSchema.extend({
   draftId: IdSchema,
-  expectedRevision: z.number().int().positive(),
-  projectName: ConfigurationDraftProjectNameSchema,
-  quantity: ConfigurationDraftQuantitySchema,
-  selections: ConfigurationDraftSelectionsSchema,
-  step: ConfigurationDraftStepSchema
+  expectedRevision: ConfigurationDraftRevisionSchema,
+  ...ConfigurationDraftStateSchema.shape
 });
 
 export const DraftRemoveInputSchema = DraftByIdInputSchema;
 
 export const DraftRemoveOutputSchema = z.object({ id: IdSchema });
 
-export type ConfigurationDraftStatus = z.infer<typeof ConfigurationDraftStatusSchema>;
-export type ConfigurationDraftSelections = z.infer<typeof ConfigurationDraftSelectionsSchema>;
 export type ConfigurationDraftStep = z.infer<typeof ConfigurationDraftStepSchema>;
 export type ConfigurationDraftProjectName = z.infer<typeof ConfigurationDraftProjectNameSchema>;
-export type ConfigurationDraftQuantity = z.infer<typeof ConfigurationDraftQuantitySchema>;
-export type ConfigurationDraftEvaluationSummary = z.infer<
-  typeof ConfigurationDraftEvaluationSummarySchema
->;
+export type ConfigurationDraftState = z.infer<typeof ConfigurationDraftStateSchema>;
 export type ConfigurationDraftSnapshot = z.infer<typeof ConfigurationDraftSnapshotSchema>;
 export type ConfigurationDraftDetail = z.infer<typeof ConfigurationDraftDetailSchema>;
 export type ConfigurationDraftListItem = z.infer<typeof ConfigurationDraftListItemSchema>;
