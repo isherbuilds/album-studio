@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import {
   type OfflinePaymentMethod,
@@ -6,7 +6,7 @@ import {
   type PaymentSummary
 } from "@tsu-stack/contract/payment";
 import { type Database, type DatabaseOrTransaction } from "@tsu-stack/db";
-import { customerOrder, offlinePayment, user } from "@tsu-stack/db/schema";
+import { customerOrder, offlinePayment } from "@tsu-stack/db/schema";
 
 import { createPaymentSummary, parsePayment } from "#@/payment/queries";
 
@@ -38,7 +38,9 @@ async function loadPaidMinor(
   input: { orderId: string; organizationId: string }
 ) {
   const rows = await tx
-    .select({ amountMinor: offlinePayment.amountMinor })
+    .select({
+      amountMinor: sql<number>`coalesce(sum(${offlinePayment.amountMinor}), 0)`.mapWith(Number)
+    })
     .from(offlinePayment)
     .where(
       and(
@@ -46,22 +48,15 @@ async function loadPaidMinor(
         eq(offlinePayment.organizationId, input.organizationId)
       )
     );
-  return rows.reduce((sum, row) => sum + row.amountMinor, 0);
-}
-
-async function loadActorName(tx: DatabaseOrTransaction, actorUserId: string) {
-  const rows = await tx
-    .select({ name: user.name })
-    .from(user)
-    .where(eq(user.id, actorUserId))
-    .limit(1);
-  if (!rows[0]) throw new Error("Offline Payment actor not found");
-  return rows[0].name;
+  const row = rows[0];
+  if (!row) throw new Error("Offline Payment total query returned no row");
+  return row.amountMinor;
 }
 
 export async function recordOfflinePayment(
   db: Pick<Database, "transaction">,
   input: {
+    actorName: string;
     actorUserId: string;
     amountMinor: number;
     method: OfflinePaymentMethod;
@@ -95,11 +90,7 @@ export async function recordOfflinePayment(
     if (!row) throw new Error("Offline Payment insert returned no row");
     return {
       kind: "recorded",
-      payment: parsePayment(
-        row,
-        await loadActorName(tx, input.actorUserId),
-        order.snapshot.orderTotal.currency
-      ),
+      payment: parsePayment(row, input.actorName, order.snapshot.orderTotal.currency),
       summary: createPaymentSummary(order.snapshot.orderTotal, nextPaidMinor)
     };
   });
@@ -108,6 +99,7 @@ export async function recordOfflinePayment(
 export async function reverseOfflinePayment(
   db: Pick<Database, "transaction">,
   input: {
+    actorName: string;
     actorUserId: string;
     amountMinor: number;
     note: string | null;
@@ -134,7 +126,9 @@ export async function reverseOfflinePayment(
     if (!receipt || receipt.reversalOfId !== null) return { kind: "not_found" };
 
     const reversalRows = await tx
-      .select({ amountMinor: offlinePayment.amountMinor })
+      .select({
+        reversedMinor: sql<number>`coalesce(-sum(${offlinePayment.amountMinor}), 0)`.mapWith(Number)
+      })
       .from(offlinePayment)
       .where(
         and(
@@ -143,7 +137,9 @@ export async function reverseOfflinePayment(
           eq(offlinePayment.organizationId, input.organizationId)
         )
       );
-    const reversedMinor = -reversalRows.reduce((sum, row) => sum + row.amountMinor, 0);
+    const reversalTotal = reversalRows[0];
+    if (!reversalTotal) throw new Error("Offline Payment reversal total query returned no row");
+    const reversedMinor = reversalTotal.reversedMinor;
     const paidMinor = await loadPaidMinor(tx, {
       orderId: order.id,
       organizationId: input.organizationId
@@ -171,11 +167,7 @@ export async function reverseOfflinePayment(
     if (!row) throw new Error("Offline Payment reversal insert returned no row");
     return {
       kind: "recorded",
-      payment: parsePayment(
-        row,
-        await loadActorName(tx, input.actorUserId),
-        order.snapshot.orderTotal.currency
-      ),
+      payment: parsePayment(row, input.actorName, order.snapshot.orderTotal.currency),
       summary: createPaymentSummary(order.snapshot.orderTotal, paidMinor - input.amountMinor)
     };
   });

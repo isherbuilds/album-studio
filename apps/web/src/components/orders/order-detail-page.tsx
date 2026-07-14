@@ -439,11 +439,13 @@ export function OrderDetailPage({
               <CardContent className="flex flex-col gap-3">
                 <Button
                   disabled={actions.duplicateToDraft.isPending}
-                  onClick={async () => {
-                    const result = await actions.duplicateToDraft.mutateAsync(undefined);
-                    await navigate({
-                      params: { draftId: result.draft.id, organizationSlug },
-                      to: "/org/$organizationSlug/drafts/$draftId/configure"
+                  onClick={() => {
+                    actions.duplicateToDraft.mutate(undefined, {
+                      onSuccess: (result) =>
+                        navigate({
+                          params: { draftId: result.draft.id, organizationSlug },
+                          to: "/org/$organizationSlug/drafts/$draftId/configure"
+                        })
                     });
                   }}
                   variant="outline"

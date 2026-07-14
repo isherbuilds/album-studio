@@ -39,6 +39,7 @@ export const paymentsRouter = {
     .output(PaymentMutationOutputSchema)
     .handler(async ({ context, errors, input }) => {
       const result = await recordOfflinePayment(context.db, {
+        actorName: context.authSession.user.name,
         actorUserId: context.authSession.user.id,
         amountMinor: input.amountMinor,
         method: input.method,
@@ -56,6 +57,7 @@ export const paymentsRouter = {
     .output(PaymentMutationOutputSchema)
     .handler(async ({ context, errors, input }) => {
       const result = await reverseOfflinePayment(context.db, {
+        actorName: context.authSession.user.name,
         actorUserId: context.authSession.user.id,
         amountMinor: input.amountMinor,
         note: input.note,

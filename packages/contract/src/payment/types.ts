@@ -64,9 +64,13 @@ export const PaymentReverseInputSchema = PaymentListByOrderInputSchema.extend({
 });
 
 export type OfflinePaymentMethod = z.infer<typeof OfflinePaymentMethodSchema>;
+export type PaymentState = z.infer<typeof PaymentStateSchema>;
+export type PaymentNote = z.infer<typeof PaymentNoteSchema>;
 export type PaymentAmountMinor = z.infer<typeof PaymentAmountMinorSchema>;
 export type PaymentDetail = z.infer<typeof PaymentDetailSchema>;
 export type PaymentSummary = z.infer<typeof PaymentSummarySchema>;
 export type PaymentLedger = z.infer<typeof PaymentLedgerSchema>;
+export type PaymentMutationOutput = z.infer<typeof PaymentMutationOutputSchema>;
+export type PaymentListByOrderInput = z.infer<typeof PaymentListByOrderInputSchema>;
 export type PaymentRecordInput = z.infer<typeof PaymentRecordInputSchema>;
 export type PaymentReverseInput = z.infer<typeof PaymentReverseInputSchema>;

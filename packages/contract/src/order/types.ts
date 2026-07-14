@@ -113,13 +113,19 @@ export const OrderDuplicateToDraftOutputSchema = z.object({
 });
 
 export type OrderSnapshot = z.infer<typeof OrderSnapshotSchema>;
+export type OrderSnapshotSelection = z.infer<typeof OrderSnapshotSelectionSchema>;
 export type OrderStatus = z.infer<typeof OrderStatusSchema>;
 export type CancellationRequestStatus = z.infer<typeof CancellationRequestStatusSchema>;
 export type OrderDetail = z.infer<typeof OrderDetailSchema>;
 export type OrderListItem = z.infer<typeof OrderListItemSchema>;
 export type OrderPlaceInput = z.infer<typeof OrderPlaceInputSchema>;
+export type OrderListInput = z.infer<typeof OrderListInputSchema>;
+export type OrderByNumberInput = z.infer<typeof OrderByNumberInputSchema>;
 export type OrderPriceChange = z.infer<typeof OrderPriceChangeSchema>;
 export type OrderPriceComparison = z.infer<typeof OrderPriceComparisonSchema>;
 export type OrderTransitionInput = z.infer<typeof OrderTransitionInputSchema>;
 export type OrderCorrectProjectNameInput = z.infer<typeof OrderCorrectProjectNameInputSchema>;
+export type OrderRequestCancellationInput = z.infer<typeof OrderRequestCancellationInputSchema>;
 export type OrderDecideCancellationInput = z.infer<typeof OrderDecideCancellationInputSchema>;
+export type OrderDuplicateToDraftInput = z.infer<typeof OrderDuplicateToDraftInputSchema>;
+export type OrderDuplicateToDraftOutput = z.infer<typeof OrderDuplicateToDraftOutputSchema>;
