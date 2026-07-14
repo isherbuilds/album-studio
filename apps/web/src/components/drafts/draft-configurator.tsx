@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, ImageOff, Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import { useHydrated } from "@tanstack/react-router";
+import { Check, ChevronLeft, ChevronRight, ImageOff, Minus, Plus } from "lucide-react";
+import { useEffect, useRef, useState, type Ref } from "react";
 
 import { type PublicProductDefinition } from "@tsu-stack/contract/catalog";
 import {
@@ -10,12 +11,14 @@ import {
   type ProductDefinition,
   type ProductOptionGroup
 } from "@tsu-stack/contract/configuration";
+import { type ConfigurationDraftState } from "@tsu-stack/contract/draft";
 import { evaluateConfiguration } from "@tsu-stack/core/configuration";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useLocale } from "@tsu-stack/i18n/tanstack-start/components/locale-provider";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@tsu-stack/ui/components/card";
+import { Field, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import { Separator } from "@tsu-stack/ui/components/separator";
 import {
@@ -32,7 +35,9 @@ import { cn } from "@tsu-stack/ui/lib/utils";
 import { formatMinorAmount, labelForGroup, labelForOption } from "@/components/catalog/format";
 import { PriceSummary } from "@/components/catalog/price-summary";
 import { Image } from "@/components/common/image";
-import { useCatalogBySlugQuery } from "@/hooks/use-catalog";
+
+export type DraftCheckpointStatus = "conflict" | "dirty" | "error" | "saved" | "saving";
+export type DraftSnapshotPatch = Partial<ConfigurationDraftState>;
 
 /** Disabled reasons keyed by group, then option value — nested so keys can't collide. */
 type DisabledMap = Map<string, Map<string, DisabledOptionReason[]>>;
@@ -123,10 +128,10 @@ function OptionButton({
     <button
       aria-pressed={selected}
       className={cn(
-        "flex flex-col items-start gap-2 rounded-lg border p-2 text-left text-sm transition-colors outline-none",
+        "flex flex-col items-start gap-2 rounded-lg border p-2 text-left text-sm outline-none",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         selected
-          ? "border-primary bg-primary/5 ring-1 ring-primary/30 dark:bg-primary/10"
+          ? "border-primary bg-primary/5 dark:bg-primary/10"
           : "border-input hover:bg-accent",
         disabled && "cursor-not-allowed border-dashed opacity-60 hover:bg-transparent"
       )}
@@ -221,6 +226,7 @@ function NumberStepper({
   max,
   min,
   onChange,
+  onIncompleteChange,
   step,
   value
 }: {
@@ -228,12 +234,19 @@ function NumberStepper({
   max?: number;
   min: number;
   onChange: (value: number) => void;
+  onIncompleteChange: () => void;
   step: number;
   value: number;
 }) {
-  // Draft keeps partial input editable. Step navigation and product identity
-  // remount this control when its external source changes.
-  const [draft, setDraft] = useState(() => String(value));
+  // Keep partial input editable while authoritative reloads synchronize its source
+  // without remounting the control and dropping focus.
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current && document.activeElement !== inputRef.current) {
+      inputRef.current.value = String(value);
+    }
+  }, [value]);
 
   const clamp = (next: number) => {
     const bounded = max === undefined ? next : Math.min(next, max);
@@ -245,7 +258,7 @@ function NumberStepper({
 
   const commit = (next: number) => {
     const normalized = normalize(next);
-    setDraft(String(normalized));
+    if (inputRef.current) inputRef.current.value = String(normalized);
     onChange(normalized);
   };
 
@@ -264,21 +277,31 @@ function NumberStepper({
       <Input
         aria-label={ariaLabel}
         className="w-16 text-center tabular-nums"
+        defaultValue={value}
         inputMode="numeric"
         max={max}
         min={min}
-        onBlur={() => {
-          const parsed = Number(draft);
-          if (draft.trim() === "" || Number.isNaN(parsed)) {
-            setDraft(String(value));
+        onChange={(event) => {
+          const next = event.currentTarget.value;
+          const parsed = Number(next);
+          if (next.trim() === "" || !Number.isFinite(parsed)) {
+            onIncompleteChange();
+            return;
+          }
+          onChange(parsed);
+        }}
+        onBlur={(event) => {
+          const next = event.currentTarget.value;
+          const parsed = Number(next);
+          if (next.trim() === "" || Number.isNaN(parsed)) {
+            event.currentTarget.value = String(value);
             return;
           }
           commit(parsed);
         }}
-        onChange={(event) => setDraft(event.target.value)}
+        ref={inputRef}
         step={step}
         type="number"
-        value={draft}
       />
       <Button
         aria-label={m.catalog__increase()}
@@ -299,12 +322,14 @@ function NumberGroup({
   group,
   locale,
   onChange,
+  onIncompleteChange,
   value
 }: {
   currency: string;
   group: Extract<ProductOptionGroup, { type: "number" }>;
   locale: string;
   onChange: (value: number) => void;
+  onIncompleteChange: () => void;
   value: number;
 }) {
   return (
@@ -318,6 +343,7 @@ function NumberGroup({
         max={group.maximum}
         min={group.minimum}
         onChange={onChange}
+        onIncompleteChange={onIncompleteChange}
         step={group.step}
         value={value}
       />
@@ -329,14 +355,6 @@ function NumberGroup({
       </p>
     </fieldset>
   );
-}
-
-function initialSelections(product: ProductDefinition): ConfigurationSelections {
-  const selections: ConfigurationSelections = {};
-  for (const group of product.groups) {
-    if (group.type === "number") selections[group.key] = group.included;
-  }
-  return selections;
 }
 
 /** The image of a group's current selection, if that option carries one. */
@@ -388,22 +406,123 @@ function EstimatePanel({
   );
 }
 
-function ConfiguratorContent({
-  organizationSlug,
-  payload
+function DraftSaveState({
+  busy,
+  conflictReloadFailed,
+  onAcceptServer,
+  onOverwriteLocal,
+  onSaveChanges,
+  status
 }: {
+  busy: boolean;
+  conflictReloadFailed: boolean;
+  onAcceptServer: () => void;
+  onOverwriteLocal: () => void;
+  onSaveChanges: () => void;
+  status: DraftCheckpointStatus;
+}) {
+  const label =
+    status === "saved"
+      ? m.drafts__save_saved()
+      : status === "dirty"
+        ? m.drafts__save_pending()
+        : status === "saving"
+          ? m.drafts__save_saving()
+          : status === "error"
+            ? m.drafts__save_failed()
+            : m.drafts__save_conflict();
+
+  return (
+    <div className="flex max-w-md flex-col items-start gap-2 sm:items-end">
+      <output
+        aria-live="polite"
+        className="flex min-h-8 items-center gap-2 text-sm text-muted-foreground"
+      >
+        <span
+          aria-hidden
+          className={cn(
+            "grid size-5 place-items-center rounded-full border",
+            status === "saved" && "border-foreground bg-foreground text-background",
+            (status === "dirty" || status === "saving") && "border-muted-foreground",
+            (status === "error" || status === "conflict") && "border-destructive text-destructive"
+          )}
+        >
+          {status === "saved" ? <Check className="size-3" /> : null}
+        </span>
+        <span className={cn((status === "error" || status === "conflict") && "text-destructive")}>
+          {label}
+        </span>
+      </output>
+      <Button
+        disabled={busy || status === "saved" || status === "saving" || status === "conflict"}
+        onClick={onSaveChanges}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {status === "saving" ? m.drafts__save_saving() : m.drafts__save_changes()}
+      </Button>
+      {status === "conflict" ? (
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <p className="text-sm text-muted-foreground">{m.drafts__save_conflict_description()}</p>
+          {conflictReloadFailed ? (
+            <p className="text-sm text-destructive" role="alert">
+              {m.drafts__load_saved_failed()}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={busy}
+              onClick={onAcceptServer}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {m.drafts__load_saved_version()}
+            </Button>
+            <Button disabled={busy} onClick={onOverwriteLocal} size="sm" type="button">
+              {m.drafts__save_my_version()}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function DraftConfigurator({
+  conflictReloadFailed,
+  isSaving,
+  onAcceptServer,
+  onOverwriteLocal,
+  onSaveChanges,
+  onSnapshotChange,
+  onStepTransition,
+  organizationSlug,
+  payload,
+  projectNameInputRef,
+  saveStatus,
+  snapshot
+}: {
+  conflictReloadFailed: boolean;
+  isSaving: boolean;
+  onAcceptServer: () => void;
+  onOverwriteLocal: () => void;
+  onSaveChanges: () => void;
+  onSnapshotChange: (patch: DraftSnapshotPatch) => void;
+  onStepTransition: (snapshot: ConfigurationDraftState) => Promise<boolean>;
   organizationSlug: string;
   payload: PublicProductDefinition;
+  projectNameInputRef: Ref<HTMLInputElement>;
+  saveStatus: DraftCheckpointStatus;
+  snapshot: ConfigurationDraftState;
 }) {
   const { locale } = useLocale();
+  const isHydrated = useHydrated();
   const product = payload.definition;
   const currency = payload.currency;
   const availability = payload.availability;
-
-  const [selections, setSelections] = useState<ConfigurationSelections>(() =>
-    initialSelections(product)
-  );
-  const [quantity, setQuantity] = useState(1);
+  const { quantity, selections } = snapshot;
 
   const evaluation = evaluateConfiguration({
     product,
@@ -424,7 +543,7 @@ function ConfiguratorContent({
       selections: { ...selections, [groupKey]: value },
       quantity
     });
-    setSelections(next.normalizedSelections);
+    onSnapshotChange({ selections: next.normalizedSelections });
   };
 
   const disabledMap: DisabledMap = new Map();
@@ -440,11 +559,17 @@ function ConfiguratorContent({
   const groups = product.groups;
   const reviewStep = groups.length;
   const stepCount = groups.length + 1;
+  const draftStep = snapshot.step;
+  const activeStep =
+    draftStep.kind === "review"
+      ? reviewStep
+      : groups.findIndex((group) => group.key === draftStep.groupKey);
+  if (activeStep < 0) throw new Error("Draft step references an unavailable product group");
 
-  const [activeStep, setActiveStep] = useState(0);
   // The furthest step reached, so already-visited steps stay clickable/"complete"
   // even after the buyer jumps back.
-  const [maxStepReached, setMaxStepReached] = useState(0);
+  const [maxStepReached, setMaxStepReached] = useState(activeStep);
+  const maxReachableStep = Math.max(maxStepReached, activeStep);
 
   // Group keys with an unresolved blocking issue in the current evaluation.
   const blockedGroupKeys = new Set<string>();
@@ -457,7 +582,7 @@ function ConfiguratorContent({
   const stepStatusFor = (index: number, blocked: boolean): StepperStep["status"] => {
     if (index === activeStep) return "current";
     if (blocked) return "invalid";
-    if (index <= maxStepReached) return "complete";
+    if (index <= maxReachableStep) return "complete";
     return "upcoming";
   };
 
@@ -480,16 +605,27 @@ function ConfiguratorContent({
 
   const currentBlocked = activeStep < reviewStep && blockedGroupKeys.has(groups[activeStep].key);
 
-  const goToStep = (index: number) => {
-    if (index >= 0 && index <= maxStepReached) setActiveStep(index);
+  const transitionTo = async (index: number) => {
+    if (index < 0 || index > reviewStep || index === activeStep || isSaving) return;
+    const nextSnapshot: ConfigurationDraftState = {
+      ...snapshot,
+      step:
+        index === reviewStep ? { kind: "review" } : { kind: "group", groupKey: groups[index].key }
+    };
+    const transitioned = await onStepTransition(nextSnapshot);
+    if (transitioned) {
+      setMaxStepReached((reached) => Math.max(reached, activeStep, index));
+    }
   };
-  const goNext = () => {
+  const goToStep = (index: number) => {
+    if (index <= maxReachableStep) void transitionTo(index);
+  };
+  const goNext = async () => {
     if (activeStep >= reviewStep || currentBlocked) return;
     const next = activeStep + 1;
-    setActiveStep(next);
-    setMaxStepReached((reached) => Math.max(reached, next));
+    await transitionTo(next);
   };
-  const goBack = () => setActiveStep((step) => Math.max(0, step - 1));
+  const goBack = () => void transitionTo(Math.max(0, activeStep - 1));
 
   // First configurator step still carrying a blocking issue — lets the Review
   // step send the buyer straight to what needs fixing (spec: navigate to the
@@ -518,18 +654,44 @@ function ConfiguratorContent({
       : "—";
 
   return (
-    <div className="mx-auto max-w-7xl p-5 pb-24 sm:p-8 lg:pb-8">
+    <div aria-busy={!isHydrated || isSaving} className="mx-auto max-w-7xl p-5 pb-24 sm:p-8 lg:pb-8">
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <header className="flex flex-col gap-3">
             <Link
-              className="group/back -ml-1 flex w-fit items-center gap-1 rounded-md py-0.5 pr-2 pl-1 text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="-ml-1 flex w-fit items-center gap-1 rounded-md py-0.5 pr-2 pl-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/catalog"
+              to="/org/$organizationSlug/drafts"
             >
-              <ChevronLeft className="size-4 transition-transform group-hover/back:-translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover/back:translate-x-0" />
-              {m.catalog__browse_title()}
+              <ChevronLeft className="size-4" />
+              {m.drafts__back_to_drafts()}
             </Link>
+            <div className="grid items-end gap-4 border-b pb-5 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <Field>
+                <FieldLabel htmlFor="draft-project-name">{m.drafts__project_name()}</FieldLabel>
+                <Input
+                  id="draft-project-name"
+                  className="max-w-xl text-base font-medium"
+                  disabled={!isHydrated || isSaving}
+                  maxLength={120}
+                  onChange={(event) => {
+                    const projectName = event.currentTarget.value;
+                    onSnapshotChange({ projectName: projectName === "" ? null : projectName });
+                  }}
+                  placeholder={m.drafts__project_name_placeholder()}
+                  ref={projectNameInputRef}
+                  value={snapshot.projectName ?? ""}
+                />
+              </Field>
+              <DraftSaveState
+                busy={!isHydrated || isSaving}
+                conflictReloadFailed={conflictReloadFailed}
+                onAcceptServer={onAcceptServer}
+                onOverwriteLocal={onOverwriteLocal}
+                onSaveChanges={onSaveChanges}
+                status={saveStatus}
+              />
+            </div>
             <div className="flex flex-col gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">{payload.name}</h1>
               {payload.description ? (
@@ -542,7 +704,7 @@ function ConfiguratorContent({
             <div className="aspect-[16/9] overflow-hidden rounded-xl bg-muted">
               <Image
                 alt={payload.name}
-                className="size-full animate-in object-cover duration-300 fade-in motion-reduce:animate-none"
+                className="size-full object-cover"
                 height={576}
                 key={heroSrc}
                 src={heroSrc}
@@ -551,7 +713,7 @@ function ConfiguratorContent({
             </div>
           ) : null}
 
-          <Card>
+          <Card inert={!isHydrated || isSaving}>
             <CardContent className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between gap-3">
@@ -563,7 +725,7 @@ function ConfiguratorContent({
                   </span>
                 </div>
                 <WizardStepper
-                  isStepSelectable={(index) => index <= maxStepReached}
+                  isStepSelectable={(index) => index <= maxReachableStep}
                   onStepSelect={goToStep}
                   steps={railSteps}
                 />
@@ -571,10 +733,7 @@ function ConfiguratorContent({
 
               <Separator />
 
-              <div
-                className="flex animate-in flex-col gap-6 duration-200 fade-in-0 slide-in-from-bottom-1 motion-reduce:animate-none"
-                key={activeStep}
-              >
+              <div className="flex flex-col gap-6" key={activeStep}>
                 {activeGroup ? (
                   activeGroup.type === "number" ? (
                     <NumberGroup
@@ -582,6 +741,7 @@ function ConfiguratorContent({
                       group={activeGroup}
                       locale={locale}
                       onChange={(value) => handleSelect(activeGroup.key, value)}
+                      onIncompleteChange={() => onSnapshotChange({})}
                       value={
                         typeof activeSelection === "number" ? activeSelection : activeGroup.included
                       }
@@ -610,7 +770,8 @@ function ConfiguratorContent({
                       <NumberStepper
                         ariaLabel={m.catalog__quantity()}
                         min={1}
-                        onChange={setQuantity}
+                        onChange={(value) => onSnapshotChange({ quantity: value })}
+                        onIncompleteChange={() => onSnapshotChange({})}
                         step={1}
                         value={quantity}
                       />
@@ -640,7 +801,7 @@ function ConfiguratorContent({
 
               <div className="flex items-center justify-between gap-3">
                 <Button
-                  disabled={activeStep === 0}
+                  disabled={activeStep === 0 || isSaving}
                   onClick={goBack}
                   type="button"
                   variant="outline"
@@ -649,7 +810,7 @@ function ConfiguratorContent({
                   {m.catalog__back()}
                 </Button>
                 {activeStep < reviewStep ? (
-                  <Button disabled={currentBlocked} onClick={goNext} type="button">
+                  <Button disabled={currentBlocked || isSaving} onClick={goNext} type="button">
                     {m.catalog__next()}
                     <ChevronRight />
                   </Button>
@@ -660,7 +821,7 @@ function ConfiguratorContent({
         </div>
 
         {/* Desktop sticky estimate */}
-        <Card className="top-6 hidden lg:sticky lg:flex">
+        <Card className="top-20 hidden lg:sticky lg:flex">
           <CardHeader>
             <CardTitle>{m.catalog__summary_title()}</CardTitle>
           </CardHeader>
@@ -678,7 +839,10 @@ function ConfiguratorContent({
       </div>
 
       {/* Mobile fixed bottom bar + estimate sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-4 backdrop-blur supports-backdrop-filter:bg-background/80 lg:hidden">
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t bg-background p-4 lg:hidden"
+        inert={!isHydrated || isSaving}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground">{m.catalog__order_total()}</span>
@@ -710,25 +874,5 @@ function ConfiguratorContent({
         </div>
       </div>
     </div>
-  );
-}
-
-export function ProductConfiguratorPage({
-  organizationSlug,
-  productSlug
-}: {
-  organizationSlug: string;
-  productSlug: string;
-}) {
-  const catalog = useCatalogBySlugQuery(organizationSlug, productSlug);
-  if (!catalog.data) return null;
-  // Definition IDs are organization-scoped identities; slugs can repeat across
-  // organizations and must not preserve configurator state between tenants.
-  return (
-    <ConfiguratorContent
-      key={catalog.data.definition.id}
-      organizationSlug={organizationSlug}
-      payload={catalog.data}
-    />
   );
 }

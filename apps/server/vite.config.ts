@@ -14,5 +14,8 @@ export default defineConfig({
     minify: true,
     outDir: "./.output",
     sourcemap: true
+  },
+  test: {
+    include: ["**/__tests__/**/*.test.ts"]
   }
 });

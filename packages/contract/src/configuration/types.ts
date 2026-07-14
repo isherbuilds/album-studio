@@ -1,9 +1,14 @@
 import { z } from "zod";
 
 export const DEFAULT_ORGANIZATION_CURRENCY = "INR";
+export const MAX_PRODUCT_OPTION_GROUPS = 100;
+export const MAX_OPTION_GROUP_KEY_LENGTH = 80;
+export const MAX_OPTION_VALUE_ID_LENGTH = 128;
 
 const IdSchema = z.string().min(1);
 const NonEmptyStringSchema = z.string().min(1);
+export const OptionGroupKeySchema = z.string().min(1).max(MAX_OPTION_GROUP_KEY_LENGTH);
+export const OptionValueIdSchema = z.string().min(1).max(MAX_OPTION_VALUE_ID_LENGTH);
 const supportedCurrencyCodes =
   typeof Intl.supportedValuesOf === "function"
     ? new Set(Intl.supportedValuesOf("currency"))
@@ -34,12 +39,12 @@ export const ComponentAvailabilityStatusSchema = z.enum(["available", "low", "ou
 export const ComponentAvailabilitySchema = z.record(IdSchema, ComponentAvailabilityStatusSchema);
 
 export const OptionValueRequirementSchema = z.object({
-  groupKey: IdSchema,
-  optionValueIds: z.array(IdSchema).min(1)
+  groupKey: OptionGroupKeySchema,
+  optionValueIds: z.array(OptionValueIdSchema).min(1)
 });
 
 export const ProductOptionValueSchema = z.object({
-  id: IdSchema,
+  id: OptionValueIdSchema,
   label: NonEmptyStringSchema,
   priceAdjustmentMinor: MinorUnitAmountSchema.nonnegative(),
   requirements: z.array(OptionValueRequirementSchema),
@@ -50,7 +55,7 @@ export const ProductOptionValueSchema = z.object({
 });
 
 const CommonOptionGroupFields = {
-  key: IdSchema,
+  key: OptionGroupKeySchema,
   label: NonEmptyStringSchema,
   required: z.boolean()
 };
@@ -85,7 +90,7 @@ export const ProductDefinitionSchema = z
   .object({
     id: IdSchema,
     basePriceMinor: MinorUnitAmountSchema.nonnegative(),
-    groups: z.array(ProductOptionGroupSchema)
+    groups: z.array(ProductOptionGroupSchema).max(MAX_PRODUCT_OPTION_GROUPS)
   })
   .superRefine((product, context) => {
     const groupKeys = new Set<string>();
@@ -221,12 +226,15 @@ export const ProductDefinitionSchema = z
   })
   .brand<"ProductDefinition">();
 
-export const ConfigurationSelectionValueSchema = z.union([IdSchema, z.number()]);
+export const ConfigurationSelectionValueSchema = z.union([OptionValueIdSchema, z.number()]);
 
-export const ConfigurationSelectionsSchema = z.record(IdSchema, ConfigurationSelectionValueSchema);
+export const ConfigurationSelectionsSchema = z.record(
+  OptionGroupKeySchema,
+  ConfigurationSelectionValueSchema
+);
 
 export const ConfigurationIssueLocationSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("group"), groupKey: IdSchema }),
+  z.object({ kind: z.literal("group"), groupKey: OptionGroupKeySchema }),
   z.object({ kind: z.literal("quantity") })
 ]);
 
@@ -265,8 +273,8 @@ export const DisabledOptionReasonSchema = z.object({
 });
 
 export const DisabledOptionExplanationSchema = z.object({
-  groupKey: IdSchema,
-  optionValueId: IdSchema,
+  groupKey: OptionGroupKeySchema,
+  optionValueId: OptionValueIdSchema,
   reasons: z.array(DisabledOptionReasonSchema).min(1)
 });
 
@@ -277,13 +285,13 @@ export const PriceBreakdownLineSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("option"),
-    groupKey: IdSchema,
-    optionValueId: IdSchema,
+    groupKey: OptionGroupKeySchema,
+    optionValueId: OptionValueIdSchema,
     amountMinor: MinorUnitAmountSchema
   }),
   z.object({
     kind: z.literal("number"),
-    groupKey: IdSchema,
+    groupKey: OptionGroupKeySchema,
     selected: z.number().int(),
     additionalUnits: z.number().int().nonnegative(),
     unitPriceMinor: MinorUnitAmountSchema.nonnegative(),
