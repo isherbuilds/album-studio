@@ -526,7 +526,7 @@ describe("orders router", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
     await expect(
       customer.payments.record({
-        amount: { amountMinor: 1_000, currency: "USD" },
+        amountMinor: 1_000,
         method: "cash",
         note: null,
         orderNumber: placed.number,
@@ -715,7 +715,7 @@ describe("orders router", () => {
       expect(
         manager.payments.record({
           ...scope,
-          amount: { amountMinor: 1_000, currency: "USD" },
+          amountMinor: 1_000,
           method: "cash",
           note: null
         })
@@ -723,7 +723,7 @@ describe("orders router", () => {
       expect(
         manager.payments.reverse({
           ...scope,
-          amount: { amountMinor: 1_000, currency: "USD" },
+          amountMinor: 1_000,
           note: null,
           receiptId: crypto.randomUUID()
         })
@@ -742,7 +742,7 @@ describe("orders router", () => {
     });
 
     const receipt = await manager.payments.record({
-      amount: { amountMinor: 8_000, currency: "USD" },
+      amountMinor: 8_000,
       method: "upi",
       note: "Deposit",
       orderNumber: placed.number,
@@ -756,7 +756,7 @@ describe("orders router", () => {
 
     await expect(
       manager.payments.record({
-        amount: { amountMinor: 14_000, currency: "USD" },
+        amountMinor: 14_000,
         method: "cash",
         note: null,
         orderNumber: placed.number,
@@ -765,7 +765,7 @@ describe("orders router", () => {
     ).rejects.toMatchObject({ code: "PAYMENT_OVERAGE", defined: true });
 
     const reversed = await manager.payments.reverse({
-      amount: { amountMinor: 3_000, currency: "USD" },
+      amountMinor: 3_000,
       note: "Deposit correction",
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug,
@@ -787,6 +787,49 @@ describe("orders router", () => {
     expect(ledger.payments).toHaveLength(2);
   });
 
+  it("rejects a reversal linked to a receipt from another Order", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const firstEditor = await createValidDraft();
+    const firstOrder = await customer.orders.place({
+      acceptedPrice: acceptedPrice(firstEditor),
+      draftId: firstEditor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const secondEditor = await createValidDraft();
+    const secondOrder = await customer.orders.place({
+      acceptedPrice: acceptedPrice(secondEditor),
+      draftId: secondEditor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const receipt = await manager.payments.record({
+      amountMinor: 8_000,
+      method: "cash",
+      note: null,
+      orderNumber: firstOrder.number,
+      organizationSlug: fixture.organizationSlug
+    });
+    const secondOrderRows = await db
+      .select({ id: customerOrder.id })
+      .from(customerOrder)
+      .where(eq(customerOrder.number, secondOrder.number))
+      .limit(1);
+    const secondOrderId = secondOrderRows[0]?.id;
+    if (!secondOrderId) throw new Error("Second Order missing");
+
+    await expect(
+      db.insert(offlinePayment).values({
+        actorUserId: fixture.managerId,
+        amountMinor: -1_000,
+        method: "cash",
+        note: null,
+        orderId: secondOrderId,
+        organizationId: fixture.organizationId,
+        reversalOfId: receipt.payment.id
+      })
+    ).rejects.toThrow("Failed query");
+  });
+
   it("serializes concurrent receipts and reversals against Order balance", async () => {
     const customer = clientFor(fixture.customerId);
     const manager = clientFor(fixture.managerId);
@@ -797,7 +840,7 @@ describe("orders router", () => {
       organizationSlug: fixture.organizationSlug
     });
     const receiptInput = {
-      amount: { amountMinor: 15_000, currency: "USD" as const },
+      amountMinor: 15_000,
       method: "cash" as const,
       note: null,
       orderNumber: placed.number,
@@ -820,7 +863,7 @@ describe("orders router", () => {
     if (!receipt) throw new Error("Expected one concurrent receipt");
 
     const reversalInput = {
-      amount: { amountMinor: 10_000, currency: "USD" as const },
+      amountMinor: 10_000,
       note: null,
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug,

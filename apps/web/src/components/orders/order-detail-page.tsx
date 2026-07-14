@@ -124,7 +124,7 @@ export function OrderDetailPage({
     }
     paymentActions.record.mutate(
       {
-        amount: { amountMinor, currency },
+        amountMinor,
         method: method.data,
         note: formText(data, "note")
       },
@@ -302,7 +302,7 @@ export function OrderDetailPage({
                               }
                               paymentActions.reverse.mutate(
                                 {
-                                  amount: { amountMinor, currency },
+                                  amountMinor,
                                   note: formText(data, "note"),
                                   receiptId: payment.id
                                 },

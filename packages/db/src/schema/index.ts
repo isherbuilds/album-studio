@@ -14,13 +14,8 @@ export {
   optionValueComponent
 } from "#@/schema/component.schema";
 export { configurationDraft, configurationDraftStatus } from "#@/schema/draft.schema";
-export {
-  cancellationRequestStatus,
-  customerOrder,
-  offlinePayment,
-  offlinePaymentMethod,
-  orderStatus
-} from "#@/schema/order.schema";
+export { cancellationRequestStatus, customerOrder, orderStatus } from "#@/schema/order.schema";
+export { offlinePayment, offlinePaymentMethod } from "#@/schema/payment.schema";
 export {
   optionGroup,
   optionGroupType,

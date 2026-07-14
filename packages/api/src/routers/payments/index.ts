@@ -14,10 +14,6 @@ import {
 import { organizationActionProcedure, organizationProcedure } from "#@/lib/procedures/factory";
 
 const paymentErrors = {
-  PAYMENT_CURRENCY_MISMATCH: {
-    message: "Payment currency must match Order currency",
-    status: 409
-  },
   PAYMENT_OVERAGE: {
     message: "Payment would move paid total outside Order balance",
     status: 409
@@ -44,15 +40,13 @@ export const paymentsRouter = {
     .handler(async ({ context, errors, input }) => {
       const result = await recordOfflinePayment(context.db, {
         actorUserId: context.authSession.user.id,
-        amountMinor: input.amount.amountMinor,
-        currency: input.amount.currency,
+        amountMinor: input.amountMinor,
         method: input.method,
         note: input.note,
         orderNumber: input.orderNumber,
         organizationId: context.organization.id
       });
       if (result.kind === "not_found") throw errors.NOT_FOUND({ message: "Order not found" });
-      if (result.kind === "currency_mismatch") throw errors.PAYMENT_CURRENCY_MISMATCH();
       if (result.kind === "overage") throw errors.PAYMENT_OVERAGE();
       return { payment: result.payment, summary: result.summary };
     }),
@@ -63,15 +57,13 @@ export const paymentsRouter = {
     .handler(async ({ context, errors, input }) => {
       const result = await reverseOfflinePayment(context.db, {
         actorUserId: context.authSession.user.id,
-        amountMinor: input.amount.amountMinor,
-        currency: input.amount.currency,
+        amountMinor: input.amountMinor,
         note: input.note,
         orderNumber: input.orderNumber,
         organizationId: context.organization.id,
         receiptId: input.receiptId
       });
       if (result.kind === "not_found") throw errors.NOT_FOUND({ message: "Receipt not found" });
-      if (result.kind === "currency_mismatch") throw errors.PAYMENT_CURRENCY_MISMATCH();
       if (result.kind === "overage") throw errors.PAYMENT_OVERAGE();
       return { payment: result.payment, summary: result.summary };
     })

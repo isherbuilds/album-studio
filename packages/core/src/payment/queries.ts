@@ -24,11 +24,12 @@ export function createPaymentSummary(
 
 export function parsePayment(
   row: typeof offlinePayment.$inferSelect,
-  actorName: string
+  actorName: string,
+  currency: PaymentSummary["total"]["currency"]
 ): PaymentDetail {
   return PaymentDetailSchema.parse({
     actorName,
-    amount: { amountMinor: row.amountMinor, currency: row.currency },
+    amount: { amountMinor: row.amountMinor, currency },
     createdAt: row.createdAt.toISOString(),
     id: row.id,
     method: row.method,
@@ -66,7 +67,9 @@ export async function listPaymentsByOrder(
       )
     )
     .orderBy(asc(offlinePayment.createdAt), asc(offlinePayment.id));
-  const payments = rows.map((row) => parsePayment(row.payment, row.actorName));
+  const payments = rows.map((row) =>
+    parsePayment(row.payment, row.actorName, order.total.orderTotal.currency)
+  );
   const paidMinor = payments.reduce((sum, payment) => sum + payment.amount.amountMinor, 0);
   return PaymentLedgerSchema.parse({
     payments,

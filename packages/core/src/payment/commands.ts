@@ -11,7 +11,6 @@ import { customerOrder, offlinePayment, user } from "@tsu-stack/db/schema";
 import { createPaymentSummary, parsePayment } from "#@/payment/queries";
 
 type PaymentMutationResult =
-  | { kind: "currency_mismatch" }
   | { kind: "not_found" }
   | { kind: "overage" }
   | { kind: "recorded"; payment: PaymentDetail; summary: PaymentSummary };
@@ -65,7 +64,6 @@ export async function recordOfflinePayment(
   input: {
     actorUserId: string;
     amountMinor: number;
-    currency: string;
     method: OfflinePaymentMethod;
     note: string | null;
     orderNumber: string;
@@ -75,7 +73,6 @@ export async function recordOfflinePayment(
   return db.transaction(async (tx) => {
     const order = await loadOrderForPayment(tx, input);
     if (!order) return { kind: "not_found" };
-    if (order.snapshot.orderTotal.currency !== input.currency) return { kind: "currency_mismatch" };
     const paidMinor = await loadPaidMinor(tx, {
       orderId: order.id,
       organizationId: input.organizationId
@@ -88,7 +85,6 @@ export async function recordOfflinePayment(
       .values({
         actorUserId: input.actorUserId,
         amountMinor: input.amountMinor,
-        currency: input.currency,
         method: input.method,
         note: input.note,
         orderId: order.id,
@@ -99,7 +95,11 @@ export async function recordOfflinePayment(
     if (!row) throw new Error("Offline Payment insert returned no row");
     return {
       kind: "recorded",
-      payment: parsePayment(row, await loadActorName(tx, input.actorUserId)),
+      payment: parsePayment(
+        row,
+        await loadActorName(tx, input.actorUserId),
+        order.snapshot.orderTotal.currency
+      ),
       summary: createPaymentSummary(order.snapshot.orderTotal, nextPaidMinor)
     };
   });
@@ -110,7 +110,6 @@ export async function reverseOfflinePayment(
   input: {
     actorUserId: string;
     amountMinor: number;
-    currency: string;
     note: string | null;
     orderNumber: string;
     organizationId: string;
@@ -120,7 +119,6 @@ export async function reverseOfflinePayment(
   return db.transaction(async (tx) => {
     const order = await loadOrderForPayment(tx, input);
     if (!order) return { kind: "not_found" };
-    if (order.snapshot.orderTotal.currency !== input.currency) return { kind: "currency_mismatch" };
     const receiptRows = await tx
       .select()
       .from(offlinePayment)
@@ -162,7 +160,6 @@ export async function reverseOfflinePayment(
       .values({
         actorUserId: input.actorUserId,
         amountMinor: -input.amountMinor,
-        currency: input.currency,
         method: receipt.method,
         note: input.note,
         orderId: order.id,
@@ -174,7 +171,11 @@ export async function reverseOfflinePayment(
     if (!row) throw new Error("Offline Payment reversal insert returned no row");
     return {
       kind: "recorded",
-      payment: parsePayment(row, await loadActorName(tx, input.actorUserId)),
+      payment: parsePayment(
+        row,
+        await loadActorName(tx, input.actorUserId),
+        order.snapshot.orderTotal.currency
+      ),
       summary: createPaymentSummary(order.snapshot.orderTotal, paidMinor - input.amountMinor)
     };
   });

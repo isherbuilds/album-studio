@@ -20,9 +20,7 @@ export const PaymentNoteSchema = z
   .max(500)
   .transform((note) => note || null)
   .nullable();
-export const PositiveMoneySchema = MoneySchema.extend({
-  amountMinor: MinorUnitAmountSchema.positive()
-});
+export const PaymentAmountMinorSchema = MinorUnitAmountSchema.positive();
 
 export const PaymentDetailSchema = z.object({
   actorName: z.string().min(1),
@@ -55,17 +53,18 @@ export const PaymentListByOrderInputSchema = OrgSlugInputSchema.extend({
   orderNumber: OrderNumberSchema
 });
 export const PaymentRecordInputSchema = PaymentListByOrderInputSchema.extend({
-  amount: PositiveMoneySchema,
+  amountMinor: PaymentAmountMinorSchema,
   method: OfflinePaymentMethodSchema,
   note: PaymentNoteSchema
 });
 export const PaymentReverseInputSchema = PaymentListByOrderInputSchema.extend({
-  amount: PositiveMoneySchema,
+  amountMinor: PaymentAmountMinorSchema,
   note: PaymentNoteSchema,
   receiptId: IdSchema
 });
 
 export type OfflinePaymentMethod = z.infer<typeof OfflinePaymentMethodSchema>;
+export type PaymentAmountMinor = z.infer<typeof PaymentAmountMinorSchema>;
 export type PaymentDetail = z.infer<typeof PaymentDetailSchema>;
 export type PaymentSummary = z.infer<typeof PaymentSummarySchema>;
 export type PaymentLedger = z.infer<typeof PaymentLedgerSchema>;

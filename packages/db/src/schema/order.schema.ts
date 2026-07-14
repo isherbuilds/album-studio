@@ -1,7 +1,5 @@
 import { sql } from "drizzle-orm";
 import {
-  bigint,
-  check,
   foreignKey,
   index,
   jsonb,
@@ -9,8 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
-  type AnyPgColumn
+  uniqueIndex
 } from "drizzle-orm/pg-core";
 
 import { type OrderSnapshot } from "@tsu-stack/contract/order";
@@ -32,14 +29,6 @@ export const cancellationRequestStatus = pgEnum("cancellation_request_status", [
   "pending",
   "approved",
   "rejected"
-]);
-
-export const offlinePaymentMethod = pgEnum("offline_payment_method", [
-  "cash",
-  "bank_transfer",
-  "upi",
-  "cheque",
-  "other"
 ]);
 
 export const customerOrder = pgTable(
@@ -94,47 +83,5 @@ export const customerOrder = pgTable(
       columns: [table.productId, table.organizationId],
       foreignColumns: [product.id, product.organizationId]
     }).onDelete("restrict")
-  ]
-);
-
-export const offlinePayment = pgTable(
-  "offline_payment",
-  {
-    actorUserId: text("actor_user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "restrict" }),
-    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    currency: text("currency").notNull(),
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    method: offlinePaymentMethod("method").notNull(),
-    note: text("note"),
-    orderId: text("order_id").notNull(),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organization.id, { onDelete: "restrict" }),
-    reversalOfId: text("reversal_of_id").references((): AnyPgColumn => offlinePayment.id, {
-      onDelete: "restrict"
-    })
-  },
-  (table) => [
-    index("offline_payment_order_created_idx").on(
-      table.organizationId,
-      table.orderId,
-      table.createdAt
-    ),
-    index("offline_payment_reversal_idx").on(table.reversalOfId),
-    foreignKey({
-      name: "offline_payment_order_organization_fkey",
-      columns: [table.orderId, table.organizationId],
-      foreignColumns: [customerOrder.id, customerOrder.organizationId]
-    }).onDelete("restrict"),
-    check("offline_payment_amount_nonzero_check", sql`${table.amountMinor} <> 0`),
-    check(
-      "offline_payment_reversal_sign_check",
-      sql`(${table.reversalOfId} is null and ${table.amountMinor} > 0) or (${table.reversalOfId} is not null and ${table.amountMinor} < 0)`
-    )
   ]
 );
