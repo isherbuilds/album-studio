@@ -709,6 +709,34 @@ describe("orders router", () => {
     }
   });
 
+  it("duplicates an Order with a now-unavailable selection into an editable invalid Draft", async () => {
+    const customer = clientFor(fixture.customerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await db.update(component).set({ quantity: "0" }).where(eq(component.id, fixture.componentId));
+    let duplicate;
+    try {
+      duplicate = await customer.orders.duplicateToDraft({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      });
+    } finally {
+      await db
+        .update(component)
+        .set({ quantity: "10" })
+        .where(eq(component.id, fixture.componentId));
+    }
+
+    expect(duplicate.draft).toMatchObject({ projectName: "Maya & Arjun", status: "active" });
+    expect(duplicate.draft.evaluationSummary.status).toBe("invalid");
+    expect(duplicate.draft.id).not.toBe(editor.draft.id);
+  });
+
   it("scopes every follow-up mutation to current Organization", async () => {
     const customer = clientFor(fixture.customerId);
     const manager = clientFor(fixture.managerId);
@@ -824,6 +852,54 @@ describe("orders router", () => {
       organizationSlug: fixture.organizationSlug
     });
     expect(ledger.payments).toHaveLength(2);
+  });
+
+  it("rejects new receipts on cancelled Orders but still allows reversals", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const scope = { orderNumber: placed.number, organizationSlug: fixture.organizationSlug };
+
+    const receipt = await manager.payments.record({
+      ...scope,
+      amountMinor: 8_000,
+      method: "upi",
+      mutationId: crypto.randomUUID(),
+      note: "Deposit before cancellation"
+    });
+
+    await customer.orders.requestCancellation(scope);
+    await expect(
+      manager.orders.decideCancellation({ ...scope, decision: "approved" })
+    ).resolves.toMatchObject({ status: "cancelled" });
+
+    await expect(
+      manager.payments.record({
+        ...scope,
+        amountMinor: 1_000,
+        method: "cash",
+        mutationId: crypto.randomUUID(),
+        note: null
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
+
+    await expect(
+      manager.payments.reverse({
+        ...scope,
+        amountMinor: 8_000,
+        mutationId: crypto.randomUUID(),
+        note: "Refund after cancellation",
+        receiptId: receipt.payment.id
+      })
+    ).resolves.toMatchObject({
+      payment: { amount: { amountMinor: -8_000, currency: "USD" } },
+      summary: { paid: { amountMinor: 0, currency: "USD" }, state: "unpaid" }
+    });
   });
 
   it("rejects a reversal linked to a receipt from another Order", async () => {

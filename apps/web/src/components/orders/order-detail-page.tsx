@@ -471,7 +471,7 @@ export function OrderDetailPage({
             </Card>
           )}
 
-          {staff ? (
+          {staff && order.status !== "cancelled" ? (
             <Card>
               <CardHeader>
                 <CardTitle>

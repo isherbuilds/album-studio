@@ -108,6 +108,7 @@ export async function recordOfflinePayment(
         summary: createPaymentSummary(order.snapshot.orderTotal, paidMinor)
       };
     }
+    if (order.status === "cancelled") return { kind: "not_found" };
     const paidMinor = await loadPaidMinor(tx, {
       orderId: order.id,
       organizationId: input.organizationId

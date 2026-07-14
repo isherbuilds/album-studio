@@ -430,7 +430,6 @@ export async function duplicateOrderToDraft(
       selections,
       step: { kind: "review" }
     });
-    if (snapshot.evaluationSummary.status === "invalid") return undefined;
     const rows = await tx
       .insert(configurationDraft)
       .values({
