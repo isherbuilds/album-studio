@@ -9,6 +9,7 @@ import { organizationsRouter } from "#@/routers/organizations/index";
 import { paymentsRouter } from "#@/routers/payments/index";
 import { platformRouter } from "#@/routers/platform/index";
 import { privateRouter } from "#@/routers/private/index";
+import { productsRouter } from "#@/routers/products/index";
 
 export const appRouter = {
   catalog: catalogRouter,
@@ -19,6 +20,7 @@ export const appRouter = {
   orders: ordersRouter,
   payments: paymentsRouter,
   private: privateRouter,
+  products: productsRouter,
   platform: platformRouter
 };
 

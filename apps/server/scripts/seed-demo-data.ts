@@ -21,6 +21,7 @@ import {
 const ORGANIZATION_SLUG = "demo-studio";
 const PRODUCT_SLUG = "wedding-album";
 const OWNER_EMAIL = "owner@demo-studio.test";
+const MANAGER_EMAIL = "manager@demo-studio.test";
 const CUSTOMER_EMAIL = "customer@demo-studio.test";
 const DEMO_PASSWORD = "demo-password-123";
 const SEEDED_COMPONENT_NAMES = [
@@ -62,6 +63,7 @@ const existingOrganization = existingOrganizations[0];
 
 const ownerId = await ensureUserId(OWNER_EMAIL, "Demo Studio Owner");
 const customerId = await ensureUserId(CUSTOMER_EMAIL, "Demo Studio Customer");
+const managerId = await ensureUserId(MANAGER_EMAIL, "Demo Studio Manager");
 
 let organizationId = existingOrganization?.id;
 if (organizationId === undefined) {
@@ -93,6 +95,21 @@ if (existingCustomerMembers.length === 0) {
       organizationId,
       role: "customer",
       userId: customerId
+    }
+  });
+}
+
+const existingManagerMembers = await db
+  .select({ id: member.id })
+  .from(member)
+  .where(and(eq(member.organizationId, organizationId), eq(member.userId, managerId)))
+  .limit(1);
+if (existingManagerMembers.length === 0) {
+  await auth.api.addMember({
+    body: {
+      organizationId,
+      role: "manager",
+      userId: managerId
     }
   });
 }
@@ -364,6 +381,8 @@ await db.transaction(async (tx) => {
 
 process.stdout.write("Demo data ready.\n");
 process.stdout.write(`  Organization: ${ORGANIZATION_SLUG}\n`);
+process.stdout.write(`  Owner login: ${OWNER_EMAIL} / ${DEMO_PASSWORD}\n`);
+process.stdout.write(`  Manager login: ${MANAGER_EMAIL} / ${DEMO_PASSWORD}\n`);
 process.stdout.write(`  Customer login: ${CUSTOMER_EMAIL} / ${DEMO_PASSWORD}\n`);
 process.stdout.write(
   `  Product: ${PRODUCT_SLUG} at /org/${ORGANIZATION_SLUG}/catalog/${PRODUCT_SLUG}\n`

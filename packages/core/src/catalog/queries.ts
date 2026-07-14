@@ -7,6 +7,7 @@ import {
 import {
   type ComponentAvailability,
   CurrencyCodeSchema,
+  MinorUnitAmountSchema,
   type OptionValueRequirement,
   ProductDefinitionSchema
 } from "@tsu-stack/contract/configuration";
@@ -50,7 +51,7 @@ export async function listPublishedProductSummaries(
       slug: row.slug,
       name: row.name,
       thumbnailUrl: row.imageUrls[0] ?? null,
-      basePriceMinor: row.basePriceMinor,
+      basePriceMinor: MinorUnitAmountSchema.nonnegative().parse(row.basePriceMinor),
       currency: CurrencyCodeSchema.parse(row.currency)
     };
   });

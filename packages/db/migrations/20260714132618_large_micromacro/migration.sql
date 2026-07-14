@@ -1,0 +1,1 @@
+ALTER TABLE "option_group" DROP CONSTRAINT "option_group_additional_unit_price_minor_check", ADD CONSTRAINT "option_group_additional_unit_price_minor_check" CHECK ("additional_unit_price_minor" IS NULL OR ("additional_unit_price_minor" >= 0 AND "additional_unit_price_minor" <= 9007199254740991));

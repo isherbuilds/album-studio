@@ -16,6 +16,7 @@
     "./organization": "./src/organization/index.ts",
     "./order": "./src/order/index.ts",
     "./payment": "./src/payment/index.ts",
+    "./product": "./src/product/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {

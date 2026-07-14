@@ -1,26 +1,31 @@
 import { m } from "@tsu-stack/i18n/messages";
 import { Skeleton } from "@tsu-stack/ui/components/skeleton";
 
-import { Container } from "@/components/common/container";
+import { WorkspacePage, WorkspacePageHeader } from "@/components/admin/workspace";
 import { useGetOrganizationQuery } from "@/hooks/use-platform-admin";
 
 export function PlatformOrganizationPage({ slug }: { slug: string }) {
   const organization = useGetOrganizationQuery(slug);
+
   return (
-    <Container className="py-12">
-      <p className="mb-3 font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-        {m.platform_admin__eyebrow()}
-      </p>
+    <WorkspacePage>
       {organization.isError ? (
-        <p className="text-sm text-destructive">{m.platform_admin__organization_load_failed()}</p>
+        <p className="text-sm text-destructive" role="alert">
+          {m.platform_admin__organization_load_failed()}
+        </p>
       ) : organization.data ? (
-        <>
-          <h1 className="font-display text-4xl">{organization.data.name}</h1>
-          <p className="mt-2 text-muted-foreground">/{slug}</p>
-        </>
+        <WorkspacePageHeader
+          description={`/${slug}`}
+          eyebrow={m.platform_admin__eyebrow()}
+          title={organization.data.name}
+        />
       ) : (
-        <Skeleton className="h-10 w-64" />
+        <div className="flex flex-col gap-3 border-b pb-6">
+          <Skeleton className="h-3 w-36" />
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-4 w-32" />
+        </div>
       )}
-    </Container>
+    </WorkspacePage>
   );
 }

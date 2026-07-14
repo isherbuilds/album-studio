@@ -39,8 +39,13 @@ import {
 import { Separator } from "@tsu-stack/ui/components/separator";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
+import { WorkspacePage, WorkspacePageHeader } from "@/components/admin/workspace";
 import { formatMinorAmount, parseMajorAmount } from "@/components/catalog/format";
-import { nextOrderStatus, orderStatusLabel } from "@/components/orders/order-format";
+import {
+  nextOrderStatus,
+  orderStatusConfig,
+  orderStatusLabel
+} from "@/components/orders/order-format";
 import { useOrderActions, useOrderByNumberQuery } from "@/hooks/use-orders";
 import { usePaymentActions, usePaymentLedgerQuery } from "@/hooks/use-payments";
 
@@ -127,7 +132,7 @@ export function OrderDetailPage({
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-5 sm:p-8">
+    <WorkspacePage className="max-w-6xl">
       <Link
         className="flex w-fit items-center gap-1 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         params={{ organizationSlug }}
@@ -137,15 +142,22 @@ export function OrderDetailPage({
         {m.orders__back()}
       </Link>
 
-      <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="font-mono text-sm text-muted-foreground">{order.number}</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {order.projectName ?? order.snapshot.product.name}
-          </h1>
-        </div>
-        <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
-      </header>
+      <WorkspacePageHeader
+        actions={
+          <Badge variant="outline">
+            <span
+              aria-hidden
+              className={`size-1.5 rounded-full ${orderStatusConfig[order.status].dotClass}`}
+            />
+            {orderStatusLabel(order.status)}
+          </Badge>
+        }
+        description={`${order.number} · ${new Date(order.createdAt).toLocaleDateString(locale, {
+          dateStyle: "medium"
+        })}`}
+        eyebrow={order.snapshot.product.name}
+        title={order.projectName ?? order.snapshot.product.name}
+      />
 
       <section
         aria-label={m.orders__job_ticket()}
@@ -492,7 +504,7 @@ export function OrderDetailPage({
                       <FieldLabel htmlFor="payment-method">{m.payments__method()}</FieldLabel>
                       <Select defaultValue="upi" name="method">
                         <SelectTrigger className="w-full" id="payment-method">
-                          <SelectValue />
+                          <SelectValue>{paymentMethodLabel}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -524,6 +536,6 @@ export function OrderDetailPage({
           ) : null}
         </aside>
       </div>
-    </div>
+    </WorkspacePage>
   );
 }
