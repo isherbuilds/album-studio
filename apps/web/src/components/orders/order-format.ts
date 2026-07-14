@@ -15,3 +15,10 @@ export function orderStatusLabel(status: OrderStatus) {
       return m.orders__status_cancelled();
   }
 }
+
+export function nextOrderStatus(status: OrderStatus): OrderStatus | undefined {
+  if (status === "placed") return "confirmed";
+  if (status === "confirmed") return "in_production";
+  if (status === "in_production") return "completed";
+  return undefined;
+}

@@ -134,7 +134,7 @@ test("checkout checkpoints dirty Draft, confirms price race, and opens immutable
 
     await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-S\d{11}$/);
     expect(errors).toEqual([]);
-    await expect(page.getByText("Placed", { exact: true })).toBeVisible();
+    await expect(page.getByText("Placed", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: /Price race/ })).toBeVisible();
     expect(errors).toEqual([]);
     await page.goBack();
@@ -207,5 +207,72 @@ test("studio owner reads Orders inside workspace navigation", async ({ page }) =
     await expect(page.getByRole("link", { name: "Orders" })).toBeVisible();
   }
   await expect(page.getByRole("link", { name: "Catalog" })).toHaveCount(0);
+  await page.goto("/web/org/demo-studio/payments");
+  await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("customer and owner get role-specific Order follow-up controls", async ({
+  browser,
+  page
+}, testInfo) => {
+  const customerErrors: string[] = [];
+  monitorErrors(page, customerErrors);
+  const projectName = `Follow-up ${Date.now()}`;
+  await openValidReview(page, projectName);
+  await placeOrder(page);
+  await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-[A-F0-9]{12}$/);
+  const orderPath = new URL(page.url()).pathname;
+
+  await expect(page.getByRole("button", { name: "Duplicate to new draft" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Request cancellation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Order operations" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Request cancellation" }).click();
+  await expect(page.getByRole("alert")).toContainText("Cancellation requested");
+  await expect(page.getByRole("button", { name: /Move to/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Cancel order" })).toHaveCount(0);
+  expect(customerErrors).toEqual([]);
+
+  const ownerContext = await browser.newContext();
+  const ownerPage = await ownerContext.newPage();
+  const ownerErrors: string[] = [];
+  monitorErrors(ownerPage, ownerErrors);
+  await signIn(ownerPage, orderPath, "owner@demo-studio.test");
+  await ownerPage.waitForLoadState("networkidle");
+
+  await expect(ownerPage.getByRole("heading", { name: "Order operations" })).toBeVisible();
+  await expect(ownerPage.getByRole("button", { name: "Duplicate to new draft" })).toHaveCount(0);
+  await expect(ownerPage.getByRole("button", { name: /Move to/ })).toHaveCount(0);
+  await expect(ownerPage.getByRole("button", { name: "Cancel order" })).toHaveCount(0);
+  await ownerPage.getByLabel("Project Name").fill(`${projectName} corrected`);
+  await expect(ownerPage.getByLabel("Project Name")).toHaveValue(`${projectName} corrected`);
+  const correctionResponse = ownerPage.waitForResponse(
+    (response) =>
+      response.url().includes("/rpc/orders/correctProjectName") &&
+      response.request().method() === "POST"
+  );
+  await ownerPage.getByRole("button", { name: "Save Project Name" }).click();
+  expect((await correctionResponse).ok()).toBe(true);
+  await expect(ownerPage.getByRole("heading", { name: `${projectName} corrected` })).toBeVisible();
+
+  await ownerPage.getByLabel(/Amount \(INR\)/).fill("10");
+  await ownerPage.getByLabel("Note").fill("Cash desk deposit");
+  await ownerPage.getByRole("button", { name: "Record receipt" }).click();
+  await expect(ownerPage.getByText("Cash desk deposit")).toBeVisible();
+  await ownerPage.getByRole("button", { name: "Approve" }).click();
+  await expect(ownerPage.getByText("Cancelled", { exact: true }).first()).toBeVisible();
+
+  await testInfo.attach("order-follow-up", {
+    body: await ownerPage.screenshot({ fullPage: true }),
+    contentType: "image/png"
+  });
+  await testInfo.attach("order-follow-up-accessibility", {
+    body: await ownerPage.locator("main").ariaSnapshot(),
+    contentType: "text/yaml"
+  });
+  expect(ownerErrors).toEqual([]);
+  await ownerContext.close();
+
+  await page.goto("/web/org/demo-studio/payments");
+  await expect(page).toHaveURL(/\/org\/demo-studio\/catalog$/);
 });

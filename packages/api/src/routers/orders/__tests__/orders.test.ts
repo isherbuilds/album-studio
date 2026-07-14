@@ -8,9 +8,11 @@ import { type OrderPriceComparison } from "@tsu-stack/contract/order";
 import { placeOrder as placeOrderCore } from "@tsu-stack/core/order";
 import { db } from "@tsu-stack/db";
 import {
+  auditEvent,
   component,
   customerOrder,
   member,
+  offlinePayment,
   optionGroup,
   optionValue,
   optionValueComponent,
@@ -25,7 +27,9 @@ import { appRouter } from "#@/routers/index";
 const fixture = {
   componentId: crypto.randomUUID(),
   customerId: crypto.randomUUID(),
+  managerId: crypto.randomUUID(),
   otherCustomerId: crypto.randomUUID(),
+  ownerId: crypto.randomUUID(),
   organizationId: crypto.randomUUID(),
   organizationSlug: `orders-${crypto.randomUUID()}`,
   otherOrganizationId: crypto.randomUUID(),
@@ -118,7 +122,7 @@ function priceForBase(basePriceMinor: number): OrderPriceComparison {
 
 beforeAll(async () => {
   await db.insert(user).values(
-    [fixture.customerId, fixture.otherCustomerId].map((id) => {
+    [fixture.customerId, fixture.managerId, fixture.otherCustomerId, fixture.ownerId].map((id) => {
       return {
         email: `${id}@example.com`,
         emailVerified: true,
@@ -158,6 +162,20 @@ beforeAll(async () => {
       organizationId: fixture.organizationId,
       role: "customer",
       userId: fixture.otherCustomerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.organizationId,
+      role: "manager",
+      userId: fixture.managerId
+    },
+    {
+      createdAt: new Date(),
+      id: crypto.randomUUID(),
+      organizationId: fixture.organizationId,
+      role: "owner",
+      userId: fixture.ownerId
     }
   ]);
   await db.insert(product).values({
@@ -201,11 +219,14 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await db.delete(offlinePayment).where(eq(offlinePayment.organizationId, fixture.organizationId));
   await db.delete(customerOrder).where(eq(customerOrder.organizationId, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.otherOrganizationId));
   await db.delete(user).where(eq(user.id, fixture.customerId));
   await db.delete(user).where(eq(user.id, fixture.otherCustomerId));
+  await db.delete(user).where(eq(user.id, fixture.managerId));
+  await db.delete(user).where(eq(user.id, fixture.ownerId));
 });
 
 describe("orders router", () => {
@@ -456,5 +477,247 @@ describe("orders router", () => {
         organizationSlug: fixture.otherOrganizationSlug
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND", defined: true });
+  });
+
+  it("supports staff follow-up while keeping submitted Orders immutable to Customers", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await expect(
+      customer.orders.correctProjectName({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        projectName: "Customer edit"
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", defined: true });
+
+    const corrected = await manager.orders.correctProjectName({
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug,
+      projectName: "Maya & Arjun — Reception"
+    });
+    expect(corrected.projectName).toBe("Maya & Arjun — Reception");
+
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "completed"
+      })
+    ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
+
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "confirmed"
+      })
+    ).resolves.toMatchObject({ status: "confirmed" });
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "in_production"
+      })
+    ).resolves.toMatchObject({ status: "in_production" });
+    await expect(
+      manager.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "completed"
+      })
+    ).resolves.toMatchObject({ status: "completed" });
+
+    const audits = await db
+      .select({ action: auditEvent.action, metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.organizationId, fixture.organizationId));
+    expect(audits).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "order.project_name_corrected" }),
+        expect.objectContaining({ action: "order.status_updated" })
+      ])
+    );
+  });
+
+  it("lets Customers request cancellation and staff decide only while placed", async () => {
+    const customer = clientFor(fixture.customerId);
+    const owner = clientFor(fixture.ownerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    await expect(
+      customer.orders.requestCancellation({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toMatchObject({ cancellationStatus: "pending", status: "placed" });
+    await expect(
+      customer.orders.requestCancellation({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
+    await expect(
+      owner.orders.transition({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug,
+        status: "confirmed"
+      })
+    ).rejects.toMatchObject({ code: "INVALID_ORDER_TRANSITION", defined: true });
+    await expect(
+      owner.orders.decideCancellation({
+        decision: "approved",
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toMatchObject({ cancellationStatus: "approved", status: "cancelled" });
+  });
+
+  it("duplicates immutable Order configuration into a new active Draft", async () => {
+    const customer = clientFor(fixture.customerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    const duplicate = await customer.orders.duplicateToDraft({
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    expect(duplicate.draft).toMatchObject({
+      projectName: "Maya & Arjun",
+      quantity: 2,
+      selections: { cover: fixture.valueId },
+      status: "active"
+    });
+    expect(duplicate.draft.id).not.toBe(editor.draft.id);
+  });
+
+  it("records partial offline receipts and bounded append-only reversals", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+
+    const receipt = await manager.payments.record({
+      amount: { amountMinor: 8_000, currency: "USD" },
+      method: "upi",
+      note: "Deposit",
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    });
+    expect(receipt.summary).toMatchObject({
+      balance: { amountMinor: 13_000, currency: "USD" },
+      paid: { amountMinor: 8_000, currency: "USD" },
+      state: "partially_paid"
+    });
+
+    await expect(
+      manager.payments.record({
+        amount: { amountMinor: 14_000, currency: "USD" },
+        method: "cash",
+        note: null,
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).rejects.toMatchObject({ code: "PAYMENT_OVERAGE", defined: true });
+
+    const reversed = await manager.payments.reverse({
+      amount: { amountMinor: 3_000, currency: "USD" },
+      note: "Deposit correction",
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug,
+      receiptId: receipt.payment.id
+    });
+    expect(reversed).toMatchObject({
+      payment: { amount: { amountMinor: -3_000, currency: "USD" } },
+      summary: {
+        balance: { amountMinor: 16_000, currency: "USD" },
+        paid: { amountMinor: 5_000, currency: "USD" },
+        state: "partially_paid"
+      }
+    });
+
+    const ledger = await customer.payments.listByOrder({
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    });
+    expect(ledger.payments).toHaveLength(2);
+  });
+
+  it("serializes concurrent receipts and reversals against Order balance", async () => {
+    const customer = clientFor(fixture.customerId);
+    const manager = clientFor(fixture.managerId);
+    const editor = await createValidDraft();
+    const placed = await customer.orders.place({
+      acceptedPrice: acceptedPrice(editor),
+      draftId: editor.draft.id,
+      organizationSlug: fixture.organizationSlug
+    });
+    const receiptInput = {
+      amount: { amountMinor: 15_000, currency: "USD" as const },
+      method: "cash" as const,
+      note: null,
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug
+    };
+
+    const receipts = await Promise.allSettled([
+      manager.payments.record(receiptInput),
+      manager.payments.record(receiptInput)
+    ]);
+    const recorded = receipts.filter((result) => result.status === "fulfilled");
+    const rejected = receipts.filter((result) => result.status === "rejected");
+    expect(recorded).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({
+      reason: { code: "PAYMENT_OVERAGE", defined: true },
+      status: "rejected"
+    });
+    const receipt = recorded[0]?.value;
+    if (!receipt) throw new Error("Expected one concurrent receipt");
+
+    const reversalInput = {
+      amount: { amountMinor: 10_000, currency: "USD" as const },
+      note: null,
+      orderNumber: placed.number,
+      organizationSlug: fixture.organizationSlug,
+      receiptId: receipt.payment.id
+    };
+    const reversals = await Promise.allSettled([
+      manager.payments.reverse(reversalInput),
+      manager.payments.reverse(reversalInput)
+    ]);
+    expect(reversals.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(reversals.filter((result) => result.status === "rejected")).toEqual([
+      expect.objectContaining({ reason: expect.objectContaining({ code: "PAYMENT_OVERAGE" }) })
+    ]);
+
+    await expect(
+      manager.payments.listByOrder({
+        orderNumber: placed.number,
+        organizationSlug: fixture.organizationSlug
+      })
+    ).resolves.toMatchObject({
+      summary: { paid: { amountMinor: 5_000, currency: "USD" } }
+    });
   });
 });

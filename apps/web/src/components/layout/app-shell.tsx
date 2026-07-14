@@ -6,6 +6,7 @@ import {
   LogOut,
   Menu,
   PackageCheck,
+  ReceiptText,
   Users
 } from "lucide-react";
 import { useState } from "react";
@@ -51,6 +52,7 @@ function WorkspaceNavigation({
   const organizationPath = organizationSlug ? `/org/${organizationSlug}` : undefined;
   const isMembers = organizationPath ? pathname.includes(`${organizationPath}/members`) : false;
   const isOrders = organizationPath ? pathname.includes(`${organizationPath}/orders`) : false;
+  const isPayments = organizationPath ? pathname.includes(`${organizationPath}/payments`) : false;
 
   return (
     <nav aria-label={m.app_shell__workspace()} className="flex flex-col gap-1">
@@ -73,7 +75,7 @@ function WorkspaceNavigation({
       {organizationSlug ? (
         <>
           <Link
-            className={itemClass(!isMembers && !isOrders)}
+            className={itemClass(!isMembers && !isOrders && !isPayments)}
             onClick={onNavigate}
             params={{ organizationSlug }}
             to="/org/$organizationSlug"
@@ -89,6 +91,15 @@ function WorkspaceNavigation({
           >
             <PackageCheck />
             {m.orders__title()}
+          </Link>
+          <Link
+            className={itemClass(isPayments)}
+            onClick={onNavigate}
+            params={{ organizationSlug }}
+            to="/org/$organizationSlug/payments"
+          >
+            <ReceiptText />
+            {m.payments__title()}
           </Link>
           {showMemberNavigation ? (
             <Link

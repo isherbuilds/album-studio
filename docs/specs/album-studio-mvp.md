@@ -177,7 +177,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Depends on: Slice 4 and Slice 5.
   - Interfaces: Produces `orders.place({ organizationSlug, draftId, acceptedPrice })`, where `acceptedPrice` contains Order total, per-unit total, and deterministic per-unit breakdown, typed `PRICE_CHANGED` and `CONFIGURATION_INVALID`, immutable `OrderSnapshot`, `orders.byNumber`, `orders.list`, and Order query keys.
 
-- [ ] Slice 7: Order follow-up and offline payments
+- [x] Slice 7: Order follow-up and offline payments
   - Acceptance: Owners and Managers progress valid Order states, correct Project Names with audit history, record partial receipts and reversals without overpayment, and approve placed cancellation requests; Customers view, duplicate, and request cancellation but cannot edit submitted Orders.
   - Verify: oRPC state-transition/payment/cancellation contract tests and focused role UI checks, followed by `vp run -w fix`.
   - Depends on: Slice 6.

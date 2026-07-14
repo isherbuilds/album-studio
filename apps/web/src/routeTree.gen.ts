@@ -41,6 +41,7 @@ import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspace
 import { Route as Char123LocaleChar125rootLayoutauthAdminOrganizationsOrganizationSlugIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/admin/organizations/$organizationSlug/index'
 import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersOrderNumberIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/orders/$orderNumber/index'
 import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogProductSlugIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/catalog/$productSlug/index'
+import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/payments/index'
 import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/members/index'
 import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsDraftIdConfigureIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/drafts/$draftId/configure/index'
 
@@ -260,6 +261,15 @@ const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogProductSlugInd
         Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogRouteRoute,
     } as any,
   )
+const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute =
+  Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRouteImport.update(
+    {
+      id: '/payments/',
+      path: '/payments/',
+      getParentRoute: () =>
+        Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRoute,
+    } as any,
+  )
 const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute =
   Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRouteImport.update(
     {
@@ -306,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/org/$organizationSlug/drafts/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsIndexRoute
   '/{-$locale}/org/$organizationSlug/orders/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersIndexRoute
   '/{-$locale}/org/$organizationSlug/members/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute
+  '/{-$locale}/org/$organizationSlug/payments/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute
   '/{-$locale}/org/$organizationSlug/catalog/$productSlug/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogProductSlugIndexRoute
   '/{-$locale}/org/$organizationSlug/orders/$orderNumber/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersOrderNumberIndexRoute
   '/{-$locale}/org/$organizationSlug/drafts/$draftId/configure/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsDraftIdConfigureIndexRoute
@@ -330,6 +341,7 @@ export interface FileRoutesByTo {
   '/{-$locale}/org/$organizationSlug/drafts': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsIndexRoute
   '/{-$locale}/org/$organizationSlug/orders': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersIndexRoute
   '/{-$locale}/org/$organizationSlug/members': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute
+  '/{-$locale}/org/$organizationSlug/payments': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute
   '/{-$locale}/org/$organizationSlug/catalog/$productSlug': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogProductSlugIndexRoute
   '/{-$locale}/org/$organizationSlug/orders/$orderNumber': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersOrderNumberIndexRoute
   '/{-$locale}/org/$organizationSlug/drafts/$draftId/configure': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsDraftIdConfigureIndexRoute
@@ -367,6 +379,7 @@ export interface FileRoutesById {
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/drafts/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsIndexRoute
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/orders/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersIndexRoute
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/members/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute
+  '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/payments/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/catalog/$productSlug/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogProductSlugIndexRoute
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/orders/$orderNumber/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersOrderNumberIndexRoute
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/drafts/$draftId/configure/': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugDraftsDraftIdConfigureIndexRoute
@@ -400,6 +413,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/org/$organizationSlug/drafts/'
     | '/{-$locale}/org/$organizationSlug/orders/'
     | '/{-$locale}/org/$organizationSlug/members/'
+    | '/{-$locale}/org/$organizationSlug/payments/'
     | '/{-$locale}/org/$organizationSlug/catalog/$productSlug/'
     | '/{-$locale}/org/$organizationSlug/orders/$orderNumber/'
     | '/{-$locale}/org/$organizationSlug/drafts/$draftId/configure/'
@@ -424,6 +438,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/org/$organizationSlug/drafts'
     | '/{-$locale}/org/$organizationSlug/orders'
     | '/{-$locale}/org/$organizationSlug/members'
+    | '/{-$locale}/org/$organizationSlug/payments'
     | '/{-$locale}/org/$organizationSlug/catalog/$productSlug'
     | '/{-$locale}/org/$organizationSlug/orders/$orderNumber'
     | '/{-$locale}/org/$organizationSlug/drafts/$draftId/configure'
@@ -460,6 +475,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/drafts/'
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/orders/'
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/members/'
+    | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/payments/'
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/catalog/$productSlug/'
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/orders/$orderNumber/'
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/drafts/$draftId/configure/'
@@ -698,6 +714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogProductSlugIndexRouteImport
       parentRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugCatalogRouteRoute
     }
+    '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/payments/': {
+      id: '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/payments/'
+      path: '/payments'
+      fullPath: '/{-$locale}/org/$organizationSlug/payments/'
+      preLoaderRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRoute
+    }
     '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/members/': {
       id: '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/(workspace)/members/'
       path: '/members'
@@ -787,6 +810,7 @@ const Char123LocaleChar125rootLayoutauthDashboardRouteRouteWithChildren =
 interface Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRouteChildren {
   Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceIndexRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceIndexRoute
   Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute
+  Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute: typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute
 }
 
 const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRouteChildren: Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRouteChildren =
@@ -795,6 +819,8 @@ const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRouteCh
       Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceIndexRoute,
     Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute:
       Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceMembersIndexRoute,
+    Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute:
+      Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspacePaymentsIndexRoute,
   }
 
 const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRouteWithChildren =

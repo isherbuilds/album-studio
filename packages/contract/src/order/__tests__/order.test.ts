@@ -73,6 +73,7 @@ describe("Order contract", () => {
 
   it("keeps mutable Order fields outside immutable snapshot", () => {
     const detail = OrderDetailSchema.parse({
+      cancellationStatus: "none",
       createdAt: "2026-07-14T10:00:00.000Z",
       number: "AS-000001",
       projectName: "Corrected name",
