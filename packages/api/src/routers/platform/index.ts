@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@tsu-stack/auth/index";
-import { CurrencyCodeSchema } from "@tsu-stack/contract/configuration";
+import { PlatformCreateOrganizationInputSchema } from "@tsu-stack/contract/organization";
 import { member, organization, user } from "@tsu-stack/db/schema";
 
 import { platformAdminProcedure } from "#@/lib/procedures/factory";
@@ -12,20 +12,6 @@ const organizationSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string()
-});
-
-const createOrganizationInputSchema = z.object({
-  currency: CurrencyCodeSchema,
-  name: z.string().trim().min(2).max(120),
-  ownerEmail: z.email().transform((email) => email.toLowerCase()),
-  ownerName: z.string().trim().min(2).max(120),
-  ownerPassword: z.string().min(8).max(128),
-  slug: z
-    .string()
-    .trim()
-    .min(2)
-    .max(80)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 });
 
 export const platformRouter = {
@@ -95,7 +81,7 @@ export const platformRouter = {
         description: "Create an organization and appoint its initial owner",
         method: "POST"
       })
-      .input(createOrganizationInputSchema)
+      .input(PlatformCreateOrganizationInputSchema)
       .output(
         organizationSummarySchema.extend({
           ownerCreated: z.boolean(),

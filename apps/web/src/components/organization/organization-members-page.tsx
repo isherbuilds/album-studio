@@ -1,9 +1,14 @@
 import { Copy, Search, UserPlus } from "lucide-react";
 import { useState } from "react";
+import { Controller } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
-import { type OrganizationRole, OrganizationRoleSchema } from "@tsu-stack/contract/organization";
+import {
+  type OrganizationRole,
+  OrganizationCreateInvitationInputSchema,
+  OrganizationRoleSchema
+} from "@tsu-stack/contract/organization";
 import { m } from "@tsu-stack/i18n/messages";
 import { Badge } from "@tsu-stack/ui/components/badge";
 import { Button } from "@tsu-stack/ui/components/button";
@@ -22,7 +27,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@tsu-stack/ui/components/dialog";
-import { Field, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import {
   Select,
@@ -47,6 +52,8 @@ import {
   WorkspaceStatStrip,
   WorkspaceToolbar
 } from "@/components/admin/workspace";
+import { TextField } from "@/components/form/text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
 import {
   useCreateInvitationMutation,
   useListInvitationsQuery,
@@ -77,10 +84,23 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
   const removeMember = useRemoveMemberMutation(organizationSlug);
   const updateMemberRole = useUpdateMemberRoleMutation();
   const { isPending: isAuthPending, user } = useAuth();
-  const [email, setEmail] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [role, setRole] = useState<OrganizationRole>("customer");
   const [search, setSearch] = useState("");
+  const form = useZodForm(OrganizationCreateInvitationInputSchema, {
+    defaultValues: {
+      email: "",
+      role: "customer"
+    }
+  });
+  const onSubmit = form.handleSubmit((value) => {
+    createInvitation.mutate(value, {
+      onSuccess: () => {
+        form.reset();
+        setInviteOpen(false);
+        toast.success(m.organization__invited());
+      }
+    });
+  });
   const memberRows = members.data ?? [];
   const invitationRows = invitations.data ?? [];
   const normalizedSearch = search.trim().toLowerCase();
@@ -107,61 +127,57 @@ export function OrganizationMembersPage({ organizationSlug }: { organizationSlug
                 <DialogTitle>{m.organization__invite_title()}</DialogTitle>
                 <DialogDescription>{m.organization__invite_description()}</DialogDescription>
               </DialogHeader>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  createInvitation.mutate(
-                    { email, role },
-                    {
-                      onSuccess: () => {
-                        setEmail("");
-                        setInviteOpen(false);
-                        toast.success(m.organization__invited());
-                      }
-                    }
-                  );
-                }}
-              >
+              <form onSubmit={onSubmit}>
                 <FieldGroup>
+                  <TextField
+                    error={form.formState.errors.email}
+                    label={m.organization__invite_email()}
+                    registration={form.register("email")}
+                    required
+                    type="email"
+                  />
+                  <Controller
+                    control={form.control}
+                    name="role"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid || undefined}>
+                        <FieldLabel htmlFor="invitation-role">
+                          {m.organization__invite_role()}
+                        </FieldLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(OrganizationRoleSchema.parse(value))
+                          }
+                          value={field.value}
+                        >
+                          <SelectTrigger
+                            aria-invalid={fieldState.invalid || undefined}
+                            className="w-full"
+                            id="invitation-role"
+                          >
+                            <SelectValue>{organizationRoleLabel}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {ROLE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label()}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                      </Field>
+                    )}
+                  />
                   <Field>
-                    <FieldLabel htmlFor="invitation-email">
-                      {m.organization__invite_email()}
-                    </FieldLabel>
-                    <Input
-                      id="invitation-email"
-                      onChange={(event) => setEmail(event.target.value)}
-                      required
-                      type="email"
-                      value={email}
-                    />
+                    <Button disabled={createInvitation.isPending} type="submit">
+                      {createInvitation.isPending
+                        ? m.organization__inviting()
+                        : m.organization__invite_action()}
+                    </Button>
                   </Field>
-                  <Field>
-                    <FieldLabel htmlFor="invitation-role">
-                      {m.organization__invite_role()}
-                    </FieldLabel>
-                    <Select
-                      onValueChange={(value) => setRole(OrganizationRoleSchema.parse(value))}
-                      value={role}
-                    >
-                      <SelectTrigger className="w-full" id="invitation-role">
-                        <SelectValue>{organizationRoleLabel}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {ROLE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label()}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Button disabled={createInvitation.isPending} type="submit">
-                    {createInvitation.isPending
-                      ? m.organization__inviting()
-                      : m.organization__invite_action()}
-                  </Button>
                 </FieldGroup>
               </form>
             </DialogContent>

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth, isAPIError } from "@tsu-stack/auth/index";
 import {
   InvitationStatusSchema,
+  OrganizationAcceptNewUserInvitationInputSchema,
   OrganizationRoleSchema,
   OrgSlugInputSchema
 } from "@tsu-stack/contract/organization";
@@ -71,13 +72,7 @@ export const organizationsRouter = {
     // invitation links controlled by the trusted enterprise operator.
     acceptNewUser: publicProcedure
       .route({ description: "Create an invited user and accept the invitation", method: "POST" })
-      .input(
-        z.object({
-          invitationId: z.string().min(1),
-          name: z.string().trim().min(2).max(120),
-          password: z.string().min(8).max(128)
-        })
-      )
+      .input(OrganizationAcceptNewUserInvitationInputSchema)
       .errors({
         ACCOUNT_EXISTS: { message: "Sign in to accept this invitation", status: 409 },
         INVITATION_INVALID: { message: "Invitation is invalid or expired", status: 400 }

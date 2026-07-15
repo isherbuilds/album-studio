@@ -11,8 +11,10 @@ import {
   X
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import { type ProductEditor } from "@tsu-stack/contract/product";
+import { ProductContentSchema, type ProductEditor } from "@tsu-stack/contract/product";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -36,10 +38,20 @@ import { Textarea } from "@tsu-stack/ui/components/textarea";
 import { WorkspacePage, WorkspacePageHeader } from "@/components/admin/workspace";
 import { getProductQueryOptions, useProductActions } from "@/hooks/use-products";
 
-import { formText, formatIssuePath, productStatusConfig } from "./format";
+import { formatIssuePath, productStatusConfig } from "./format";
 import { ProductConfigurationEditor } from "./product-configuration-editor";
 import { ProductPreview } from "./product-preview";
 import { ProductPricingForm } from "./product-pricing-form";
+
+const ProductContentFormSchema = z.object({
+  description: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : value))
+    .pipe(ProductContentSchema.shape.description),
+  name: ProductContentSchema.shape.name,
+  slug: ProductContentSchema.shape.slug
+});
 
 type ContentDraft = {
   description: string | null;
@@ -89,13 +101,12 @@ function ContentForm({
           onSubmit={(event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
-            const description = formText(data, "description").trim();
-            onSave({
-              description: description === "" ? null : description,
-              imageUrls,
-              name: formText(data, "name"),
-              slug: formText(data, "slug")
-            });
+            const parsed = ProductContentFormSchema.safeParse(Object.fromEntries(data));
+            if (!parsed.success) {
+              toast.error(m.products__invalid());
+              return;
+            }
+            onSave({ ...parsed.data, imageUrls });
           }}
         >
           <FieldGroup>

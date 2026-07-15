@@ -1,25 +1,28 @@
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useHydrated } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { authClient } from "@tsu-stack/auth/react/auth-client";
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
-import { authQueryKeys } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 import { type NavigateTo } from "@tsu-stack/i18n/tanstack-start/types";
 import { Button } from "@tsu-stack/ui/components/button";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
-import { Input } from "@tsu-stack/ui/components/input";
+import { Field, FieldDescription, FieldGroup } from "@tsu-stack/ui/components/field";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
 import { Container } from "@/components/common/container";
 import { LogoIcon } from "@/components/common/logo";
+import { TextField } from "@/components/form/text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
 import { appConfig } from "@/config/app.config";
+import { useSignInMutation } from "@/hooks/use-auth";
+
+const signInFormSchema = z.object({
+  email: z.email(m.auth__invalid_email()),
+  password: z.string().min(8, m.auth__password_min_length())
+});
 
 export function SignInForm({
   redirectTo = "/",
@@ -27,53 +30,24 @@ export function SignInForm({
   ...props
 }: React.ComponentProps<"div"> & { redirectTo?: NavigateTo }) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { isPending } = useAuth();
   const isHydrated = useHydrated();
 
-  const signInMutation = useMutation({
-    mutationFn: async (values: { email: string; password: string }) => {
-      const result = await authClient.signIn.email({
-        email: values.email,
-        password: values.password
-      });
+  const signInMutation = useSignInMutation();
 
-      if (!result.data) {
-        throw new Error(result.error?.message ?? m.auth__sign_in_failed());
-      }
-
-      return result;
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || m.auth__sign_in_failed());
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        exact: true,
-        queryKey: authQueryKeys.user,
-        refetchType: "active"
-      });
-      await navigate({
-        to: redirectTo
-      });
-      toast.success(m.auth__sign_in_successful());
-    }
-  });
-
-  const form = useForm({
+  const form = useZodForm(signInFormSchema, {
     defaultValues: {
       email: "",
       password: ""
-    },
-    onSubmit: async ({ value }) => {
-      signInMutation.mutate(value);
-    },
-    validators: {
-      onSubmit: z.object({
-        email: z.email(m.auth__invalid_email()),
-        password: z.string().min(8, m.auth__password_min_length())
-      })
     }
+  });
+  const onSubmit = form.handleSubmit((value) => {
+    signInMutation.mutate(value, {
+      onSuccess: async () => {
+        await navigate({ to: redirectTo });
+        toast.success(m.auth__sign_in_successful());
+      }
+    });
   });
 
   if (isPending) {
@@ -82,13 +56,7 @@ export function SignInForm({
 
   return (
     <Container className={cn("flex max-w-md flex-col gap-6", className)} {...props}>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          await form.handleSubmit();
-        }}
-      >
+      <form onSubmit={onSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <Link href="/" className="flex flex-col items-center gap-2 font-medium">
@@ -98,55 +66,30 @@ export function SignInForm({
             <h1 className="text-xl font-bold">{m.auth__sign_in_title()}</h1>
           </div>
 
-          <form.Field name="email">
-            {(field) => (
-              <Field>
-                <FieldLabel htmlFor={field.name}>{m.auth__email_label()}</FieldLabel>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="email"
-                  value={field.state.value}
-                  disabled={!isHydrated}
-                  placeholder={m.auth__email_placeholder()}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-sm text-destructive" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </Field>
-            )}
-          </form.Field>
+          <TextField
+            disabled={!isHydrated}
+            error={form.formState.errors.email}
+            label={m.auth__email_label()}
+            placeholder={m.auth__email_placeholder()}
+            registration={form.register("email")}
+            required
+            type="email"
+          />
 
-          <form.Field name="password">
-            {(field) => (
-              <Field>
-                <FieldLabel htmlFor={field.name}>{m.auth__password_label()}</FieldLabel>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="password"
-                  value={field.state.value}
-                  disabled={!isHydrated}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-sm text-destructive" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </Field>
-            )}
-          </form.Field>
+          <TextField
+            disabled={!isHydrated}
+            error={form.formState.errors.password}
+            label={m.auth__password_label()}
+            minLength={8}
+            registration={form.register("password")}
+            required
+            type="password"
+          />
 
           <Field>
             <Button
-              light="skeuomorphic"
               type="submit"
+              light="skeuomorphic"
               disabled={!isHydrated || signInMutation.isPending || signInMutation.isSuccess}
             >
               {signInMutation.isPending ? m.auth__signing_in() : m.auth__sign_in()}

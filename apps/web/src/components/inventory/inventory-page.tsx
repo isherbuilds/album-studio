@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import { type ComponentAvailabilityStatus } from "@tsu-stack/contract/configuration";
 import {
   type ComponentAvailabilityOverride,
-  ComponentAvailabilityOverrideSchema
+  InventoryCreateComponentInputSchema,
+  InventoryEditComponentInputSchema,
+  InventoryRecordMovementInputSchema,
+  InventorySetAvailabilityInputSchema
 } from "@tsu-stack/contract/inventory";
 import { m } from "@tsu-stack/i18n/messages";
 import { useLocale } from "@tsu-stack/i18n/tanstack-start/components/locale-provider";
@@ -65,14 +68,29 @@ const availabilityOptions: ReadonlyArray<{
   { label: m.inventory__out, value: "out" }
 ];
 
+const createComponentFormSchema = InventoryCreateComponentInputSchema.pick({
+  lowStockThreshold: true,
+  name: true,
+  unit: true
+});
+
+const recordMovementFormSchema = InventoryRecordMovementInputSchema.pick({
+  delta: true,
+  reason: true
+});
+
+const editComponentFormSchema = InventoryEditComponentInputSchema.pick({
+  lowStockThreshold: true,
+  name: true,
+  unit: true
+});
+
+const setAvailabilityFormSchema = InventorySetAvailabilityInputSchema.pick({
+  availabilityOverride: true
+});
+
 function availabilityLabel(value: ComponentAvailabilityOverride) {
   return availabilityOptions.find((option) => option.value === value)?.label();
-}
-
-function formText(data: FormData, key: string) {
-  const value = data.get(key);
-  if (typeof value !== "string") throw new Error(`Expected text form field: ${key}`);
-  return value;
 }
 
 function StatusBadge({ status }: { status: ComponentAvailabilityStatus }) {
@@ -98,20 +116,18 @@ function AddComponentForm({
         event.preventDefault();
         const form = event.currentTarget;
         const data = new FormData(form);
-        actions.createComponent.mutate(
-          {
-            lowStockThreshold: formText(data, "lowStockThreshold"),
-            name: formText(data, "name"),
-            unit: formText(data, "unit")
-          },
-          {
-            onSuccess: (component) => {
-              form.reset();
-              onCreated(component);
-              toast.success(m.inventory__created());
-            }
+        const parsed = createComponentFormSchema.safeParse(Object.fromEntries(data));
+        if (!parsed.success) {
+          toast.error(m.inventory__update_failed());
+          return;
+        }
+        actions.createComponent.mutate(parsed.data, {
+          onSuccess: (component) => {
+            form.reset();
+            onCreated(component);
+            toast.success(m.inventory__created());
           }
-        );
+        });
       }}
     >
       <FieldGroup>
@@ -204,11 +220,15 @@ function ComponentInspector({
                 event.preventDefault();
                 const form = event.currentTarget;
                 const data = new FormData(form);
+                const parsed = recordMovementFormSchema.safeParse(Object.fromEntries(data));
+                if (!parsed.success) {
+                  toast.error(m.inventory__update_failed());
+                  return;
+                }
                 actions.recordMovement.mutate(
                   {
                     componentId: component.id,
-                    delta: formText(data, "delta"),
-                    reason: formText(data, "reason")
+                    ...parsed.data
                   },
                   {
                     onSuccess: () => {
@@ -253,12 +273,15 @@ function ComponentInspector({
               onSubmit={(event) => {
                 event.preventDefault();
                 const data = new FormData(event.currentTarget);
+                const parsed = editComponentFormSchema.safeParse(Object.fromEntries(data));
+                if (!parsed.success) {
+                  toast.error(m.inventory__update_failed());
+                  return;
+                }
                 actions.editComponent.mutate(
                   {
                     componentId: component.id,
-                    lowStockThreshold: formText(data, "lowStockThreshold"),
-                    name: formText(data, "name"),
-                    unit: formText(data, "unit")
+                    ...parsed.data
                   },
                   { onSuccess: () => toast.success(m.inventory__saved()) }
                 );
@@ -317,12 +340,15 @@ function ComponentInspector({
               onSubmit={(event) => {
                 event.preventDefault();
                 const data = new FormData(event.currentTarget);
+                const parsed = setAvailabilityFormSchema.safeParse(Object.fromEntries(data));
+                if (!parsed.success) {
+                  toast.error(m.inventory__update_failed());
+                  return;
+                }
                 actions.setAvailability.mutate(
                   {
-                    availabilityOverride: ComponentAvailabilityOverrideSchema.parse(
-                      formText(data, "availabilityOverride")
-                    ),
-                    componentId: component.id
+                    componentId: component.id,
+                    ...parsed.data
                   },
                   { onSuccess: () => toast.success(m.inventory__availability_saved()) }
                 );

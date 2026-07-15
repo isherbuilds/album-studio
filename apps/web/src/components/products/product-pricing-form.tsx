@@ -1,5 +1,6 @@
 import { CircleDollarSign } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 
 import { type ProductEditor, type ProductEditPricingInput } from "@tsu-stack/contract/product";
 import { m } from "@tsu-stack/i18n/messages";
@@ -16,7 +17,9 @@ import { Field, FieldError, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import { Separator } from "@tsu-stack/ui/components/separator";
 
-import { currencyFractionDigits, formText, minorToMajorInput, parseMoneyMinor } from "./format";
+import { currencyFractionDigits, minorToMajorInput, parseMoneyMinor } from "./format";
+
+const PricingEntriesSchema = z.record(z.string(), z.string());
 
 type PricingInput = Omit<
   ProductEditPricingInput,
@@ -79,14 +82,20 @@ export function ProductPricingForm({
           onSubmit={(event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
-            const basePriceMinor = parseMoneyMinor(formText(data, "base"), currency, locale);
+            const parsedEntries = PricingEntriesSchema.safeParse(Object.fromEntries(data));
+            if (!parsedEntries.success) {
+              setError(m.products__invalid());
+              return;
+            }
+            const entries = parsedEntries.data;
+            const basePriceMinor = parseMoneyMinor(entries.base ?? "", currency, locale);
             if (basePriceMinor === undefined) {
               setError(m.products__invalid());
               return;
             }
             const optionValuePrices: PricingInput["optionValuePrices"] = [];
             for (const value of optionValues) {
-              const minor = parseMoneyMinor(formText(data, `value::${value.id}`), currency, locale);
+              const minor = parseMoneyMinor(entries[`value::${value.id}`] ?? "", currency, locale);
               if (minor === undefined) {
                 setError(m.products__invalid());
                 return;
@@ -96,7 +105,7 @@ export function ProductPricingForm({
             const numericGroupPrices: PricingInput["numericGroupPrices"] = [];
             for (const group of numericGroups) {
               const minor = parseMoneyMinor(
-                formText(data, `numeric::${group.key}`),
+                entries[`numeric::${group.key}`] ?? "",
                 currency,
                 locale
               );

@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, PackagePlus, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import { type ProductStatus } from "@tsu-stack/contract/product";
+import { ProductContentSchema, type ProductStatus } from "@tsu-stack/contract/product";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Badge } from "@tsu-stack/ui/components/badge";
@@ -47,7 +49,17 @@ import {
 } from "@/components/admin/workspace";
 import { getProductsQueryOptions, useProductActions } from "@/hooks/use-products";
 
-import { formText, productStatusConfig } from "./format";
+import { productStatusConfig } from "./format";
+
+const CreateProductContentFormSchema = z.object({
+  description: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : value))
+    .pipe(ProductContentSchema.shape.description),
+  name: ProductContentSchema.shape.name,
+  slug: ProductContentSchema.shape.slug
+});
 
 function productStatusFilterLabel(value: "all" | ProductStatus) {
   return value === "all" ? m.products__all_statuses() : productStatusConfig[value].label();
@@ -86,13 +98,15 @@ function CreateProductDialog({
             event.preventDefault();
             const form = event.currentTarget;
             const data = new FormData(form);
-            const description = formText(data, "description").trim();
+            const parsed = CreateProductContentFormSchema.safeParse(Object.fromEntries(data));
+            if (!parsed.success) {
+              toast.error(m.products__invalid());
+              return;
+            }
             onCreate(
               {
-                description: description === "" ? null : description,
-                imageUrls: [],
-                name: formText(data, "name"),
-                slug: formText(data, "slug")
+                ...parsed.data,
+                imageUrls: []
               },
               () => {
                 form.reset();

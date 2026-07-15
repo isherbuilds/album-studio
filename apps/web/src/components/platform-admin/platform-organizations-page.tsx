@@ -1,8 +1,10 @@
 import { Building2, Search, UserPlus } from "lucide-react";
 import { useState } from "react";
+import { Controller } from "react-hook-form";
 import { toast } from "sonner";
 
 import { DEFAULT_ORGANIZATION_CURRENCY } from "@tsu-stack/contract/configuration";
+import { PlatformCreateOrganizationInputSchema } from "@tsu-stack/contract/organization";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Button } from "@tsu-stack/ui/components/button";
@@ -15,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@tsu-stack/ui/components/dialog";
-import { Field, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import {
   Table,
@@ -27,26 +29,37 @@ import {
 } from "@tsu-stack/ui/components/table";
 
 import { WorkspacePage, WorkspacePageHeader, WorkspaceToolbar } from "@/components/admin/workspace";
+import { TextField } from "@/components/form/text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
 import {
   useCreateOrganizationMutation,
   useListOrganizationsQuery
 } from "@/hooks/use-platform-admin";
 
-const EMPTY_FORM = {
-  currency: DEFAULT_ORGANIZATION_CURRENCY,
-  name: "",
-  ownerEmail: "",
-  ownerName: "",
-  ownerPassword: "",
-  slug: ""
-};
-
 export function PlatformOrganizationsPage() {
   const organizations = useListOrganizationsQuery();
   const createOrganization = useCreateOrganizationMutation();
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState("");
+  const form = useZodForm(PlatformCreateOrganizationInputSchema, {
+    defaultValues: {
+      currency: DEFAULT_ORGANIZATION_CURRENCY,
+      name: "",
+      ownerEmail: "",
+      ownerName: "",
+      ownerPassword: "",
+      slug: ""
+    }
+  });
+  const onSubmit = form.handleSubmit((value) => {
+    createOrganization.mutate(value, {
+      onSuccess: () => {
+        form.reset();
+        setCreateOpen(false);
+        toast.success(m.platform_admin__created());
+      }
+    });
+  });
   const normalizedSearch = search.trim().toLowerCase();
   const filteredOrganizations =
     normalizedSearch === ""
@@ -71,104 +84,92 @@ export function PlatformOrganizationsPage() {
                 <DialogTitle>{m.platform_admin__create_title()}</DialogTitle>
                 <DialogDescription>{m.platform_admin__create_description()}</DialogDescription>
               </DialogHeader>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  createOrganization.mutate(form, {
-                    onSuccess: () => {
-                      setForm(EMPTY_FORM);
-                      setCreateOpen(false);
-                      toast.success(m.platform_admin__created());
-                    }
-                  });
-                }}
-              >
+              <form onSubmit={onSubmit}>
                 <FieldGroup>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel htmlFor="organization-name">
-                        {m.platform_admin__organization_name()}
-                      </FieldLabel>
-                      <Input
-                        id="organization-name"
-                        onChange={(event) => setForm({ ...form, name: event.target.value })}
-                        required
-                        value={form.name}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="organization-slug">
-                        {m.platform_admin__organization_slug()}
-                      </FieldLabel>
-                      <Input
-                        id="organization-slug"
-                        onChange={(event) => setForm({ ...form, slug: event.target.value })}
-                        pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                        placeholder={m.platform_admin__slug_placeholder()}
-                        required
-                        value={form.slug}
-                      />
-                    </Field>
-                  </div>
-                  <Field>
-                    <FieldLabel htmlFor="organization-currency">
-                      {m.platform_admin__organization_currency()}
-                    </FieldLabel>
-                    <Input
-                      id="organization-currency"
-                      maxLength={3}
-                      onChange={(event) =>
-                        setForm({ ...form, currency: event.target.value.toUpperCase() })
-                      }
-                      pattern="[A-Za-z]{3}"
-                      placeholder={DEFAULT_ORGANIZATION_CURRENCY}
+                    <TextField
+                      error={form.formState.errors.name}
+                      label={m.platform_admin__organization_name()}
+                      maxLength={120}
+                      minLength={2}
+                      registration={form.register("name")}
                       required
-                      value={form.currency}
                     />
-                  </Field>
+                    <TextField
+                      error={form.formState.errors.slug}
+                      label={m.platform_admin__organization_slug()}
+                      maxLength={80}
+                      minLength={2}
+                      pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                      placeholder={m.platform_admin__slug_placeholder()}
+                      registration={form.register("slug")}
+                      required
+                    />
+                  </div>
+                  <Controller
+                    control={form.control}
+                    name="currency"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid || undefined}>
+                        <FieldLabel htmlFor={field.name}>
+                          {m.platform_admin__organization_currency()}
+                        </FieldLabel>
+                        <Input
+                          {...field}
+                          aria-invalid={fieldState.invalid || undefined}
+                          id={field.name}
+                          maxLength={3}
+                          onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                          pattern="[A-Za-z]{3}"
+                          placeholder={DEFAULT_ORGANIZATION_CURRENCY}
+                          required
+                        />
+                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                      </Field>
+                    )}
+                  />
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel htmlFor="owner-name">{m.platform_admin__owner_name()}</FieldLabel>
-                      <Input
-                        id="owner-name"
-                        onChange={(event) => setForm({ ...form, ownerName: event.target.value })}
-                        required
-                        value={form.ownerName}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="owner-email">
-                        {m.platform_admin__owner_email()}
-                      </FieldLabel>
-                      <Input
-                        id="owner-email"
-                        onChange={(event) => setForm({ ...form, ownerEmail: event.target.value })}
-                        required
-                        type="email"
-                        value={form.ownerEmail}
-                      />
-                    </Field>
-                  </div>
-                  <Field>
-                    <FieldLabel htmlFor="owner-password">
-                      {m.platform_admin__owner_password()}
-                    </FieldLabel>
-                    <Input
-                      autoComplete="new-password"
-                      id="owner-password"
-                      minLength={8}
-                      onChange={(event) => setForm({ ...form, ownerPassword: event.target.value })}
+                    <TextField
+                      error={form.formState.errors.ownerName}
+                      label={m.platform_admin__owner_name()}
+                      maxLength={120}
+                      minLength={2}
+                      registration={form.register("ownerName")}
                       required
-                      type="password"
-                      value={form.ownerPassword}
                     />
+                    <TextField
+                      error={form.formState.errors.ownerEmail}
+                      label={m.platform_admin__owner_email()}
+                      registration={form.register("ownerEmail")}
+                      required
+                      type="email"
+                    />
+                  </div>
+                  <TextField
+                    autoComplete="new-password"
+                    error={form.formState.errors.ownerPassword}
+                    label={m.platform_admin__owner_password()}
+                    maxLength={128}
+                    minLength={8}
+                    registration={form.register("ownerPassword")}
+                    required
+                    type="password"
+                  />
+                  <Field>
+                    <Button disabled={createOrganization.isPending} type="submit">
+                      {createOrganization.isPending ? (
+                        <>
+                          <UserPlus data-icon="inline-start" />
+                          {m.platform_admin__creating()}
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus data-icon="inline-start" />
+                          {m.platform_admin__create_action()}
+                        </>
+                      )}
+                    </Button>
                   </Field>
-                  <Button disabled={createOrganization.isPending} type="submit">
-                    <UserPlus data-icon="inline-start" />
-                    {createOrganization.isPending
-                      ? m.platform_admin__creating()
-                      : m.platform_admin__create_action()}
-                  </Button>
                 </FieldGroup>
               </form>
             </DialogContent>

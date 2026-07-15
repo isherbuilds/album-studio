@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { type OrderStatus } from "@tsu-stack/contract/order";
 import { type OrganizationRole } from "@tsu-stack/contract/organization";
@@ -50,6 +51,16 @@ import { useOrderActions, useOrderByNumberQuery } from "@/hooks/use-orders";
 import { usePaymentActions, usePaymentLedgerQuery } from "@/hooks/use-payments";
 
 const productionSteps: OrderStatus[] = ["placed", "confirmed", "in_production", "completed"];
+const recordPaymentSchema = z.object({
+  amount: z.string(),
+  method: OfflinePaymentMethodSchema,
+  note: z.string()
+});
+
+const reversePaymentSchema = z.object({
+  amount: z.string(),
+  note: z.string()
+});
 
 function paymentMethodLabel(method: OfflinePaymentMethod) {
   switch (method) {
@@ -64,12 +75,6 @@ function paymentMethodLabel(method: OfflinePaymentMethod) {
     case "other":
       return m.payments__method_other();
   }
-}
-
-function formText(data: FormData, key: string) {
-  const value = data.get(key);
-  if (typeof value !== "string") throw new Error(`Expected text form field: ${key}`);
-  return value;
 }
 
 export function OrderDetailPage({
@@ -114,18 +119,22 @@ export function OrderDetailPage({
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const amountMinor = parseMajorAmount(formText(data, "amount"), fractionDigits, locale);
-    const method = OfflinePaymentMethodSchema.safeParse(data.get("method"));
-    if (!amountMinor || !method.success) {
+    const parsed = recordPaymentSchema.safeParse(Object.fromEntries(data));
+    if (!parsed.success) {
+      toast.error(m.payments__invalid_amount());
+      return;
+    }
+    const amountMinor = parseMajorAmount(parsed.data.amount, fractionDigits, locale);
+    if (!amountMinor) {
       toast.error(m.payments__invalid_amount());
       return;
     }
     paymentActions.record.mutate(
       {
         amountMinor,
-        method: method.data,
+        method: parsed.data.method,
         mutationId: crypto.randomUUID(),
-        note: formText(data, "note")
+        note: parsed.data.note
       },
       { onSuccess: () => form.reset() }
     );
@@ -298,8 +307,15 @@ export function OrderDetailPage({
                               event.preventDefault();
                               const form = event.currentTarget;
                               const data = new FormData(form);
+                              const parsed = reversePaymentSchema.safeParse(
+                                Object.fromEntries(data)
+                              );
+                              if (!parsed.success) {
+                                toast.error(m.payments__invalid_amount());
+                                return;
+                              }
                               const amountMinor = parseMajorAmount(
-                                formText(data, "amount"),
+                                parsed.data.amount,
                                 fractionDigits,
                                 locale
                               );
@@ -311,7 +327,7 @@ export function OrderDetailPage({
                                 {
                                   amountMinor,
                                   mutationId: crypto.randomUUID(),
-                                  note: formText(data, "note"),
+                                  note: parsed.data.note,
                                   receiptId: payment.id
                                 },
                                 { onSuccess: () => form.reset() }
