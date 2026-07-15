@@ -31,7 +31,7 @@ export const optionGroupType = pgEnum("option_group_type", ["single", "boolean",
 export const product = pgTable(
   "product",
   {
-    basePriceMinor: bigint("base_price_minor", { mode: "number" }).notNull(),
+    basePriceMinor: bigint("base_price_minor", { mode: "number" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     description: text("description"),
     id: text("id")
@@ -99,7 +99,7 @@ export const optionGroup = pgTable(
     unique("option_group_id_product_key").on(table.id, table.productId),
     check(
       "option_group_additional_unit_price_minor_check",
-      sql`${table.additionalUnitPriceMinor} IS NULL OR ${table.additionalUnitPriceMinor} <= 9007199254740991`
+      sql`${table.additionalUnitPriceMinor} IS NULL OR (${table.additionalUnitPriceMinor} >= 0 AND ${table.additionalUnitPriceMinor} <= 9007199254740991)`
     )
   ]
 );
@@ -123,7 +123,7 @@ export const optionValue = pgTable(
     organizationId: text("organization_id").notNull(),
     productId: text("product_id").notNull(),
     position: integer("position").notNull(),
-    priceAdjustmentMinor: bigint("price_adjustment_minor", { mode: "number" }).notNull()
+    priceAdjustmentMinor: bigint("price_adjustment_minor", { mode: "number" })
   },
   (table) => [
     uniqueIndex("option_value_group_position_uidx").on(table.optionGroupId, table.position),

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { type OrderStatus } from "@tsu-stack/contract/order";
 import { type OrganizationRole } from "@tsu-stack/contract/organization";
@@ -39,12 +40,27 @@ import {
 import { Separator } from "@tsu-stack/ui/components/separator";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
+import { WorkspacePage, WorkspacePageHeader } from "@/components/admin/workspace";
 import { formatMinorAmount, parseMajorAmount } from "@/components/catalog/format";
-import { nextOrderStatus, orderStatusLabel } from "@/components/orders/order-format";
+import {
+  nextOrderStatus,
+  orderStatusConfig,
+  orderStatusLabel
+} from "@/components/orders/order-format";
 import { useOrderActions, useOrderByNumberQuery } from "@/hooks/use-orders";
 import { usePaymentActions, usePaymentLedgerQuery } from "@/hooks/use-payments";
 
 const productionSteps: OrderStatus[] = ["placed", "confirmed", "in_production", "completed"];
+const recordPaymentSchema = z.object({
+  amount: z.string(),
+  method: OfflinePaymentMethodSchema,
+  note: z.string()
+});
+
+const reversePaymentSchema = z.object({
+  amount: z.string(),
+  note: z.string()
+});
 
 function paymentMethodLabel(method: OfflinePaymentMethod) {
   switch (method) {
@@ -59,12 +75,6 @@ function paymentMethodLabel(method: OfflinePaymentMethod) {
     case "other":
       return m.payments__method_other();
   }
-}
-
-function formText(data: FormData, key: string) {
-  const value = data.get(key);
-  if (typeof value !== "string") throw new Error(`Expected text form field: ${key}`);
-  return value;
 }
 
 export function OrderDetailPage({
@@ -109,25 +119,29 @@ export function OrderDetailPage({
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const amountMinor = parseMajorAmount(formText(data, "amount"), fractionDigits, locale);
-    const method = OfflinePaymentMethodSchema.safeParse(data.get("method"));
-    if (!amountMinor || !method.success) {
+    const parsed = recordPaymentSchema.safeParse(Object.fromEntries(data));
+    if (!parsed.success) {
+      toast.error(m.payments__invalid_amount());
+      return;
+    }
+    const amountMinor = parseMajorAmount(parsed.data.amount, fractionDigits, locale);
+    if (!amountMinor) {
       toast.error(m.payments__invalid_amount());
       return;
     }
     paymentActions.record.mutate(
       {
         amountMinor,
-        method: method.data,
+        method: parsed.data.method,
         mutationId: crypto.randomUUID(),
-        note: formText(data, "note")
+        note: parsed.data.note
       },
       { onSuccess: () => form.reset() }
     );
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-5 sm:p-8">
+    <WorkspacePage className="max-w-6xl">
       <Link
         className="flex w-fit items-center gap-1 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         params={{ organizationSlug }}
@@ -137,15 +151,22 @@ export function OrderDetailPage({
         {m.orders__back()}
       </Link>
 
-      <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="font-mono text-sm text-muted-foreground">{order.number}</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {order.projectName ?? order.snapshot.product.name}
-          </h1>
-        </div>
-        <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
-      </header>
+      <WorkspacePageHeader
+        actions={
+          <Badge variant="outline">
+            <span
+              aria-hidden
+              className={`size-1.5 rounded-full ${orderStatusConfig[order.status].dotClass}`}
+            />
+            {orderStatusLabel(order.status)}
+          </Badge>
+        }
+        description={`${order.number} · ${new Date(order.createdAt).toLocaleDateString(locale, {
+          dateStyle: "medium"
+        })}`}
+        eyebrow={order.snapshot.product.name}
+        title={order.projectName ?? order.snapshot.product.name}
+      />
 
       <section
         aria-label={m.orders__job_ticket()}
@@ -286,8 +307,15 @@ export function OrderDetailPage({
                               event.preventDefault();
                               const form = event.currentTarget;
                               const data = new FormData(form);
+                              const parsed = reversePaymentSchema.safeParse(
+                                Object.fromEntries(data)
+                              );
+                              if (!parsed.success) {
+                                toast.error(m.payments__invalid_amount());
+                                return;
+                              }
                               const amountMinor = parseMajorAmount(
-                                formText(data, "amount"),
+                                parsed.data.amount,
                                 fractionDigits,
                                 locale
                               );
@@ -299,7 +327,7 @@ export function OrderDetailPage({
                                 {
                                   amountMinor,
                                   mutationId: crypto.randomUUID(),
-                                  note: formText(data, "note"),
+                                  note: parsed.data.note,
                                   receiptId: payment.id
                                 },
                                 { onSuccess: () => form.reset() }
@@ -492,7 +520,7 @@ export function OrderDetailPage({
                       <FieldLabel htmlFor="payment-method">{m.payments__method()}</FieldLabel>
                       <Select defaultValue="upi" name="method">
                         <SelectTrigger className="w-full" id="payment-method">
-                          <SelectValue />
+                          <SelectValue>{paymentMethodLabel}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -524,6 +552,6 @@ export function OrderDetailPage({
           ) : null}
         </aside>
       </div>
-    </div>
+    </WorkspacePage>
   );
 }

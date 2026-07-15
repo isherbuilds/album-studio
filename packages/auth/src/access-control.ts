@@ -22,6 +22,7 @@ export const organizationAccessControl = createAccessControl({
   member: ["create", "update", "delete", "read"],
   order: ["manage"],
   payment: ["manage"],
+  product: ["manage", "price", "delete"],
   organization: ["update"]
 });
 
@@ -30,7 +31,8 @@ export const organizationRoles = {
   manager: organizationAccessControl.newRole({
     inventory: ["manage"],
     order: ["manage"],
-    payment: ["manage"]
+    payment: ["manage"],
+    product: ["manage"]
   }),
   owner: organizationAccessControl.newRole({
     invitation: ["create", "cancel", "read"],
@@ -38,6 +40,7 @@ export const organizationRoles = {
     member: ["create", "update", "delete", "read"],
     order: ["manage"],
     payment: ["manage"],
+    product: ["manage", "price", "delete"],
     organization: ["update"]
   })
 };
@@ -53,6 +56,9 @@ const organizationActionPermissions = {
   "member.update": { member: ["update"] },
   "order.manage": { order: ["manage"] },
   "organization.update": { organization: ["update"] },
+  "product.delete": { product: ["delete"] },
+  "product.manage": { product: ["manage"] },
+  "product.price": { product: ["price"] },
   "payment.manage": { payment: ["manage"] }
 } as const;
 

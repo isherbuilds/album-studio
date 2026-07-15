@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
   PackageCheck,
   ReceiptText,
   Users
@@ -34,6 +35,7 @@ type WorkspaceNavigationProps = {
   organizationSlug?: string;
   showInventoryNavigation: boolean;
   showMemberNavigation: boolean;
+  showProductNavigation: boolean;
   onNavigate?: () => void;
   showPlatformNavigation: boolean;
 };
@@ -43,10 +45,11 @@ function WorkspaceNavigation({
   organizationSlug,
   showInventoryNavigation,
   showMemberNavigation,
+  showProductNavigation,
   showPlatformNavigation
 }: WorkspaceNavigationProps) {
   const itemClass =
-    "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+    "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   const activeProps = { className: "bg-muted text-foreground" };
 
   return (
@@ -87,6 +90,18 @@ function WorkspaceNavigation({
             <Images />
             {m.app_shell__studio_overview()}
           </Link>
+          {showProductNavigation ? (
+            <Link
+              activeProps={activeProps}
+              className={itemClass}
+              onClick={onNavigate}
+              params={{ organizationSlug }}
+              to="/org/$organizationSlug/products"
+            >
+              <Package />
+              {m.products__title()}
+            </Link>
+          ) : null}
           <Link
             activeProps={activeProps}
             className={itemClass}
@@ -151,6 +166,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const showInventoryNavigation = membership
     ? can("inventory.manage", { role: membership.role })
     : false;
+  const showProductNavigation = membership
+    ? can("product.manage", { role: membership.role })
+    : false;
   const showPlatformNavigation = matches.some((match) => match.routeId.includes("/(auth)/admin"));
 
   return (
@@ -172,6 +190,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         organizationSlug={organizationSlug}
         showInventoryNavigation={showInventoryNavigation}
         showMemberNavigation={showMemberNavigation}
+        showProductNavigation={showProductNavigation}
         showPlatformNavigation={showPlatformNavigation}
       />
       <div className="mt-auto flex flex-col gap-3">

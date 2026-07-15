@@ -4,3 +4,4 @@ export * from "#@/draft/index";
 export * from "#@/health/index";
 export * from "#@/organization/index";
 export * from "#@/order/index";
+export * from "#@/product/index";

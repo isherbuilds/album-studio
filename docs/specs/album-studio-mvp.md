@@ -189,7 +189,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Depends on: Slice 2 and Slice 6.
   - Interfaces: Produces `inventory.list`, `inventory.componentById`, `inventory.createComponent`, `inventory.editComponent`, `inventory.recordMovement`, `inventory.setAvailability`, and effective availability consumed by the `catalog.bySlug` public definition and `orders.place`.
 
-- [ ] Slice 9: Generic Owner Product editor
+- [x] Slice 9: Generic Owner Product editor
   - Acceptance: Owners can create and edit Products, ordered groups, values, numeric rules, requirements, Component links, and prices; preview uses the same evaluator as Customers; publishing rejects incomplete or internally invalid definitions; Managers can create draft shells and edit non-price content, configuration, Component links, and publication state, but every pricing mutation is denied server-side and an unpriced Product cannot publish; referenced Products archive rather than delete.
   - Verify: product-editor oRPC permission and validation tests, evaluator-backed preview tests, focused Owner/Manager browser checks, then `vp run -w fix`.
   - Depends on: Slice 1, Slice 4, and Slice 8.
