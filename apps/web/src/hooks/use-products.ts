@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
+import { isDefinedError, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 import {
   type ProductArchiveInput,
   type ProductCreateInput,
@@ -23,26 +23,29 @@ export function getProductQueryOptions(organizationSlug: string, productSlug: st
   return orpc.products.bySlug.queryOptions({ input: { organizationSlug, productSlug } });
 }
 
-function showProductError(error: unknown) {
-  const code =
-    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
-      ? error.code
-      : undefined;
-  if (code === "FORBIDDEN") {
-    toast.error(m.products__forbidden());
-    return;
-  }
-  if (code === "PRODUCT_CONFLICT") {
-    toast.error(m.products__conflict());
-    return;
-  }
-  if (code === "PRODUCT_INVALID") {
-    toast.error(m.products__invalid());
-    return;
-  }
-  if (code === "PRODUCT_SLUG_TAKEN") {
-    toast.error(m.products__slug_taken());
-    return;
+type ProductMutationError = Parameters<
+  NonNullable<ReturnType<typeof orpc.products.create.mutationOptions>["onError"]>
+>[0];
+
+function showProductError(error: ProductMutationError) {
+  if (isDefinedError(error)) {
+    switch (error.code) {
+      case "FORBIDDEN":
+        toast.error(m.products__forbidden());
+        return;
+      case "PRODUCT_CONFLICT":
+        toast.error(m.products__conflict());
+        return;
+      case "PRODUCT_INVALID":
+        toast.error(m.products__invalid());
+        return;
+      case "PRODUCT_SLUG_TAKEN":
+        toast.error(m.products__slug_taken());
+        return;
+      case "NOT_FOUND":
+      case "UNAUTHORIZED":
+        break;
+    }
   }
   toast.error(m.products__update_failed());
 }

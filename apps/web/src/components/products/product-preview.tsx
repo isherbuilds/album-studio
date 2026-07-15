@@ -68,7 +68,7 @@ export function ProductPreview({
 }) {
   const { locale } = useLocale();
   const [selections, setSelections] = useState<Record<string, string>>({});
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
 
   const groupLabel = (groupKey: string) =>
     editor.groups.find((group) => group.key === groupKey)?.label ?? groupKey;
@@ -83,7 +83,7 @@ export function ProductPreview({
         built[group.key] = raw;
       }
     }
-    onPreview({ quantity, selections: built });
+    onPreview({ quantity: Number(quantity), selections: built });
   };
 
   return (
@@ -168,7 +168,7 @@ export function ProductPreview({
               id="preview-quantity"
               inputMode="numeric"
               min={1}
-              onChange={(event) => setQuantity(Number.parseInt(event.target.value, 10) || 1)}
+              onChange={(event) => setQuantity(event.target.value)}
               type="number"
               value={quantity}
             />

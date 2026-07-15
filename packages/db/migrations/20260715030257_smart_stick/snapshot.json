@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "be88ccd6-7475-46f5-ad1f-3338bd9822b1",
+  "id": "35b9b3b6-9054-4edb-8f14-669b9e875574",
   "prevIds": [
-    "b504e5aa-294f-4732-a5c9-c90b51f66027"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -1527,7 +1527,7 @@
     {
       "type": "bigint",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -1709,7 +1709,7 @@
     {
       "type": "bigint",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -3879,7 +3879,7 @@
       "table": "offline_payment"
     },
     {
-      "value": "\"additional_unit_price_minor\" IS NULL OR \"additional_unit_price_minor\" <= 9007199254740991",
+      "value": "\"additional_unit_price_minor\" IS NULL OR (\"additional_unit_price_minor\" >= 0 AND \"additional_unit_price_minor\" <= 9007199254740991)",
       "name": "option_group_additional_unit_price_minor_check",
       "entityType": "checks",
       "schema": "public",
@@ -3905,6 +3905,17 @@
       "entityType": "checks",
       "schema": "public",
       "table": "product"
+    },
+    {
+      "incrementBy": "1",
+      "minValue": "1",
+      "maxValue": "99999999999",
+      "startWith": "1",
+      "cacheSize": 1,
+      "cycle": false,
+      "name": "customer_order_number_seq",
+      "entityType": "sequences",
+      "schema": "public"
     }
   ],
   "renames": []

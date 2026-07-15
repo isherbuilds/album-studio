@@ -342,7 +342,6 @@ export function ProductEditorPage({
             <ContentForm
               editor={editor}
               isSaving={editContent.isPending}
-              key={`content-${editor.revision}`}
               onSave={(content) =>
                 editContent.mutate(
                   {
@@ -372,7 +371,6 @@ export function ProductEditorPage({
             <ProductConfigurationEditor
               groups={editor.groups}
               isSaving={editConfiguration.isPending}
-              key={`config-${editor.revision}`}
               onSave={(groups) =>
                 editConfiguration.mutate({ expectedRevision: editor.revision, groups, productSlug })
               }
@@ -385,7 +383,6 @@ export function ProductEditorPage({
               <ProductPricingForm
                 editor={editor}
                 isSaving={editPricing.isPending}
-                key={`pricing-${editor.revision}`}
                 onSave={(input) =>
                   editPricing.mutate({ ...input, expectedRevision: editor.revision, productSlug })
                 }

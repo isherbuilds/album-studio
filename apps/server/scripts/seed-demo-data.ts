@@ -100,16 +100,25 @@ if (existingCustomerMembers.length === 0) {
 }
 
 const existingManagerMembers = await db
-  .select({ id: member.id })
+  .select({ id: member.id, role: member.role })
   .from(member)
   .where(and(eq(member.organizationId, organizationId), eq(member.userId, managerId)))
   .limit(1);
-if (existingManagerMembers.length === 0) {
+const existingManagerMember = existingManagerMembers[0];
+if (!existingManagerMember) {
   await auth.api.addMember({
     body: {
       organizationId,
       role: "manager",
       userId: managerId
+    }
+  });
+} else if (existingManagerMember.role !== "manager") {
+  await auth.api.updateMemberRole({
+    body: {
+      memberId: existingManagerMember.id,
+      organizationId,
+      role: "manager"
     }
   });
 }

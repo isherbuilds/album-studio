@@ -4,6 +4,7 @@ import {
   index,
   jsonb,
   pgEnum,
+  pgSequence,
   pgTable,
   text,
   timestamp,
@@ -30,6 +31,10 @@ export const cancellationRequestStatus = pgEnum("cancellation_request_status", [
   "approved",
   "rejected"
 ]);
+
+export const customerOrderNumberSequence = pgSequence("customer_order_number_seq", {
+  maxValue: 99_999_999_999
+});
 
 export const customerOrder = pgTable(
   "customer_order",

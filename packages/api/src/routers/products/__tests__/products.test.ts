@@ -203,6 +203,43 @@ beforeEach(async () => {
 });
 
 describe("products router", () => {
+  it("maps concurrent create and rename slug conflicts to PRODUCT_SLUG_TAKEN", async () => {
+    const owner = clientFor(fixture.ownerId);
+    const createResults = await Promise.allSettled([
+      owner.products.create({
+        ...content,
+        organizationSlug: fixture.organizationSlug,
+        slug: "contested-album"
+      }),
+      owner.products.create({
+        ...content,
+        organizationSlug: fixture.organizationSlug,
+        slug: "contested-album"
+      })
+    ]);
+    const created = createResults.find((result) => result.status === "fulfilled");
+    const rejected = createResults.find((result) => result.status === "rejected");
+    expect(createResults.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(createResults.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(rejected?.reason).toMatchObject({ code: "PRODUCT_SLUG_TAKEN" });
+    if (!created) throw new Error("Concurrent Product creation returned no Product");
+
+    const renameSource = await owner.products.create({
+      ...content,
+      organizationSlug: fixture.organizationSlug,
+      slug: "rename-source"
+    });
+    await expect(
+      owner.products.editContent({
+        ...content,
+        expectedRevision: renameSource.revision,
+        organizationSlug: fixture.organizationSlug,
+        productSlug: renameSource.slug,
+        slug: created.value.slug
+      })
+    ).rejects.toMatchObject({ code: "PRODUCT_SLUG_TAKEN" });
+  });
+
   it("supports a Manager-authored shell and configuration but reserves all pricing for Owners", async () => {
     const manager = clientFor(fixture.managerId);
     const owner = clientFor(fixture.ownerId);

@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, DrizzleQueryError, eq, inArray, sql } from "drizzle-orm";
 
 import {
   type ProductContent,
@@ -54,13 +54,6 @@ export async function createProduct(
   input: ProductContent & { actorUserId: string; organizationId: string }
 ) {
   return db.transaction(async (tx) => {
-    const duplicate = await tx
-      .select({ id: product.id })
-      .from(product)
-      .where(and(eq(product.organizationId, input.organizationId), eq(product.slug, input.slug)))
-      .limit(1);
-    if (duplicate[0]) return { kind: "slug_taken" } as const;
-
     const rows = await tx
       .insert(product)
       .values({
@@ -70,9 +63,10 @@ export async function createProduct(
         organizationId: input.organizationId,
         slug: input.slug
       })
+      .onConflictDoNothing({ target: [product.organizationId, product.slug] })
       .returning({ id: product.id });
     const created = rows[0];
-    if (!created) throw new Error("Product insert returned no row");
+    if (!created) return { kind: "slug_taken" } as const;
     await tx.insert(auditEvent).values({
       action: "product.created",
       actorUserId: input.actorUserId,
@@ -100,32 +94,34 @@ export async function editProductContent(
     const conflict = checkRevision(current.revision, input.expectedRevision);
     if (conflict) return conflict;
 
-    if (input.slug !== current.slug) {
-      const duplicate = await tx
-        .select({ id: product.id })
-        .from(product)
-        .where(
-          and(
-            eq(product.organizationId, input.organizationId),
-            eq(product.slug, input.slug),
-            ne(product.id, current.id)
-          )
-        )
-        .limit(1);
-      if (duplicate[0]) return { kind: "slug_taken" } as const;
+    let rows;
+    try {
+      rows = await tx.transaction((savepoint) =>
+        savepoint
+          .update(product)
+          .set({
+            description: input.description,
+            imageUrls: input.imageUrls,
+            name: input.name,
+            revision: sql`${product.revision} + 1`,
+            slug: input.slug
+          })
+          .where(and(eq(product.id, current.id), eq(product.organizationId, input.organizationId)))
+          .returning({ revision: product.revision, slug: product.slug })
+      );
+    } catch (error) {
+      if (
+        error instanceof DrizzleQueryError &&
+        error.cause &&
+        "code" in error.cause &&
+        error.cause.code === "23505" &&
+        "constraint_name" in error.cause &&
+        error.cause.constraint_name === "product_organization_slug_uidx"
+      ) {
+        return { kind: "slug_taken" } as const;
+      }
+      throw error;
     }
-
-    const rows = await tx
-      .update(product)
-      .set({
-        description: input.description,
-        imageUrls: input.imageUrls,
-        name: input.name,
-        revision: sql`${product.revision} + 1`,
-        slug: input.slug
-      })
-      .where(and(eq(product.id, current.id), eq(product.organizationId, input.organizationId)))
-      .returning({ revision: product.revision, slug: product.slug });
     const updated = rows[0];
     if (!updated) throw new Error("Product content update returned no row");
     await tx.insert(auditEvent).values({

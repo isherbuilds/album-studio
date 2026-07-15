@@ -185,9 +185,14 @@ function NumberField({
         id={id}
         inputMode="numeric"
         min="0"
-        onChange={(event) => onChange(Number.parseInt(event.target.value, 10) || 0)}
+        onChange={(event) => {
+          if (event.target.value === "") return;
+          const nextValue = Number(event.target.value);
+          if (!Number.isInteger(nextValue) || nextValue < 0) return;
+          onChange(nextValue);
+        }}
         type="number"
-        value={Number.isFinite(value) ? value : 0}
+        value={value}
       />
     </Field>
   );
