@@ -137,6 +137,23 @@ export function useUpdateMemberRoleMutation() {
   );
 }
 
+export function useAcceptInvitationMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { invitationId: string }) => {
+      const result = await authClient.organization.acceptInvitation(input);
+      if (result.error) throw new Error(result.error.message);
+    },
+    onError: showAcceptInvitationError,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries(getAuthUserQueryOptions()),
+        queryClient.invalidateQueries({ queryKey: orpc.organizations.list.key() })
+      ]);
+    }
+  });
+}
+
 export function useAcceptNewUserInvitationMutation() {
   const queryClient = useQueryClient();
   return useMutation({

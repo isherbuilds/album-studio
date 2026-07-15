@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 
+import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { OrganizationAcceptNewUserInvitationInputSchema } from "@tsu-stack/contract/organization";
 import { m } from "@tsu-stack/i18n/messages";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -9,13 +10,19 @@ import { Field, FieldGroup } from "@tsu-stack/ui/components/field";
 import { Container } from "@/components/common/container";
 import { TextField } from "@/components/form/text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
-import { useAcceptNewUserInvitationMutation } from "@/hooks/use-organization";
+import {
+  useAcceptInvitationMutation,
+  useAcceptNewUserInvitationMutation
+} from "@/hooks/use-organization";
+
 const acceptNewUserInvitationFormSchema = OrganizationAcceptNewUserInvitationInputSchema.omit({
   invitationId: true
 });
 
 export function AcceptInvitationPage({ invitationId }: { invitationId: string }) {
+  const { isPending: isAuthPending, user } = useAuth();
   const navigate = useNavigate();
+  const accept = useAcceptInvitationMutation();
   const acceptNewUser = useAcceptNewUserInvitationMutation();
   const form = useZodForm(acceptNewUserInvitationFormSchema, {
     defaultValues: {
@@ -23,7 +30,7 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
       password: ""
     }
   });
-  const onSubmit = form.handleSubmit((value) => {
+  const acceptNewUserInvitation = form.handleSubmit((value) => {
     acceptNewUser.mutate(
       {
         invitationId,
@@ -41,6 +48,7 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
       }
     );
   });
+  const isPending = isAuthPending || accept.isPending || acceptNewUser.isPending;
 
   return (
     <Container className="flex max-w-md flex-col gap-6 py-12">
@@ -51,30 +59,53 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
         <h1 className="font-display text-3xl">{m.auth__invitation_title()}</h1>
         <p className="mt-3 text-sm text-muted-foreground">{m.auth__invitation_description()}</p>
       </header>
-      <form onSubmit={onSubmit}>
+      <form
+        onSubmit={
+          user
+            ? (event) => {
+                event.preventDefault();
+                accept.mutate(
+                  { invitationId },
+                  {
+                    onSuccess: async () => {
+                      toast.success(m.auth__invitation_accepted());
+                      await navigate({ to: "/dashboard" });
+                    }
+                  }
+                );
+              }
+            : acceptNewUserInvitation
+        }
+      >
         <FieldGroup>
-          <TextField
-            error={form.formState.errors.name}
-            label={m.auth__name_label()}
-            maxLength={120}
-            minLength={2}
-            registration={form.register("name")}
-            required
-          />
-          <TextField
-            error={form.formState.errors.password}
-            label={m.auth__password_label()}
-            maxLength={128}
-            minLength={8}
-            registration={form.register("password")}
-            required
-            type="password"
-          />
+          {isAuthPending ? null : user ? (
+            <p className="text-sm text-muted-foreground">
+              {m.auth__signed_in_as()} {user.email}
+            </p>
+          ) : (
+            <>
+              <TextField
+                error={form.formState.errors.name}
+                label={m.auth__name_label()}
+                maxLength={120}
+                minLength={2}
+                registration={form.register("name")}
+                required
+              />
+              <TextField
+                error={form.formState.errors.password}
+                label={m.auth__password_label()}
+                maxLength={128}
+                minLength={8}
+                registration={form.register("password")}
+                required
+                type="password"
+              />
+            </>
+          )}
           <Field>
-            <Button className="w-full" disabled={acceptNewUser.isPending} type="submit">
-              {acceptNewUser.isPending
-                ? m.auth__accepting_invitation()
-                : m.auth__accept_invitation()}
+            <Button className="w-full" disabled={isPending} type="submit">
+              {isPending ? m.auth__accepting_invitation() : m.auth__accept_invitation()}
             </Button>
           </Field>
         </FieldGroup>

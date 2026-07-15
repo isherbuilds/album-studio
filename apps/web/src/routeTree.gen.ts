@@ -22,12 +22,12 @@ import { Route as Char123LocaleChar125rootLayoutTermsOfServiceIndexRouteImport }
 import { Route as Char123LocaleChar125rootLayoutPrivacyPolicyIndexRouteImport } from './routes/{-$locale}/(root-layout)/privacy-policy/index'
 import { Route as Char123LocaleChar125rootLayoutPlaygroundIndexRouteImport } from './routes/{-$locale}/(root-layout)/playground/index'
 import { Route as Char123LocaleChar125rootLayoutErrorIndexRouteImport } from './routes/{-$locale}/(root-layout)/error/index'
+import { Route as Char123LocaleChar125centeredLayoutAcceptInvitationIndexRouteImport } from './routes/{-$locale}/(centered-layout)/accept-invitation/index'
 import { Route as Char123LocaleChar125rootLayoutauthDashboardRouteRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/dashboard/route'
 import { Route as Char123LocaleChar125rootLayoutauthAdminRouteRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/admin/route'
 import { Route as Char123LocaleChar125rootLayoutauthDashboardIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/dashboard/index'
 import { Route as Char123LocaleChar125rootLayoutauthAdminIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/admin/index'
 import { Route as Char123LocaleChar125centeredLayoutguestSignInIndexRouteImport } from './routes/{-$locale}/(centered-layout)/(guest)/sign-in/index'
-import { Route as Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRouteImport } from './routes/{-$locale}/(centered-layout)/(guest)/accept-invitation/index'
 import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugRouteRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/route'
 import { Route as Char123LocaleChar125rootLayoutauthAdminOrganizationsIndexRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/admin/organizations/index'
 import { Route as Char123LocaleChar125rootLayoutauthOrgOrganizationSlugOrdersRouteRouteImport } from './routes/{-$locale}/(root-layout)/(auth)/org/$organizationSlug/orders/route'
@@ -119,6 +119,12 @@ const Char123LocaleChar125rootLayoutErrorIndexRoute =
     path: '/error/',
     getParentRoute: () => Char123LocaleChar125rootLayoutRouteRoute,
   } as any)
+const Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute =
+  Char123LocaleChar125centeredLayoutAcceptInvitationIndexRouteImport.update({
+    id: '/accept-invitation/',
+    path: '/accept-invitation/',
+    getParentRoute: () => Char123LocaleChar125centeredLayoutRouteRoute,
+  } as any)
 const Char123LocaleChar125rootLayoutauthDashboardRouteRoute =
   Char123LocaleChar125rootLayoutauthDashboardRouteRouteImport.update({
     id: '/dashboard',
@@ -149,14 +155,6 @@ const Char123LocaleChar125centeredLayoutguestSignInIndexRoute =
     path: '/sign-in/',
     getParentRoute: () => Char123LocaleChar125centeredLayoutguestRouteRoute,
   } as any)
-const Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute =
-  Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRouteImport.update(
-    {
-      id: '/accept-invitation/',
-      path: '/accept-invitation/',
-      getParentRoute: () => Char123LocaleChar125centeredLayoutguestRouteRoute,
-    } as any,
-  )
 const Char123LocaleChar125rootLayoutauthOrgOrganizationSlugRouteRoute =
   Char123LocaleChar125rootLayoutauthOrgOrganizationSlugRouteRouteImport.update({
     id: '/org/$organizationSlug',
@@ -329,12 +327,12 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/': typeof Char123LocaleChar125rootLayoutIndexRoute
   '/{-$locale}/admin': typeof Char123LocaleChar125rootLayoutauthAdminRouteRouteWithChildren
   '/{-$locale}/dashboard': typeof Char123LocaleChar125rootLayoutauthDashboardRouteRouteWithChildren
+  '/{-$locale}/accept-invitation/': typeof Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute
   '/{-$locale}/error/': typeof Char123LocaleChar125rootLayoutErrorIndexRoute
   '/{-$locale}/playground/': typeof Char123LocaleChar125rootLayoutPlaygroundIndexRoute
   '/{-$locale}/privacy-policy/': typeof Char123LocaleChar125rootLayoutPrivacyPolicyIndexRoute
   '/{-$locale}/terms-of-service/': typeof Char123LocaleChar125rootLayoutTermsOfServiceIndexRoute
   '/{-$locale}/org/$organizationSlug': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceRouteRouteWithChildren
-  '/{-$locale}/accept-invitation/': typeof Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute
   '/{-$locale}/sign-in/': typeof Char123LocaleChar125centeredLayoutguestSignInIndexRoute
   '/{-$locale}/admin/': typeof Char123LocaleChar125rootLayoutauthAdminIndexRoute
   '/{-$locale}/dashboard/': typeof Char123LocaleChar125rootLayoutauthDashboardIndexRoute
@@ -361,12 +359,12 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_api/health/live': typeof ApiHealthLiveRoute
+  '/{-$locale}/accept-invitation': typeof Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute
   '/{-$locale}/error': typeof Char123LocaleChar125rootLayoutErrorIndexRoute
   '/{-$locale}/playground': typeof Char123LocaleChar125rootLayoutPlaygroundIndexRoute
   '/{-$locale}/privacy-policy': typeof Char123LocaleChar125rootLayoutPrivacyPolicyIndexRoute
   '/{-$locale}/terms-of-service': typeof Char123LocaleChar125rootLayoutTermsOfServiceIndexRoute
   '/{-$locale}/org/$organizationSlug': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugworkspaceIndexRoute
-  '/{-$locale}/accept-invitation': typeof Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute
   '/{-$locale}/sign-in': typeof Char123LocaleChar125centeredLayoutguestSignInIndexRoute
   '/{-$locale}/admin': typeof Char123LocaleChar125rootLayoutauthAdminIndexRoute
   '/{-$locale}/dashboard': typeof Char123LocaleChar125rootLayoutauthDashboardIndexRoute
@@ -397,12 +395,12 @@ export interface FileRoutesById {
   '/{-$locale}/(root-layout)/': typeof Char123LocaleChar125rootLayoutIndexRoute
   '/{-$locale}/(root-layout)/(auth)/admin': typeof Char123LocaleChar125rootLayoutauthAdminRouteRouteWithChildren
   '/{-$locale}/(root-layout)/(auth)/dashboard': typeof Char123LocaleChar125rootLayoutauthDashboardRouteRouteWithChildren
+  '/{-$locale}/(centered-layout)/accept-invitation/': typeof Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute
   '/{-$locale}/(root-layout)/error/': typeof Char123LocaleChar125rootLayoutErrorIndexRoute
   '/{-$locale}/(root-layout)/playground/': typeof Char123LocaleChar125rootLayoutPlaygroundIndexRoute
   '/{-$locale}/(root-layout)/privacy-policy/': typeof Char123LocaleChar125rootLayoutPrivacyPolicyIndexRoute
   '/{-$locale}/(root-layout)/terms-of-service/': typeof Char123LocaleChar125rootLayoutTermsOfServiceIndexRoute
   '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug': typeof Char123LocaleChar125rootLayoutauthOrgOrganizationSlugRouteRouteWithChildren
-  '/{-$locale}/(centered-layout)/(guest)/accept-invitation/': typeof Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute
   '/{-$locale}/(centered-layout)/(guest)/sign-in/': typeof Char123LocaleChar125centeredLayoutguestSignInIndexRoute
   '/{-$locale}/(root-layout)/(auth)/admin/': typeof Char123LocaleChar125rootLayoutauthAdminIndexRoute
   '/{-$locale}/(root-layout)/(auth)/dashboard/': typeof Char123LocaleChar125rootLayoutauthDashboardIndexRoute
@@ -435,12 +433,12 @@ export interface FileRouteTypes {
     | '/{-$locale}/'
     | '/{-$locale}/admin'
     | '/{-$locale}/dashboard'
+    | '/{-$locale}/accept-invitation/'
     | '/{-$locale}/error/'
     | '/{-$locale}/playground/'
     | '/{-$locale}/privacy-policy/'
     | '/{-$locale}/terms-of-service/'
     | '/{-$locale}/org/$organizationSlug'
-    | '/{-$locale}/accept-invitation/'
     | '/{-$locale}/sign-in/'
     | '/{-$locale}/admin/'
     | '/{-$locale}/dashboard/'
@@ -467,12 +465,12 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/_api/health/live'
+    | '/{-$locale}/accept-invitation'
     | '/{-$locale}/error'
     | '/{-$locale}/playground'
     | '/{-$locale}/privacy-policy'
     | '/{-$locale}/terms-of-service'
     | '/{-$locale}/org/$organizationSlug'
-    | '/{-$locale}/accept-invitation'
     | '/{-$locale}/sign-in'
     | '/{-$locale}/admin'
     | '/{-$locale}/dashboard'
@@ -502,12 +500,12 @@ export interface FileRouteTypes {
     | '/{-$locale}/(root-layout)/'
     | '/{-$locale}/(root-layout)/(auth)/admin'
     | '/{-$locale}/(root-layout)/(auth)/dashboard'
+    | '/{-$locale}/(centered-layout)/accept-invitation/'
     | '/{-$locale}/(root-layout)/error/'
     | '/{-$locale}/(root-layout)/playground/'
     | '/{-$locale}/(root-layout)/privacy-policy/'
     | '/{-$locale}/(root-layout)/terms-of-service/'
     | '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug'
-    | '/{-$locale}/(centered-layout)/(guest)/accept-invitation/'
     | '/{-$locale}/(centered-layout)/(guest)/sign-in/'
     | '/{-$locale}/(root-layout)/(auth)/admin/'
     | '/{-$locale}/(root-layout)/(auth)/dashboard/'
@@ -631,6 +629,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125rootLayoutErrorIndexRouteImport
       parentRoute: typeof Char123LocaleChar125rootLayoutRouteRoute
     }
+    '/{-$locale}/(centered-layout)/accept-invitation/': {
+      id: '/{-$locale}/(centered-layout)/accept-invitation/'
+      path: '/accept-invitation'
+      fullPath: '/{-$locale}/accept-invitation/'
+      preLoaderRoute: typeof Char123LocaleChar125centeredLayoutAcceptInvitationIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125centeredLayoutRouteRoute
+    }
     '/{-$locale}/(root-layout)/(auth)/dashboard': {
       id: '/{-$locale}/(root-layout)/(auth)/dashboard'
       path: '/dashboard'
@@ -664,13 +669,6 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/{-$locale}/sign-in/'
       preLoaderRoute: typeof Char123LocaleChar125centeredLayoutguestSignInIndexRouteImport
-      parentRoute: typeof Char123LocaleChar125centeredLayoutguestRouteRoute
-    }
-    '/{-$locale}/(centered-layout)/(guest)/accept-invitation/': {
-      id: '/{-$locale}/(centered-layout)/(guest)/accept-invitation/'
-      path: '/accept-invitation'
-      fullPath: '/{-$locale}/accept-invitation/'
-      preLoaderRoute: typeof Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRouteImport
       parentRoute: typeof Char123LocaleChar125centeredLayoutguestRouteRoute
     }
     '/{-$locale}/(root-layout)/(auth)/org/$organizationSlug': {
@@ -810,14 +808,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface Char123LocaleChar125centeredLayoutguestRouteRouteChildren {
-  Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute: typeof Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute
   Char123LocaleChar125centeredLayoutguestSignInIndexRoute: typeof Char123LocaleChar125centeredLayoutguestSignInIndexRoute
 }
 
 const Char123LocaleChar125centeredLayoutguestRouteRouteChildren: Char123LocaleChar125centeredLayoutguestRouteRouteChildren =
   {
-    Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute:
-      Char123LocaleChar125centeredLayoutguestAcceptInvitationIndexRoute,
     Char123LocaleChar125centeredLayoutguestSignInIndexRoute:
       Char123LocaleChar125centeredLayoutguestSignInIndexRoute,
   }
@@ -829,12 +824,15 @@ const Char123LocaleChar125centeredLayoutguestRouteRouteWithChildren =
 
 interface Char123LocaleChar125centeredLayoutRouteRouteChildren {
   Char123LocaleChar125centeredLayoutguestRouteRoute: typeof Char123LocaleChar125centeredLayoutguestRouteRouteWithChildren
+  Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute: typeof Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute
 }
 
 const Char123LocaleChar125centeredLayoutRouteRouteChildren: Char123LocaleChar125centeredLayoutRouteRouteChildren =
   {
     Char123LocaleChar125centeredLayoutguestRouteRoute:
       Char123LocaleChar125centeredLayoutguestRouteRouteWithChildren,
+    Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute:
+      Char123LocaleChar125centeredLayoutAcceptInvitationIndexRoute,
   }
 
 const Char123LocaleChar125centeredLayoutRouteRouteWithChildren =
