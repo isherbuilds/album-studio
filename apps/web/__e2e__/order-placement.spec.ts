@@ -28,7 +28,7 @@ function monitorErrors(page: Page, errors: string[]) {
 }
 
 async function signIn(page: Page, destination: string, email = "customer@demo-studio.test") {
-  await page.goto(`/web/sign-in?redirect=${encodeURIComponent(destination.replace(/^\/web/, ""))}`);
+  await page.goto(`/sign-in?redirect=${encodeURIComponent(destination)}`);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("demo-password-123");
   const response = page.waitForResponse(
@@ -37,27 +37,23 @@ async function signIn(page: Page, destination: string, email = "customer@demo-st
   );
   await page.getByRole("button", { name: "Sign In" }).click();
   expect((await response).ok()).toBe(true);
-  await page.goto("about:blank");
-  await page.goto(destination);
+  await page.waitForURL((url) => url.pathname === destination);
 }
 
-async function openValidReview(page: Page, projectName: string) {
-  await signIn(page, "/web/org/demo-studio/catalog");
-  await page.getByRole("link", { name: /Wedding Album/ }).click();
+async function openValidConfirmation(page: Page, projectName: string) {
+  await signIn(page, "/demo-studio/catalog");
+  await page.getByRole("button", { name: "Wedding Album" }).click();
+  await page.getByRole("textbox", { name: "Project name" }).fill(projectName);
   await page.getByRole("button", { name: "Start configuration" }).click();
-  await page.getByRole("button", { name: /Linen/ }).click();
   await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: /Matte/ }).click();
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: /Premium Gift Box/ }).click();
   await page.getByRole("button", { name: "Next" }).click();
-  await page.getByLabel("Project name").fill(projectName);
+  await page.getByRole("button", { name: "Next" }).click();
 }
 
 async function placeOrder(page: Page) {
-  const mobileSummary = page.getByRole("button", { name: "View estimate" });
-  if (await mobileSummary.isVisible()) await mobileSummary.click();
   await page.getByRole("button", { name: "Place order" }).click();
 }
 
@@ -66,7 +62,7 @@ test("checkout checkpoints dirty Draft, confirms price race, and opens immutable
 }) => {
   const errors: string[] = [];
   monitorErrors(page, errors);
-  await openValidReview(page, `Price race ${Date.now()}`);
+  await openValidConfirmation(page, `Price race ${Date.now()}`);
 
   let originalBasePrice = 0;
   let productId = "";
@@ -118,13 +114,16 @@ test("checkout checkpoints dirty Draft, confirms price race, and opens immutable
       style: "currency"
     }).format((originalBasePrice + 2_000) / 100);
     await expect(priceAlert.getByRole("definition").first()).toHaveText(previousTotal);
-    const mobileSummary = page.getByRole("button", { name: "View estimate" });
-    if (await mobileSummary.isVisible()) {
-      await page.getByRole("button", { name: "Close" }).filter({ visible: true }).first().click();
+    const closeEstimate = page
+      .getByRole("button", { name: "Close" })
+      .filter({ visible: true })
+      .first();
+    if (await closeEstimate.isVisible()) {
+      await closeEstimate.click();
+      await expect(closeEstimate).not.toBeVisible();
       await expect(
         page.getByText("Price changed", { exact: true }).filter({ visible: true })
-      ).toHaveCount(0);
-      await mobileSummary.click();
+      ).toHaveCount(1);
     }
     await page
       .getByRole("button", { name: "Accept new total and place order" })
@@ -132,7 +131,7 @@ test("checkout checkpoints dirty Draft, confirms price race, and opens immutable
       .first()
       .click();
 
-    await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-S\d{11}$/);
+    await expect(page).toHaveURL(/\/demo-studio\/orders\/AS-S\d{11}$/);
     expect(errors).toEqual([]);
     await expect(page.getByText("Placed", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: /Price race/ })).toBeVisible();
@@ -152,7 +151,7 @@ test("checkout checkpoints dirty Draft, confirms price race, and opens immutable
 test("checkout points to affected group after stock race", async ({ page }) => {
   const errors: string[] = [];
   monitorErrors(page, errors);
-  await openValidReview(page, `Stock race ${Date.now()}`);
+  await openValidConfirmation(page, `Stock race ${Date.now()}`);
 
   let componentId = "";
   let originalQuantity = "";
@@ -194,14 +193,15 @@ test("checkout points to affected group after stock race", async ({ page }) => {
   }
 });
 
-test("studio owner reads Orders inside workspace navigation", async ({ page }) => {
+test("studio owner reads Orders inside workspace navigation", async ({ page }, testInfo) => {
   const errors: string[] = [];
   monitorErrors(page, errors);
-  await signIn(page, "/web/org/demo-studio/orders", "owner@demo-studio.test");
+  await signIn(page, "/demo-studio/orders", "owner@demo-studio.test");
 
   const openNavigation = page.getByRole("button", { name: "Open navigation" });
-  const usesMobileNavigation = await openNavigation.isVisible();
+  const usesMobileNavigation = testInfo.project.name === "mobile-chromium";
   if (usesMobileNavigation) {
+    await expect(openNavigation).toBeVisible();
     await expect(page.getByRole("banner")).toContainText("Album Studio");
   } else {
     await expect(page.getByRole("navigation", { name: "Workspace" })).toBeVisible();
@@ -211,7 +211,12 @@ test("studio owner reads Orders inside workspace navigation", async ({ page }) =
     );
   }
   await expect(page.getByRole("link", { name: "Catalog" })).toHaveCount(0);
-  await page.goto("/web/org/demo-studio/payments");
+  if (usesMobileNavigation) {
+    await openNavigation.click();
+    await page.getByRole("link", { name: "Payments" }).click();
+  } else {
+    await page.getByRole("link", { name: "Payments" }).click();
+  }
   await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
   if (!usesMobileNavigation) {
     await expect(page.getByRole("link", { name: "Payments" })).toHaveAttribute(
@@ -229,10 +234,10 @@ test("customer and owner get role-specific Order follow-up controls", async ({
   const customerErrors: string[] = [];
   monitorErrors(page, customerErrors);
   const projectName = `Follow-up ${Date.now()}`;
-  await openValidReview(page, projectName);
+  await openValidConfirmation(page, projectName);
   await placeOrder(page);
-  await expect(page).toHaveURL(/\/org\/demo-studio\/orders\/AS-S\d{11}$/);
-  const orderPath = new URL(page.url()).pathname;
+  await expect(page).toHaveURL(/\/demo-studio\/orders\/AS-S\d{11}$/);
+  const ownerOrderPath = new URL(page.url()).pathname;
 
   await expect(page.getByRole("button", { name: "Duplicate to new draft" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Request cancellation" })).toBeVisible();
@@ -247,7 +252,7 @@ test("customer and owner get role-specific Order follow-up controls", async ({
   const ownerPage = await ownerContext.newPage();
   const ownerErrors: string[] = [];
   monitorErrors(ownerPage, ownerErrors);
-  await signIn(ownerPage, orderPath, "owner@demo-studio.test");
+  await signIn(ownerPage, ownerOrderPath, "owner@demo-studio.test");
   await expect(ownerPage.getByRole("heading", { name: "Order operations" })).toBeVisible();
   await expect(ownerPage.getByRole("button", { name: "Duplicate to new draft" })).toHaveCount(0);
   await expect(ownerPage.getByRole("button", { name: /Move to/ })).toHaveCount(0);
@@ -282,6 +287,6 @@ test("customer and owner get role-specific Order follow-up controls", async ({
   expect(ownerErrors).toEqual([]);
   await ownerContext.close();
 
-  await page.goto("/web/org/demo-studio/payments");
-  await expect(page).toHaveURL(/\/org\/demo-studio\/catalog\/?(?:\?.*)?$/);
+  await page.goto("/demo-studio/admin/payments");
+  await expect(page).toHaveURL(/\/demo-studio\/catalog\/?(?:\?.*)?$/);
 });

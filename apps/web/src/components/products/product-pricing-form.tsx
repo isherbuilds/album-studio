@@ -1,5 +1,5 @@
 import { CircleDollarSign } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { z } from "zod";
 
 import { type ProductEditor, type ProductEditPricingInput } from "@tsu-stack/contract/product";
@@ -17,7 +17,7 @@ import { Field, FieldError, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import { Separator } from "@tsu-stack/ui/components/separator";
 
-import { currencyFractionDigits, minorToMajorInput, parseMoneyMinor } from "./format";
+import { currencyFractionDigits, minorToMajorInput, parseMajorAmount } from "@/lib/money";
 
 const PricingEntriesSchema = z.record(z.string(), z.string());
 
@@ -29,16 +29,20 @@ type PricingInput = Omit<
 export function ProductPricingForm({
   editor,
   isSaving,
+  onDirtyChange,
   onSave
 }: {
   editor: ProductEditor;
   isSaving: boolean;
-  onSave: (input: PricingInput) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onSave: (input: PricingInput, onSaved: () => void) => void;
 }) {
   const { locale } = useLocale();
   const currency = editor.currency;
   const step = 1 / 10 ** currencyFractionDigits(currency, locale);
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const errorId = useId();
 
   const optionValues = editor.groups.flatMap((group) =>
     group.type === "number"
@@ -79,6 +83,12 @@ export function ProductPricingForm({
       </CardHeader>
       <CardContent>
         <form
+          aria-describedby={error ? errorId : undefined}
+          onChange={() => {
+            if (dirty) return;
+            setDirty(true);
+            onDirtyChange(true);
+          }}
           onSubmit={(event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
@@ -88,14 +98,14 @@ export function ProductPricingForm({
               return;
             }
             const entries = parsedEntries.data;
-            const basePriceMinor = parseMoneyMinor(entries.base ?? "", currency, locale);
+            const basePriceMinor = parseMajorAmount(entries.base ?? "", currency, locale);
             if (basePriceMinor === undefined) {
               setError(m.products__invalid());
               return;
             }
             const optionValuePrices: PricingInput["optionValuePrices"] = [];
             for (const value of optionValues) {
-              const minor = parseMoneyMinor(entries[`value::${value.id}`] ?? "", currency, locale);
+              const minor = parseMajorAmount(entries[`value::${value.id}`] ?? "", currency, locale);
               if (minor === undefined) {
                 setError(m.products__invalid());
                 return;
@@ -104,7 +114,7 @@ export function ProductPricingForm({
             }
             const numericGroupPrices: PricingInput["numericGroupPrices"] = [];
             for (const group of numericGroups) {
-              const minor = parseMoneyMinor(
+              const minor = parseMajorAmount(
                 entries[`numeric::${group.key}`] ?? "",
                 currency,
                 locale
@@ -116,10 +126,13 @@ export function ProductPricingForm({
               numericGroupPrices.push({ additionalUnitPriceMinor: minor, groupKey: group.key });
             }
             setError(null);
-            onSave({ basePriceMinor, numericGroupPrices, optionValuePrices });
+            onSave({ basePriceMinor, numericGroupPrices, optionValuePrices }, () => {
+              setDirty(false);
+              onDirtyChange(false);
+            });
           }}
         >
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4 sm:gap-6">
             <Field className="max-w-xs">
               <FieldLabel htmlFor="pricing-base">{m.products__base_price()}</FieldLabel>
               <Input
@@ -195,9 +208,9 @@ export function ProductPricingForm({
               <p className="text-sm text-muted-foreground">{m.products__no_priceable()}</p>
             ) : null}
 
-            {error ? <FieldError>{error}</FieldError> : null}
+            {error ? <FieldError id={errorId}>{error}</FieldError> : null}
 
-            <Button className="self-start" disabled={isSaving} type="submit">
+            <Button className="self-start" disabled={isSaving || !dirty} type="submit">
               {isSaving ? m.products__saving() : m.products__save_pricing()}
             </Button>
           </div>
