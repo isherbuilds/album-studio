@@ -6,7 +6,8 @@ import { m } from "@tsu-stack/i18n/messages";
 import { Separator } from "@tsu-stack/ui/components/separator";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
-import { formatMinorAmount, labelForGroup, labelForOption } from "@/components/catalog/format";
+import { labelForGroup, labelForOption } from "@/components/catalog/format";
+import { formatMinorAmount } from "@/lib/money";
 
 /**
  * One line of the order ticket. The dotted leader between the label and the

@@ -76,6 +76,14 @@ type EditableNumberGroup = {
 };
 type EditableGroup = EditableDiscreteGroup | EditableNumberGroup;
 
+function newValueUids(values: EditableValue[]) {
+  const uids: string[] = [];
+  for (const value of values) {
+    if (!value.persisted) uids.push(value.uid);
+  }
+  return uids;
+}
+
 // Deterministic ids keep SSR and first client render identical; click-created
 // rows mint client-only ids after hydration, so they never diverge.
 let newRowCounter = 0;
@@ -221,6 +229,7 @@ function RequirementEditor({
         const selected =
           requirements.find((requirement) => requirement.groupKey === group.key)?.optionValueIds ??
           [];
+        const selectedOptionValueIds = new Set(selected);
         return (
           <fieldset className="flex flex-col gap-1.5" key={group.uid}>
             <legend className="text-xs font-medium text-muted-foreground">
@@ -232,7 +241,7 @@ function RequirementEditor({
               ) : (
                 group.values.map((value) => {
                   const checkboxId = `${baseId}-${group.uid}-${value.uid}`;
-                  const checked = selected.includes(value.id);
+                  const checked = selectedOptionValueIds.has(value.id);
                   return (
                     <Label className="gap-2 font-normal" htmlFor={checkboxId} key={value.uid}>
                       <Checkbox
@@ -274,6 +283,7 @@ function ValueEditor({
   value: EditableValue;
 }) {
   const baseId = useId();
+  const selectedComponentIds = new Set(value.componentIds);
   return (
     <AccordionItem value={value.uid}>
       <AccordionTrigger className="items-center">
@@ -326,7 +336,7 @@ function ValueEditor({
             <div className="flex flex-wrap gap-x-4 gap-y-2 pt-0.5">
               {components.map((component) => {
                 const checkboxId = `${baseId}-component-${component.id}`;
-                const checked = value.componentIds.includes(component.id);
+                const checked = selectedComponentIds.has(component.id);
                 return (
                   <Label className="gap-2 font-normal" htmlFor={checkboxId} key={component.id}>
                     <Checkbox
@@ -374,19 +384,26 @@ function ValueEditor({
 }
 
 export function ProductConfigurationEditor({
+  active,
   groups: savedGroups,
   isSaving,
+  onDirtyChange,
   onSave,
   organizationSlug
 }: {
+  active: boolean;
   groups: ProductEditor["groups"];
   isSaving: boolean;
-  onSave: (groups: ProductEditorConfiguration) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onSave: (groups: ProductEditorConfiguration, onSaved: (editor: ProductEditor) => void) => void;
   organizationSlug: string;
 }) {
   const [groups, setGroups] = useState<EditableGroup[]>(() => toEditableGroups(savedGroups));
   const [dirty, setDirty] = useState(false);
-  const componentsQuery = useQuery(getInventoryListQueryOptions(organizationSlug));
+  const componentsQuery = useQuery({
+    ...getInventoryListQueryOptions(organizationSlug),
+    enabled: active
+  });
   const components = (componentsQuery.data ?? []).map((component) => {
     return {
       id: component.id,
@@ -397,6 +414,7 @@ export function ProductConfigurationEditor({
   const mutate = (next: EditableGroup[]) => {
     setGroups(next);
     setDirty(true);
+    onDirtyChange(true);
   };
   const updateGroup = (index: number, update: (group: EditableGroup) => EditableGroup) => {
     mutate(groups.map((group, i) => (i === index ? update(group) : group)));
@@ -458,7 +476,12 @@ export function ProductConfigurationEditor({
             {m.products__configuration_empty()}
           </p>
         ) : (
-          <Accordion defaultValue={groups[0] ? [groups[0].uid] : []} hiddenUntilFound multiple>
+          <Accordion
+            defaultValue={groups[0] ? [groups[0].uid] : []}
+            hiddenUntilFound
+            key={groups.map((group) => group.uid).join("|")}
+            multiple
+          >
             {groups.map((group, index) => {
               const earlierGroups = groups
                 .slice(0, index)
@@ -469,7 +492,7 @@ export function ProductConfigurationEditor({
                 <AccordionItem key={group.uid} value={group.uid}>
                   <AccordionTrigger className="items-center">
                     <span className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-foreground font-mono text-xs font-semibold text-background">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-foreground font-mono text-xs font-semibold text-background">
                         {String(index + 1).padStart(2, "0")}
                       </span>
                       <span className="min-w-0">
@@ -544,6 +567,7 @@ export function ProductConfigurationEditor({
                           {m.products__group_key()}
                         </FieldLabel>
                         <Input
+                          aria-describedby={`${group.uid}-key-description`}
                           disabled={group.persisted}
                           id={`${group.uid}-key`}
                           onChange={(event) =>
@@ -556,7 +580,7 @@ export function ProductConfigurationEditor({
                           }
                           value={group.key}
                         />
-                        <FieldDescription>
+                        <FieldDescription id={`${group.uid}-key-description`}>
                           {group.persisted
                             ? m.products__identifier_locked()
                             : m.products__group_key_hint()}
@@ -663,10 +687,11 @@ export function ProductConfigurationEditor({
                           <p className="text-xs text-muted-foreground">{m.products__no_values()}</p>
                         ) : (
                           <Accordion
-                            defaultValue={group.values
-                              .filter((value) => !value.persisted)
-                              .map((value) => value.uid)}
+                            defaultValue={newValueUids(group.values)}
                             hiddenUntilFound
+                            key={group.values
+                              .map((value) => `${value.uid}:${value.persisted}`)
+                              .join("|")}
                             multiple
                           >
                             {group.values.map((value) => (
@@ -730,7 +755,13 @@ export function ProductConfigurationEditor({
           </div>
           <Button
             disabled={isSaving || !dirty}
-            onClick={() => onSave(toConfiguration(groups))}
+            onClick={() =>
+              onSave(toConfiguration(groups), (updated) => {
+                setGroups(toEditableGroups(updated.groups));
+                setDirty(false);
+                onDirtyChange(false);
+              })
+            }
             type="button"
           >
             {isSaving ? m.products__saving() : m.products__save_configuration()}

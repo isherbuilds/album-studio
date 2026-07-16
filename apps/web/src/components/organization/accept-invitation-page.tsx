@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useHydrated } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
@@ -11,6 +13,7 @@ import { Container } from "@/components/common/container";
 import { TextField } from "@/components/form/text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
 import {
+  listMyOrganizationsQueryOptions,
   useAcceptInvitationMutation,
   useAcceptNewUserInvitationMutation
 } from "@/hooks/use-organization";
@@ -20,8 +23,10 @@ const acceptNewUserInvitationFormSchema = OrganizationAcceptNewUserInvitationInp
 });
 
 export function AcceptInvitationPage({ invitationId }: { invitationId: string }) {
+  const isHydrated = useHydrated();
   const { isPending: isAuthPending, user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const accept = useAcceptInvitationMutation();
   const acceptNewUser = useAcceptNewUserInvitationMutation();
   const form = useZodForm(acceptNewUserInvitationFormSchema, {
@@ -42,13 +47,14 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
           toast.success(m.auth__invitation_accepted());
           await navigate({
             params: { organizationSlug: result.organizationSlug },
-            to: "/org/$organizationSlug"
+            search: {},
+            to: "/$organizationSlug/dashboard"
           });
         }
       }
     );
   });
-  const isPending = isAuthPending || accept.isPending || acceptNewUser.isPending;
+  const isPending = !isHydrated || isAuthPending || accept.isPending || acceptNewUser.isPending;
 
   return (
     <Container className="flex max-w-md flex-col gap-6 py-12">
@@ -56,8 +62,10 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
         <p className="mb-3 font-mono text-xs tracking-[0.22em] text-muted-foreground uppercase">
           Album Studio
         </p>
-        <h1 className="font-display text-3xl">{m.auth__invitation_title()}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{m.auth__invitation_description()}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{m.auth__invitation_title()}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          {m.auth__invitation_description()}
+        </p>
       </header>
       <form
         onSubmit={
@@ -69,7 +77,20 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
                   {
                     onSuccess: async () => {
                       toast.success(m.auth__invitation_accepted());
-                      await navigate({ to: "/dashboard" });
+                      const memberships = await queryClient.fetchQuery({
+                        ...listMyOrganizationsQueryOptions(),
+                        staleTime: 0
+                      });
+                      const [membership] = memberships;
+                      if (memberships.length !== 1 || !membership) {
+                        await navigate({ search: {}, to: "/select-organization" });
+                        return;
+                      }
+                      await navigate({
+                        params: { organizationSlug: membership.slug },
+                        search: {},
+                        to: "/$organizationSlug/dashboard"
+                      });
                     }
                   }
                 );
@@ -78,7 +99,7 @@ export function AcceptInvitationPage({ invitationId }: { invitationId: string })
         }
       >
         <FieldGroup>
-          {isAuthPending ? null : user ? (
+          {!isHydrated || isAuthPending ? null : user ? (
             <p className="text-sm text-muted-foreground">
               {m.auth__signed_in_as()} {user.email}
             </p>
