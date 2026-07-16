@@ -58,12 +58,11 @@ The first demonstrable path uses a realistic seeded album. The same generic doma
 
 - Guest routes cover sign-in and invitation acceptance only; public account creation and public catalog routes do not exist.
 - Platform routes are `/admin`, `/admin/organizations`, and `/admin/organizations/$organizationSlug`.
-- The authenticated Organization selector is `/select-organization`; a single Membership bypasses it, while zero or multiple Memberships land there.
-- Shared Organization routes are `/$organizationSlug`, `/$organizationSlug/dashboard`, `/$organizationSlug/orders`, and `/$organizationSlug/orders/$orderNumber`.
-- Owner and Manager operational routes are `/$organizationSlug/admin/products`, `/$organizationSlug/admin/products/$productSlug`, `/$organizationSlug/admin/inventory`, and `/$organizationSlug/admin/payments`.
-- Owner-only membership management is `/$organizationSlug/admin/members`.
-- Customer routes are `/$organizationSlug/catalog`, `/$organizationSlug/drafts`, and `/$organizationSlug/drafts/$draftId/configure`; Product selection opens on the Catalog surface rather than a separate Product URL.
-- The Organization home redirects every role to its dashboard surface. Route files remain thin and use blocking query preloading for protected data.
+- Shared Organization routes are `/org/$organizationSlug`, `/org/$organizationSlug/orders`, and `/org/$organizationSlug/orders/$orderNumber`.
+- Owner and Manager operational routes are `/org/$organizationSlug/products`, `/org/$organizationSlug/products/$productSlug`, `/org/$organizationSlug/inventory`, and `/org/$organizationSlug/payments`.
+- Owner-only membership management is `/org/$organizationSlug/members`.
+- Customer routes are `/org/$organizationSlug/catalog`, `/org/$organizationSlug/catalog/$productSlug`, `/org/$organizationSlug/drafts`, and `/org/$organizationSlug/drafts/$draftId/configure`.
+- The Organization home redirects to the role-appropriate dashboard surface. Route files remain thin and use blocking query preloading for protected data.
 
 ### Domain and persistence
 
@@ -196,7 +195,7 @@ End-to-end tests in the web app cover only composed critical paths: seeded Platf
   - Depends on: Slice 1, Slice 4, and Slice 8.
   - Interfaces: Produces `products.list`, `products.bySlug`, `products.create`, `products.editContent`, `products.editConfiguration`, `products.editPricing`, `products.preview`, `products.publish`, `products.archive`, and `products.remove` with role-specific mutations.
 
-- [x] Slice 10: Role dashboards and MVP hardening
+- [ ] Slice 10: Role dashboards and MVP hardening
   - Acceptance: Each role sees only the agreed linked summary cards; direct URLs and API calls enforce the same capabilities; browser journeys cover the three agreed seams; audit events contain no secrets; empty/loading/error states and mobile price summary are reviewable; all migrations, generated routes, checks, tests, and production build pass.
   - Verify: `vp run -w fix`, `vp run test:unit:run`, `vp run test:e2e:run`, and `vp run build`; manually verify migration target is local before `vp run db:migrate`.
   - Depends on: Slice 3, Slice 5, Slice 7, Slice 8, and Slice 9.

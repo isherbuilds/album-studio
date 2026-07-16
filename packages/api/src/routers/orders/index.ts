@@ -10,7 +10,7 @@ import {
   OrderDuplicateToDraftInputSchema,
   OrderDuplicateToDraftOutputSchema,
   OrderListInputSchema,
-  OrderListItemSchema,
+  OrderListResultSchema,
   OrderPlaceInputSchema,
   OrderPriceChangeSchema,
   OrderRequestCancellationInputSchema,
@@ -55,11 +55,16 @@ export const ordersRouter = {
     }),
   list: organizationProcedure(OrderListInputSchema)
     .route({ description: "List Organization Orders visible to current member", method: "GET" })
-    .output(z.array(OrderListItemSchema))
-    .handler(({ context }) =>
+    .output(OrderListResultSchema)
+    .handler(({ context, input }) =>
       listOrders(context.db, {
         customerId: context.role === "customer" ? context.authSession.user.id : undefined,
-        organizationId: context.organization.id
+        organizationId: context.organization.id,
+        page: input.page,
+        pageSize: input.pageSize,
+        query: input.query,
+        sort: input.sort,
+        status: input.status
       })
     ),
   correctProjectName: organizationActionProcedure(
