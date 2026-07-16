@@ -27,10 +27,6 @@ export function getOrganizationMembershipQueryOptions(organizationSlug: string) 
   return orpc.organizations.bySlug.queryOptions({ input: { organizationSlug } });
 }
 
-export function useGetOrganizationMembershipQuery(organizationSlug: string) {
-  return useQuery(getOrganizationMembershipQueryOptions(organizationSlug));
-}
-
 export function listInvitationsQueryOptions(organizationSlug: string) {
   return orpc.organizations.invitations.list.queryOptions({ input: { organizationSlug } });
 }
@@ -55,14 +51,13 @@ export function useListMyOrganizationsQuery() {
   return useQuery(listMyOrganizationsQueryOptions());
 }
 
-export function useCreateInvitationMutation(organizationSlug: string) {
+export function useCreateInvitationMutation(organizationId: string, organizationSlug: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { email: string; role: OrganizationRole }) => {
-      const organization = await orpc.organizations.bySlug.call({ organizationSlug });
       const result = await authClient.organization.inviteMember({
         email: input.email,
-        organizationId: organization.id,
+        organizationId,
         role: input.role
       });
       if (result.error) throw new Error(result.error.message);
@@ -77,14 +72,13 @@ export function useCreateInvitationMutation(organizationSlug: string) {
   });
 }
 
-export function useRemoveMemberMutation(organizationSlug: string) {
+export function useRemoveMemberMutation(organizationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { memberId: string }) => {
-      const organization = await orpc.organizations.bySlug.call({ organizationSlug });
       const result = await authClient.organization.removeMember({
         memberIdOrEmail: input.memberId,
-        organizationId: organization.id
+        organizationId
       });
       if (result.error) throw new Error(result.error.message);
       return result.data;
@@ -145,8 +139,8 @@ export function useAcceptInvitationMutation() {
       if (result.error) throw new Error(result.error.message);
     },
     onError: showAcceptInvitationError,
-    onSuccess: async () => {
-      await Promise.all([
+    onSuccess: () => {
+      void Promise.all([
         queryClient.invalidateQueries(getAuthUserQueryOptions()),
         queryClient.invalidateQueries({ queryKey: orpc.organizations.list.key() })
       ]);
@@ -169,8 +163,8 @@ export function useAcceptNewUserInvitationMutation() {
       return result;
     },
     onError: showAcceptInvitationError,
-    onSuccess: async () => {
-      await Promise.all([
+    onSuccess: () => {
+      void Promise.all([
         queryClient.invalidateQueries(getAuthUserQueryOptions()),
         queryClient.invalidateQueries({ queryKey: orpc.organizations.list.key() })
       ]);

@@ -12,11 +12,6 @@ import { validateNavigateTo } from "@tsu-stack/i18n/tanstack-start/lib/validate-
 
 import { routeTree } from "@/routeTree.gen";
 
-/**
- * Checks if a given pathname is a guest route (for example, sign-in).
- * We add this because the useEffect may run after the beforeLoad redirect when navigating to a (guest) route
- * which would cause the redirect param to be set to the default since it performs a brand new navigation in /sign-in
- */
 function isGuestRoute(pathname: string): boolean {
   const routes = getRouteTreePathsLocalized(routeTree);
   const matchingRoute = routes.find((route) => route.path === pathname);
@@ -59,25 +54,19 @@ function RequiresAuthLayout() {
   const { data: user } = useQuery(getAuthUserQueryOptions());
 
   useEffect(() => {
-    if (user === null) {
-      if (isGuestRoute(location.pathname)) {
-        return;
-      }
+    if (user !== null || isGuestRoute(location.pathname)) return;
 
-      const redirectTo = validateNavigateTo({
-        fallbackTo: "/",
-        routeTree,
-        shouldIncludeRoute: (route) => !route.id.includes("(guest)"),
-        to: stripLocalePrefix(location.href)
-      });
+    const redirectTo = validateNavigateTo({
+      fallbackTo: "/",
+      routeTree,
+      shouldIncludeRoute: (route) => !route.id.includes("(guest)"),
+      to: stripLocalePrefix(location.href)
+    });
 
-      void navigate({
-        search: {
-          redirect: redirectTo
-        },
-        to: "/sign-in"
-      });
-    }
+    void navigate({
+      search: { redirect: redirectTo },
+      to: "/sign-in"
+    });
   }, [user, navigate, location.href, location.pathname]);
 
   return <Outlet />;

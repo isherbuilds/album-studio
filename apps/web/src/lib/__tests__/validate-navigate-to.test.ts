@@ -10,17 +10,19 @@ const localeRoute = createRoute({
 });
 const guestRoute = createRoute({ getParentRoute: () => localeRoute, id: "(guest)" });
 const signInRoute = createRoute({ getParentRoute: () => guestRoute, path: "/sign-in" });
-const dynamicRoute = createRoute({ getParentRoute: () => localeRoute, path: "/$slug" });
+const organizationRoute = createRoute({
+  getParentRoute: () => localeRoute,
+  path: "/$organizationSlug"
+});
 const splatRoute = createRoute({ getParentRoute: () => localeRoute, path: "/files/$" });
 const productRoute = createRoute({
-  getParentRoute: () => localeRoute,
-  path: "/org/$organizationSlug/catalog/$productSlug"
+  getParentRoute: () => organizationRoute,
+  path: "/catalog/$productSlug"
 });
 const routeTree = rootRoute.addChildren([
   localeRoute.addChildren([
-    dynamicRoute,
+    organizationRoute.addChildren([productRoute]),
     guestRoute.addChildren([signInRoute]),
-    productRoute,
     splatRoute
   ])
 ]);
@@ -36,13 +38,13 @@ const validateProtectedRoute = (to: string) =>
 
 describe("validateNavigateTo", () => {
   it("preserves dynamic protected-route parameters and search", () => {
-    expect(validateProtectedRoute("/org/demo-studio/catalog/wedding-album?from=sign-in")).toBe(
-      "/org/demo-studio/catalog/wedding-album?from=sign-in"
+    expect(validateProtectedRoute("/demo-studio/catalog/wedding-album?from=sign-in")).toBe(
+      "/demo-studio/catalog/wedding-album?from=sign-in"
     );
   });
 
   it("rejects unknown routes", () => {
-    expect(validateProtectedRoute("/org/demo-studio/catalog/wedding-album/unknown")).toBe("/");
+    expect(validateProtectedRoute("/demo-studio/catalog/wedding-album/unknown")).toBe("/");
   });
 
   it("prefers a literal route over a matching dynamic route", () => {

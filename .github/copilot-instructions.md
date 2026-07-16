@@ -19,7 +19,7 @@ An opinionated Vite+ monorepo. It uses `vp` (Vite+ CLI) to run scripts across pa
 
 ```
 apps/server   - Hono API server (port 5000, path /server)
-apps/web      - TanStack Start web app (port 3000, path /web)
+apps/web      - TanStack Start web app (port 3000, path /)
 packages/api  - oRPC routers & client where all the API logic lives with OpenAPI metadata
 packages/auth - Better Auth config
 packages/db   - Drizzle schemas & migrations, run `vp run -w db:*` to manage the database
