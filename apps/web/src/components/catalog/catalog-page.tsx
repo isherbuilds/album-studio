@@ -102,10 +102,10 @@ function CatalogProductDialog({
       </DialogTrigger>
 
       <DialogContent
-        className="max-h-[calc(100vh-2rem)] overflow-y-auto p-0 sm:max-w-3xl sm:p-0"
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 sm:max-w-3xl sm:p-0"
         showCloseButton={!createDraft.isPending}
       >
-        <div className="grid gap-4 p-4 sm:min-h-[30rem] sm:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)] sm:gap-6 sm:p-6">
+        <div className="grid min-h-0 gap-4 p-4 sm:min-h-[30rem] sm:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)] sm:gap-6 sm:p-6">
           <div className="order-2 flex flex-col gap-4 sm:gap-6">
             <DialogHeader>
               <DialogTitle className="text-2xl">{detail?.name ?? product.name}</DialogTitle>

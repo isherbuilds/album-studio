@@ -96,7 +96,7 @@ function CreateProductDialog({
         <Plus data-icon="inline-start" />
         {m.products__create_title()}
       </DialogTrigger>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] min-h-0 overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{m.products__create_title()}</DialogTitle>
           <DialogDescription>{m.products__create_description()}</DialogDescription>
