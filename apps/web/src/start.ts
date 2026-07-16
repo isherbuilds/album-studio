@@ -6,6 +6,8 @@ import {
   tanstackStartServerFnLoggerMiddleware
 } from "@tsu-stack/logger/server/tanstack-start/middleware";
 
+import { securityHeadersMiddleware } from "@/security-headers";
+
 // We load it in vite.config.ts because they are originally from ENV_WEB_SERVER variables
 declare const __BUILD_SOURCE_COMMIT__: string;
 declare const __BUILD_NODE_ENV__: string;
@@ -37,6 +39,7 @@ export const startInstance = createStart(() => {
     ],
     // for API routes
     requestMiddleware: [
+      securityHeadersMiddleware,
       createCsrfMiddleware({
         filter: (ctx) => ctx.handlerType === "serverFn"
       }),

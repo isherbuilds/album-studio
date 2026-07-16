@@ -18,6 +18,8 @@ const fixture = {
   managerEmail: `${crypto.randomUUID()}@example.com`,
   managerId: "",
   nonMemberId: crypto.randomUUID(),
+  firstOrderedOrganizationId: crypto.randomUUID(),
+  firstOrderedOrganizationSlug: `a-organization-${crypto.randomUUID()}`,
   otherOrganizationId: crypto.randomUUID(),
   otherOrganizationSlug: `organization-${crypto.randomUUID()}`,
   organizationId: crypto.randomUUID(),
@@ -25,6 +27,8 @@ const fixture = {
   ownerId: "",
   ownerMemberId: crypto.randomUUID(),
   otherOrganizationMemberId: crypto.randomUUID(),
+  secondOrderedOrganizationId: crypto.randomUUID(),
+  secondOrderedOrganizationSlug: `b-organization-${crypto.randomUUID()}`,
   slug: `organization-${crypto.randomUUID()}`
 };
 const testPassword = "organization-test-password";
@@ -139,6 +143,20 @@ beforeAll(async () => {
       id: fixture.otherOrganizationId,
       name: "Other Organization Fixture",
       slug: fixture.otherOrganizationSlug
+    },
+    {
+      createdAt: new Date(),
+      currency: "USD",
+      id: fixture.firstOrderedOrganizationId,
+      name: "First Ordered Organization",
+      slug: fixture.firstOrderedOrganizationSlug
+    },
+    {
+      createdAt: new Date(),
+      currency: "USD",
+      id: fixture.secondOrderedOrganizationId,
+      name: "Second Ordered Organization",
+      slug: fixture.secondOrderedOrganizationSlug
     }
   ]);
   await db.insert(member).values([
@@ -164,6 +182,20 @@ beforeAll(async () => {
       userId: fixture.customerId
     },
     {
+      createdAt: new Date("2000-01-01T00:00:00.000Z"),
+      id: crypto.randomUUID(),
+      organizationId: fixture.firstOrderedOrganizationId,
+      role: "customer",
+      userId: fixture.customerId
+    },
+    {
+      createdAt: new Date("2000-01-01T00:00:00.000Z"),
+      id: crypto.randomUUID(),
+      organizationId: fixture.secondOrderedOrganizationId,
+      role: "customer",
+      userId: fixture.customerId
+    },
+    {
       createdAt: new Date(),
       id: fixture.otherOrganizationMemberId,
       organizationId: fixture.otherOrganizationId,
@@ -179,6 +211,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.delete(organization).where(eq(organization.id, fixture.organizationId));
   await db.delete(organization).where(eq(organization.id, fixture.otherOrganizationId));
+  await db.delete(organization).where(eq(organization.id, fixture.firstOrderedOrganizationId));
+  await db.delete(organization).where(eq(organization.id, fixture.secondOrderedOrganizationId));
   await db.delete(user).where(eq(user.email, programmaticInviteeEmail));
   for (const id of [
     fixture.ownerId,
@@ -308,6 +342,14 @@ describe("organization boundaries", () => {
       organizationId: fixture.organizationId,
       role: "manager"
     });
+    const auditMetadata = await db
+      .select({ metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.organizationId, fixture.organizationId));
+    const serializedAuditMetadata = JSON.stringify(auditMetadata);
+    expect(serializedAuditMetadata).not.toContain(invitation.id);
+    expect(serializedAuditMetadata).not.toContain(testPassword);
+    expect(serializedAuditMetadata).not.toMatch(/password|token|secret|session|cookie/i);
   });
 
   it("lists only the signed-in user's organization memberships", async () => {
@@ -319,6 +361,14 @@ describe("organization boundaries", () => {
     });
 
     await expect(memberClient.list()).resolves.toEqual([
+      expect.objectContaining({
+        role: "customer",
+        slug: fixture.firstOrderedOrganizationSlug
+      }),
+      expect.objectContaining({
+        role: "customer",
+        slug: fixture.secondOrderedOrganizationSlug
+      }),
       expect.objectContaining({ role: "customer", slug: fixture.slug })
     ]);
     await expect(nonMemberClient.list()).resolves.toEqual([]);
@@ -380,14 +430,16 @@ describe("organization boundaries", () => {
       role: "customer"
     });
 
-    await expect(
-      db
-        .select({ action: auditEvent.action, metadata: auditEvent.metadata })
-        .from(auditEvent)
-        .where(eq(auditEvent.entityId, manager?.id ?? ""))
-    ).resolves.toContainEqual({
-      action: "organization.member.role_updated",
-      metadata: { from: "manager", to: "customer" }
-    });
+    const events = await db
+      .select({ action: auditEvent.action, metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.entityId, manager?.id ?? ""));
+    expect(events).toEqual([
+      {
+        action: "organization.member.role_updated",
+        metadata: { from: "manager", to: "customer" }
+      }
+    ]);
+    expect(JSON.stringify(events)).not.toMatch(/password|token|secret|session|cookie|invitation/i);
   });
 });

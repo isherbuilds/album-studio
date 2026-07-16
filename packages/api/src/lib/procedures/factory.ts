@@ -132,6 +132,14 @@ export function organizationProcedure<TInput extends OrgSlugInput>(inputSchema: 
   return organizationAccessProcedure.input(inputSchema).use(requireOrganization());
 }
 
+/** Organization member whose role exactly matches `requiredRole`; otherwise FORBIDDEN. */
+export function exactRoleOrganizationProcedure<TInput extends OrgSlugInput>(
+  inputSchema: z.ZodType<TInput>,
+  requiredRole: OrganizationRole
+) {
+  return organizationAccessProcedure.input(inputSchema).use(requireOrganization({ requiredRole }));
+}
+
 /** Organization member authorized for `action`; otherwise FORBIDDEN. */
 export function organizationActionProcedure<TInput extends OrgSlugInput>(
   inputSchema: z.ZodType<TInput>,
@@ -147,7 +155,5 @@ export function organizationActionProcedure<TInput extends OrgSlugInput>(
  * role equality, not a permission — see {@link requireOrganization}.
  */
 export function customerProcedure<TInput extends OrgSlugInput>(inputSchema: z.ZodType<TInput>) {
-  return organizationAccessProcedure
-    .input(inputSchema)
-    .use(requireOrganization({ requiredRole: "customer" }));
+  return exactRoleOrganizationProcedure(inputSchema, "customer");
 }

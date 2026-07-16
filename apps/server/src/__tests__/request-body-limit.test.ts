@@ -7,7 +7,7 @@ import { createServerCors } from "#@/server-cors";
 function createApp() {
   const app = new Hono();
   app.use("/*", createServerCors("https://web.example.com"));
-  app.use("/rpc/*", requestBodyLimit);
+  app.use("/*", requestBodyLimit);
   app.post("/rpc/drafts/save", (context) => context.json({ accepted: true }));
   app.post("/auth/sign-in", (context) => context.json({ accepted: true }));
   return app;
@@ -62,12 +62,12 @@ describe("requestBodyLimit", () => {
     expect(response.status).toBe(413);
   });
 
-  it("does not apply RPC body policy to non-RPC routes", async () => {
+  it("rejects oversized bodies on non-RPC routes", async () => {
     const response = await createApp().request("/auth/sign-in", {
       body: "x".repeat(MAX_REQUEST_BODY_BYTES + 1),
       method: "POST"
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(413);
   });
 });

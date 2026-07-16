@@ -14,7 +14,6 @@ type RequestContext = {
     ip?: string;
     method: string;
     path: string;
-    query?: Record<string, string>;
   };
 };
 
@@ -51,23 +50,23 @@ function injectRequestIdMiddleware(options: RequestIdOptions = {}) {
   });
 }
 
-const injectRequestMiddleware = createMiddleware().server(({ next, request }) => {
-  const url = new URL(request.url);
-  const realIp = getRealIpFromHeaders(request.headers);
-  const query = Object.fromEntries(url.searchParams.entries());
-
-  return next({
+const injectRequestMiddleware = createMiddleware().server(({ next, request }) =>
+  next({
     context: {
-      request: {
-        hostname: url.hostname,
-        ip: normalizeIp(realIp),
-        method: request.method,
-        path: url.pathname,
-        query: Object.keys(query).length > 0 ? query : undefined
-      }
+      request: getRequestLogContext(request)
     }
-  });
-});
+  })
+);
+
+export function getRequestLogContext(request: Request): RequestContext["request"] {
+  const url = new URL(request.url);
+  return {
+    hostname: url.hostname,
+    ip: normalizeIp(getRealIpFromHeaders(request.headers)),
+    method: request.method,
+    path: url.pathname
+  };
+}
 
 function createSkipChecker(options: { excludePaths?: string[]; excludeIps?: string[] }) {
   const excludedIpsSet = new Set(options.excludeIps?.map((ip) => normalizeIp(ip)) ?? []);

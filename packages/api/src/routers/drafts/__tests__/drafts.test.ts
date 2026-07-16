@@ -272,12 +272,11 @@ describe("drafts router", () => {
       projectName: "Smith Wedding",
       quantity: 1,
       revision: 1,
-      selections: { pages: 20 },
+      selections: { cover: fixture.coverValueId, pages: 20 },
       status: "active",
       step: { kind: "group", groupKey: "cover" },
       evaluationSummary: {
-        status: "invalid",
-        issues: [expect.objectContaining({ code: "missing_selection" })]
+        status: "valid"
       }
     });
     expect(first.product.definition.id).toBe(fixture.productId);

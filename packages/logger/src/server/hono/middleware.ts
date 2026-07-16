@@ -9,6 +9,7 @@ import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
 const VALID_LEVELS = new Set<LogLevel>(["info", "error", "warn", "debug"]);
+const MAX_BATCH_SIZE = 25;
 
 /**
  * Hono app variables added by `honoLoggerMiddleware()`.
@@ -85,11 +86,15 @@ export function honoLogIngestionMiddleware(
 }
 
 function normalizeBatch(body: unknown): DrainContext[] {
-  if (!Array.isArray(body)) {
-    return [];
+  if (!Array.isArray(body) || body.length === 0 || body.length > MAX_BATCH_SIZE) {
+    throw new HTTPException(400, { message: "Invalid log batch" });
   }
 
-  return body.filter(isDrainContext);
+  if (!body.every(isDrainContext)) {
+    throw new HTTPException(400, { message: "Invalid log entry" });
+  }
+
+  return body;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -97,7 +102,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isDrainContext(value: unknown): value is DrainContext {
-  return isRecord(value) && isRecord(value.event);
+  if (!isRecord(value) || !isRecord(value.event)) {
+    return false;
+  }
+
+  if (Object.keys(value.event).length > 64) {
+    return false;
+  }
+
+  return value.request === undefined || isRecord(value.request);
 }
 
 function normalizeLevel(value: unknown): LogLevel {
