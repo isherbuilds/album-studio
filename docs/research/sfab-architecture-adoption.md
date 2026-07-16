@@ -393,7 +393,7 @@ packages/api/src/routers/organization/       # tenant/domain reads, not BA CRUD 
 packages/auth/src/access-control.ts
 apps/web/src/hooks/use-organization.ts
 apps/web/src/components/organization/
-apps/web/src/routes/**/org/$organizationSlug/**
+apps/web/src/routes/**/$organizationSlug/**
 ```
 
 `use-organization.ts` should copy SFAB's ergonomic surface—short domain verbs,

@@ -13,7 +13,7 @@ factories for preload.
 apps/web/src/
   hooks/use-organization.ts
   components/organization/
-  routes/.../org/
+  routes/.../$organizationSlug/
 ```
 
 Do not recreate per-operation `api/` folders, pass-through wrappers, or FSD

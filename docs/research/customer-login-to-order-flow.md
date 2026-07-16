@@ -142,11 +142,11 @@ The auth shell (`(root-layout)/(auth)/route.tsx`) requires a user (else redirect
 `/sign-in`) and `ensureQueryData(getAuthUserQueryOptions)`. Then `/dashboard`
 (`dashboard/index.tsx`) reads `listMyOrganizationsQueryOptions`:
 
-- exactly one membership → redirect to `/org/$organizationSlug`;
+- exactly one membership → redirect to `/$organizationSlug`;
 - multiple → org selector.
 
-Entering `/org/$organizationSlug` triggers the canonical read path
-(`org/$organizationSlug/route.tsx`):
+Entering `/$organizationSlug` triggers the canonical read path
+(`$organizationSlug/route.tsx`):
 
 ```mermaid
 sequenceDiagram
@@ -180,9 +180,10 @@ not code. It will instantiate the exact model above with new capability keys.
 
 ### Stage 4 — Browse the private catalog **[PLANNED — spec, Slice 4]**
 
-Route `/org/$organizationSlug/catalog` preloads `catalog.list` in `beforeLoad`;
-`/catalog/$productSlug` preloads `catalog.bySlug`. Only members of the org (Stage 3
-guard) can see it — no public catalog (spec, Routes; spec, Out of Scope).
+Route `/$organizationSlug/catalog` preloads `catalog.list` in `beforeLoad`;
+selecting a Product loads `catalog.bySlug` on the Catalog surface. Only members of
+the Organization (Stage 3 guard) can see it — no public catalog (spec, Routes;
+spec, Out of Scope).
 
 - **Frontend:** a `use-catalog.ts` hook with query-option factories, mirroring
   `use-organization.ts`.
@@ -229,7 +230,7 @@ flowchart LR
 
 Every meaningful change evaluates locally immediately. Autosave coalesces the latest
 complete state snapshot after about 400 ms and flushes before Next/step transitions
-and checkout. Route `/org/$organizationSlug/drafts/$draftId/configure`.
+and checkout. Route `/$organizationSlug/drafts/$draftId/configure`.
 
 - **Backend:** `drafts.create`, `drafts.save({ fullSnapshot, expectedRevision })`,
   `drafts.byId`, `drafts.list`, `drafts.remove`. Save authenticates/scopes Customer,
@@ -289,7 +290,8 @@ sequenceDiagram
 
 ### Stage 8 — After the order **[PLANNED — spec, Slice 7]**
 
-Shared order routes `/org/$organizationSlug/orders` and `/orders/$orderNumber`.
+Shared order routes `/$organizationSlug/orders` and
+`/$organizationSlug/orders/$orderNumber`.
 Customers view, `orders.duplicateToDraft`, and `orders.requestCancellation` (only while
 `placed`) but never edit a submitted order (spec, Out of Scope). Owners/Managers
 `orders.transition`, `orders.correctProjectName` (audited), `orders.decideCancellation`,
