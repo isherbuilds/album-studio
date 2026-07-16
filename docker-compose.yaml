@@ -11,7 +11,7 @@ services:
       - "VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:5000}"
       - "VITE_WEB_URL=${VITE_WEB_URL:-http://localhost:3000}"
       - "DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-replace_me_run_pnpm_auth_secret_to_generate_a_real_value_here}"
+      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before starting containers}"
     networks:
       - tsu-stack-network
     depends_on:
@@ -29,14 +29,14 @@ services:
         - "VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:5000}"
         - "VITE_WEB_URL=${VITE_WEB_URL:-http://localhost:3000}"
         - "DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-        - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-replace_me_run_pnpm_auth_secret_to_generate_a_real_value_here}"
+        - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before starting containers}"
     ports:
       - "${SERVER_PORT:-5000}:5000"
     environment:
       - "VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:5000}"
       - "VITE_WEB_URL=${VITE_WEB_URL:-http://localhost:3000}"
       - "DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-replace_me_run_pnpm_auth_secret_to_generate_a_real_value_here}"
+      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before starting containers}"
       - "ENABLE_OPEN_API_DOCS=${ENABLE_OPEN_API_DOCS:-false}"
     healthcheck:
       test:
@@ -65,14 +65,14 @@ services:
         - "VITE_IMGPROXY_URL=${VITE_IMGPROXY_URL:-}"
         - "VITE_IMGPROXY_SIGNATURE=${VITE_IMGPROXY_SIGNATURE:-_}"
         - "DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-        - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-replace_me_run_pnpm_auth_secret_to_generate_a_real_value_here}"
+        - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before starting containers}"
     environment:
       - "VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:5000}"
       - "VITE_WEB_URL=${VITE_WEB_URL:-http://localhost:3000}"
       - "VITE_IMGPROXY_URL=${VITE_IMGPROXY_URL:-}"
       - "VITE_IMGPROXY_SIGNATURE=${VITE_IMGPROXY_SIGNATURE:-_}"
       - "DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-replace_me_run_pnpm_auth_secret_to_generate_a_real_value_here}"
+      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before starting containers}"
     ports:
       - "${WEB_PORT:-3000}:3000"
     healthcheck:

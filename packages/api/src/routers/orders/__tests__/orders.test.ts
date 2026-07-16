@@ -41,6 +41,11 @@ const fixture = {
 };
 const currency = CurrencyCodeSchema.parse("USD");
 
+function expectSafeAuditMetadata(metadata: unknown, expected: Record<string, unknown>) {
+  expect(metadata).toEqual(expected);
+  expect(JSON.stringify(metadata)).not.toMatch(/password|token|secret|session|cookie/i);
+}
+
 function createContext(userId: string) {
   return {
     authSession: {
@@ -337,15 +342,22 @@ describe("orders router", () => {
 
     await expect(
       client.orders.list({ organizationSlug: fixture.organizationSlug })
-    ).resolves.toEqual([
-      expect.objectContaining({
-        number: placed.number,
-        orderTotal: { amountMinor: 21_000, currency: "USD" },
-        productName: "Wedding Album",
-        quantity: 2,
-        status: "placed"
-      })
-    ]);
+    ).resolves.toMatchObject({
+      counts: { placed: 1 },
+      items: [
+        expect.objectContaining({
+          number: placed.number,
+          orderTotal: { amountMinor: 21_000, currency: "USD" },
+          productName: "Wedding Album",
+          quantity: 2,
+          status: "placed"
+        })
+      ],
+      page: 1,
+      pageCount: 1,
+      pageSize: 20,
+      total: 1
+    });
   });
 
   it("accepts equivalent prices independent of property insertion order", async () => {
@@ -557,9 +569,9 @@ describe("orders router", () => {
     const corrected = await manager.orders.correctProjectName({
       orderNumber: placed.number,
       organizationSlug: fixture.organizationSlug,
-      projectName: "Maya & Arjun — Reception"
+      projectName: "password token secret session cookie"
     });
-    expect(corrected.projectName).toBe("Maya & Arjun — Reception");
+    expect(corrected.projectName).toBe("password token secret session cookie");
 
     await expect(
       manager.orders.transition({
@@ -595,12 +607,25 @@ describe("orders router", () => {
       .select({ action: auditEvent.action, metadata: auditEvent.metadata })
       .from(auditEvent)
       .where(eq(auditEvent.organizationId, fixture.organizationId));
-    expect(audits).toEqual(
+    const projectNameAudit = audits.find(
+      (audit) => audit.action === "order.project_name_corrected"
+    );
+    expectSafeAuditMetadata(projectNameAudit?.metadata, {});
+
+    const statusAudits = audits
+      .filter((audit) => audit.action === "order.status_updated")
+      .map((audit) => audit.metadata);
+    expect(statusAudits).toHaveLength(3);
+    expect(statusAudits).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ action: "order.project_name_corrected" }),
-        expect.objectContaining({ action: "order.status_updated" })
+        { from: "placed", to: "confirmed" },
+        { from: "confirmed", to: "in_production" },
+        { from: "in_production", to: "completed" }
       ])
     );
+    for (const metadata of statusAudits) {
+      expectSafeAuditMetadata(metadata, metadata as Record<string, unknown>);
+    }
   });
 
   it("lets Customers request cancellation and staff decide only while placed", async () => {
@@ -619,16 +644,19 @@ describe("orders router", () => {
         organizationSlug: fixture.organizationSlug
       })
     ).resolves.toMatchObject({ cancellationStatus: "pending", status: "placed" });
-    await expect(
-      db
-        .select({ action: auditEvent.action, actorUserId: auditEvent.actorUserId })
-        .from(auditEvent)
-        .where(eq(auditEvent.organizationId, fixture.organizationId))
-    ).resolves.toEqual(
-      expect.arrayContaining([
-        { action: "order.cancellation_requested", actorUserId: fixture.customerId }
-      ])
+    const requestAudits = await db
+      .select({
+        action: auditEvent.action,
+        actorUserId: auditEvent.actorUserId,
+        metadata: auditEvent.metadata
+      })
+      .from(auditEvent)
+      .where(eq(auditEvent.organizationId, fixture.organizationId));
+    const requestAudit = requestAudits.find(
+      (audit) => audit.action === "order.cancellation_requested"
     );
+    expect(requestAudit?.actorUserId).toBe(fixture.customerId);
+    expectSafeAuditMetadata(requestAudit?.metadata, {});
     await expect(
       customer.orders.requestCancellation({
         orderNumber: placed.number,
@@ -649,6 +677,14 @@ describe("orders router", () => {
         organizationSlug: fixture.organizationSlug
       })
     ).resolves.toMatchObject({ cancellationStatus: "approved", status: "cancelled" });
+    const decisionAudits = await db
+      .select({ action: auditEvent.action, metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.organizationId, fixture.organizationId));
+    const decisionAudit = decisionAudits.find(
+      (audit) => audit.action === "order.cancellation_decided"
+    );
+    expectSafeAuditMetadata(decisionAudit?.metadata, { decision: "approved" });
   });
 
   it("duplicates immutable Order configuration into a new active Draft", async () => {

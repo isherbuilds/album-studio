@@ -24,7 +24,6 @@ import { type FileRouteTypes } from "@/routeTree.gen";
  */
 const ROUTES_TO_PRERENDER: FileRouteTypes["fullPaths"][] = [
   "/{-$locale}/",
-  "/{-$locale}/playground/",
   "/{-$locale}/privacy-policy/",
   "/{-$locale}/sign-in/",
   "/sitemap.xml",

@@ -10,21 +10,24 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { experimental_RethrowHandlerPlugin as RethrowHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Hono } from "hono";
-import { type ContentfulStatusCode } from "hono/utils/http-status";
+import { secureHeaders } from "hono/secure-headers";
 
 import { createContext } from "@tsu-stack/api/lib/context/hono/create-context";
 import { appRouter } from "@tsu-stack/api/routers/index";
 import { auth } from "@tsu-stack/auth/index";
 import { migrateDatabase } from "@tsu-stack/db";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
-import { log, parseError } from "@tsu-stack/logger/server";
+import { log } from "@tsu-stack/logger/server";
 import {
   honoLogIngestionMiddleware,
   honoLoggerMiddleware,
   type HonoLogVariables
 } from "@tsu-stack/logger/server/hono/middleware";
 
-import { requestBodyLimit } from "#@/request-body-limit";
+import { createClientLogIngestionGuard } from "#@/client-log-ingestion";
+import { createCookieMutationOriginGuard } from "#@/cookie-mutation-origin";
+import { getPublicErrorResponse } from "#@/error-response";
+import { clientLogBodyLimit, requestBodyLimit } from "#@/request-body-limit";
 import { createServerCors } from "#@/server-cors";
 import "#@/shared/lib/logger";
 
@@ -35,6 +38,27 @@ export const app = new Hono<HonoLogVariables>().basePath(
 );
 
 app.use("/*", createServerCors(new URL(ENV_SERVER.VITE_WEB_URL).origin));
+app.use(
+  "/*",
+  secureHeaders({
+    crossOriginResourcePolicy: "cross-origin",
+    permissionsPolicy: {
+      camera: [],
+      geolocation: [],
+      microphone: []
+    },
+    referrerPolicy: "strict-origin-when-cross-origin",
+    strictTransportSecurity: ENV_SERVER.NODE_ENV === "production",
+    xFrameOptions: "DENY"
+  })
+);
+app.use(
+  "/*",
+  createCookieMutationOriginGuard([
+    new URL(ENV_SERVER.VITE_WEB_URL).origin,
+    new URL(ENV_SERVER.VITE_SERVER_URL).origin
+  ])
+);
 
 app.use(
   "/*",
@@ -48,7 +72,15 @@ app.use(
 
 app.use("/rpc/*", requestBodyLimit);
 
-app.post("/_logs/ingest", honoLogIngestionMiddleware());
+app.post(
+  "/_logs/ingest",
+  createClientLogIngestionGuard({
+    allowedOrigin: new URL(ENV_SERVER.VITE_WEB_URL).origin,
+    trustProxy: ENV_SERVER.TRUST_PROXY
+  }),
+  clientLogBodyLimit,
+  honoLogIngestionMiddleware()
+);
 
 app.onError((error, c) => {
   const requestLog = c.get("log");
@@ -58,18 +90,9 @@ app.onError((error, c) => {
     log.error({ event: "hono_global_error", error });
   }
 
-  const parsed = parseError(error);
+  const response = getPublicErrorResponse(error);
 
-  return c.json(
-    {
-      message: parsed.message,
-      ...(parsed.code ? { code: parsed.code } : {}),
-      ...(parsed.why ? { why: parsed.why } : {}),
-      ...(parsed.fix ? { fix: parsed.fix } : {}),
-      ...(parsed.link ? { link: parsed.link } : {})
-    },
-    parsed.status as ContentfulStatusCode
-  );
+  return c.json(response.body, response.status);
 });
 
 /**
@@ -86,6 +109,8 @@ app.get("/auth/open-api/generate-schema", async (c) => {
   const schema = await auth.api.generateOpenAPISchema();
   return c.json(schema);
 });
+
+app.post("/auth/organization/update-member-role", (c) => c.notFound());
 
 app.on(["POST", "GET"], "/auth/*", async (c) => auth.handler(c.req.raw));
 

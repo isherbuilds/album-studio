@@ -6,6 +6,7 @@ import { OrderSnapshotSchema } from "@tsu-stack/contract/order";
 import { evaluateConfiguration } from "@tsu-stack/core/configuration";
 import { db } from "@tsu-stack/db";
 import {
+  auditEvent,
   component,
   configurationDraft,
   customerOrder,
@@ -238,6 +239,131 @@ describe("products router", () => {
         slug: created.value.slug
       })
     ).rejects.toMatchObject({ code: "PRODUCT_SLUG_TAKEN" });
+  });
+
+  it("records only the intended public Product audit metadata", async () => {
+    const owner = clientFor(fixture.ownerId);
+    const sensitiveMarker = `credential-${crypto.randomUUID()}`;
+    const created = await owner.products.create({
+      ...content,
+      description: sensitiveMarker,
+      imageUrls: [`/${sensitiveMarker}.jpg`],
+      name: sensitiveMarker,
+      organizationSlug: fixture.organizationSlug,
+      slug: "audit-metadata"
+    });
+    const edited = await owner.products.editContent({
+      ...content,
+      description: sensitiveMarker,
+      expectedRevision: created.revision,
+      organizationSlug: fixture.organizationSlug,
+      productSlug: created.slug,
+      slug: "audit-metadata-edited"
+    });
+    const configured = await owner.products.editConfiguration({
+      expectedRevision: edited.revision,
+      groups: configuration(),
+      organizationSlug: fixture.organizationSlug,
+      productSlug: edited.slug
+    });
+    const priced = await owner.products.editPricing({
+      basePriceMinor: 10_000,
+      expectedRevision: configured.revision,
+      numericGroupPrices: [{ additionalUnitPriceMinor: 250, groupKey: "sheets" }],
+      optionValuePrices: [{ optionValueId: "linen", priceAdjustmentMinor: 500 }],
+      organizationSlug: fixture.organizationSlug,
+      productSlug: configured.slug
+    });
+    const published = await owner.products.publish({
+      expectedRevision: priced.revision,
+      organizationSlug: fixture.organizationSlug,
+      productSlug: priced.slug
+    });
+    await owner.products.remove({
+      expectedRevision: published.revision,
+      organizationSlug: fixture.organizationSlug,
+      productSlug: published.slug
+    });
+
+    const events = await db
+      .select({ action: auditEvent.action, metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.entityId, created.id));
+    expect(events).toHaveLength(6);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        { action: "product.created", metadata: { slug: "audit-metadata" } },
+        {
+          action: "product.content_edited",
+          metadata: { fromSlug: "audit-metadata", toSlug: "audit-metadata-edited" }
+        },
+        {
+          action: "product.configuration_edited",
+          metadata: { groupCount: 2, valueCount: 1 }
+        },
+        {
+          action: "product.pricing_edited",
+          metadata: {
+            basePriceMinor: { from: null, to: 10_000 },
+            numericGroupKeys: ["sheets"],
+            optionValueIds: ["linen"]
+          }
+        },
+        {
+          action: "product.status_changed",
+          metadata: { from: "draft", to: "published" }
+        },
+        { action: "product.deleted", metadata: { slug: "audit-metadata-edited" } }
+      ])
+    );
+    expect(JSON.stringify(events)).not.toContain(sensitiveMarker);
+  });
+
+  it("paginates and searches editable Products", async () => {
+    const owner = clientFor(fixture.ownerId);
+    await Promise.all([
+      owner.products.create({
+        ...content,
+        name: "Alpha folio",
+        organizationSlug: fixture.organizationSlug,
+        slug: "alpha-folio"
+      }),
+      owner.products.create({
+        ...content,
+        name: "Beta folio",
+        organizationSlug: fixture.organizationSlug,
+        slug: "beta-folio"
+      }),
+      owner.products.create({
+        ...content,
+        name: "Contact sheets",
+        organizationSlug: fixture.organizationSlug,
+        slug: "contact-sheets"
+      })
+    ]);
+
+    const searchResult = await owner.products.list({
+      organizationSlug: fixture.organizationSlug,
+      page: 1,
+      pageSize: 2,
+      query: "folio"
+    });
+    expect(searchResult).toMatchObject({
+      counts: { archived: 0, draft: 3, published: 0 },
+      page: 1,
+      pageCount: 1,
+      pageSize: 2,
+      total: 2
+    });
+    expect(searchResult.items.map((item) => item.slug)).toEqual(["alpha-folio", "beta-folio"]);
+
+    const secondPage = await owner.products.list({
+      organizationSlug: fixture.organizationSlug,
+      page: 2,
+      pageSize: 2
+    });
+    expect(secondPage).toMatchObject({ page: 2, pageCount: 2, pageSize: 2, total: 3 });
+    expect(secondPage.items.map((item) => item.slug)).toEqual(["contact-sheets"]);
   });
 
   it("supports a Manager-authored shell and configuration but reserves all pricing for Owners", async () => {
