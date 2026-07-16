@@ -8,6 +8,17 @@ export type OrganizationRole = z.infer<typeof OrganizationRoleSchema>;
 
 export const ORGANIZATION_INVITATION_TTL_SECONDS = 60 * 60 * 48;
 
+const RESERVED_ORGANIZATION_SLUGS: Record<string, true> = {
+  "accept-invitation": true,
+  admin: true,
+  en: true,
+  "privacy-policy": true,
+  "sign-in": true,
+  "select-organization": true,
+  te: true,
+  "terms-of-service": true
+};
+
 export const InvitationStatusSchema = z.enum(["pending", "accepted", "rejected", "canceled"]);
 
 export type InvitationStatus = z.infer<typeof InvitationStatusSchema>;
@@ -35,6 +46,9 @@ export const PlatformCreateOrganizationInputSchema = z.object({
     .min(2)
     .max(80)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .refine((slug) => !RESERVED_ORGANIZATION_SLUGS[slug], {
+      error: "Organization slug is reserved"
+    })
 });
 
 export type OrgSlugInput = z.infer<typeof OrgSlugInputSchema>;

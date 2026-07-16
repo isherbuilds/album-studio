@@ -22,6 +22,7 @@ export const OrderStatusSchema = z.enum([
   "completed",
   "cancelled"
 ]);
+export const OrderSortSchema = z.enum(["amount-asc", "amount-desc", "date-asc", "date-desc"]);
 
 export const CancellationRequestStatusSchema = z.enum(["none", "pending", "approved", "rejected"]);
 
@@ -72,6 +73,21 @@ export const OrderListItemSchema = OrderDetailSchema.pick({
   quantity: z.number().int().positive()
 });
 
+export const OrderListResultSchema = z.object({
+  counts: z.object({
+    cancelled: z.number().int().nonnegative(),
+    completed: z.number().int().nonnegative(),
+    confirmed: z.number().int().nonnegative(),
+    inProduction: z.number().int().nonnegative(),
+    placed: z.number().int().nonnegative()
+  }),
+  items: z.array(OrderListItemSchema),
+  page: z.number().int().positive(),
+  pageCount: z.number().int().nonnegative(),
+  pageSize: z.number().int().positive(),
+  total: z.number().int().nonnegative()
+});
+
 export const OrderPriceComparisonSchema = z.object({
   orderTotal: MoneySchema,
   perUnitBreakdown: z.array(PriceBreakdownLineSchema),
@@ -88,7 +104,13 @@ export const OrderPlaceInputSchema = OrgSlugInputSchema.extend({
   acceptedPrice: OrderPriceComparisonSchema,
   draftId: IdSchema
 });
-export const OrderListInputSchema = OrgSlugInputSchema;
+export const OrderListInputSchema = OrgSlugInputSchema.extend({
+  page: z.number().int().positive().default(1),
+  pageSize: z.number().int().min(1).max(100).default(20),
+  query: z.string().trim().max(200).default(""),
+  sort: OrderSortSchema.default("date-desc"),
+  status: OrderStatusSchema.optional()
+}).strict();
 export const OrderByNumberInputSchema = OrgSlugInputSchema.extend({
   orderNumber: z.string().min(1)
 });
@@ -118,6 +140,8 @@ export type OrderStatus = z.infer<typeof OrderStatusSchema>;
 export type CancellationRequestStatus = z.infer<typeof CancellationRequestStatusSchema>;
 export type OrderDetail = z.infer<typeof OrderDetailSchema>;
 export type OrderListItem = z.infer<typeof OrderListItemSchema>;
+export type OrderListResult = z.infer<typeof OrderListResultSchema>;
+export type OrderSort = z.infer<typeof OrderSortSchema>;
 export type OrderPlaceInput = z.infer<typeof OrderPlaceInputSchema>;
 export type OrderListInput = z.infer<typeof OrderListInputSchema>;
 export type OrderByNumberInput = z.infer<typeof OrderByNumberInputSchema>;

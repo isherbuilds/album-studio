@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./catalog": "./src/catalog/index.ts",
     "./configuration": "./src/configuration/index.ts",
+    "./dashboard": "./src/dashboard/index.ts",
     "./draft": "./src/draft/index.ts",
     "./health": "./src/health/index.ts",
     "./inventory": "./src/inventory/index.ts",

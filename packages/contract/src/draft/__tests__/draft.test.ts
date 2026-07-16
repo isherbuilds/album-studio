@@ -37,12 +37,13 @@ describe("Configuration Draft contracts", () => {
     ).toBe(false);
   });
 
-  it("accepts stable group and review step discriminators", () => {
+  it("accepts stable group, review, and summary step discriminators", () => {
     expect(ConfigurationDraftStepSchema.parse({ kind: "group", groupKey: "cover" })).toEqual({
       kind: "group",
       groupKey: "cover"
     });
     expect(ConfigurationDraftStepSchema.parse({ kind: "review" })).toEqual({ kind: "review" });
+    expect(ConfigurationDraftStepSchema.parse({ kind: "summary" })).toEqual({ kind: "summary" });
   });
 
   it("allows evaluator-invalid finite snapshot state while rejecting unsafe transport numbers", () => {

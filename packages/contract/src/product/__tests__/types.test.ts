@@ -90,6 +90,18 @@ describe("product editor contracts", () => {
     ).toThrow(/unrecognized key/i);
   });
 
+  it("rejects duplicate product images", () => {
+    expect(() =>
+      ProductCreateInputSchema.parse({
+        description: null,
+        imageUrls: ["https://example.com/cover.jpg", "https://example.com/cover.jpg"],
+        name: "Signature album",
+        organizationSlug,
+        slug: "signature-album"
+      })
+    ).toThrow(/unique/i);
+  });
+
   it("permits an incomplete discrete draft while enforcing stable editor identity", () => {
     const incomplete = ProductEditConfigurationInputSchema.parse({
       ...configurationInput,

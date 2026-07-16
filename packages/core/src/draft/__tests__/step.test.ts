@@ -27,13 +27,16 @@ const product = ProductDefinitionSchema.parse({
 });
 
 describe("normalizeConfigurationDraftStep", () => {
-  it("preserves current steps and review", () => {
+  it("preserves current group, review, and summary steps", () => {
     expect(normalizeConfigurationDraftStep({ kind: "group", groupKey: "cover" }, product)).toEqual({
       kind: "group",
       groupKey: "cover"
     });
     expect(normalizeConfigurationDraftStep({ kind: "review" }, product)).toEqual({
       kind: "review"
+    });
+    expect(normalizeConfigurationDraftStep({ kind: "summary" }, product)).toEqual({
+      kind: "summary"
     });
   });
 
