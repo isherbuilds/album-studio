@@ -1,4 +1,6 @@
 {
+  "common__close": "Close",
+  "common__loading": "Loading",
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "language_name": "English",
   "home_page__hero_beta_badge": "Private beta",

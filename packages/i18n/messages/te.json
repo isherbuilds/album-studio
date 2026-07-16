@@ -1,4 +1,6 @@
 {
+  "common__close": "మూసివేయి",
+  "common__loading": "లోడ్ అవుతోంది",
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "language_name": "తెలుగు",
   "home_page__hero_beta_badge": "పరిమిత ప్రయోగ దశ",

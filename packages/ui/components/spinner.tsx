@@ -6,7 +6,7 @@ function Spinner({ className, ...props }: React.ComponentProps<"output">) {
   return (
     <output
       data-slot="spinner"
-      aria-label="Loading"
+      aria-hidden={props["aria-label"] ? undefined : true}
       className={cn("inline-flex size-4", className)}
       {...props}
     >

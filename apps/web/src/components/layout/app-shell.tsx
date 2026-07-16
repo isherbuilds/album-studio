@@ -249,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Menu />
             </SheetTrigger>
-            <SheetContent className="w-72 p-0" side="left">
+            <SheetContent className="w-72 p-0" closeButtonLabel={m.common__close()} side="left">
               <SheetHeader className="sr-only">
                 <SheetTitle>{m.app_shell__navigation_title()}</SheetTitle>
                 <SheetDescription>{m.app_shell__navigation_description()}</SheetDescription>

@@ -36,7 +36,7 @@ export function MobileNav() {
           <Menu />
         </SheetTrigger>
         <SheetContent
-          className="inset-x-0 top-(--navbar-height) bottom-0 h-auto w-full overflow-y-auto p-4 sm:max-w-none"
+          className="inset-x-0 bottom-0 h-auto w-full overflow-y-auto p-4 data-[side=top]:top-(--navbar-height) sm:max-w-none"
           id="mobile-menu"
           showCloseButton={false}
           side="top"

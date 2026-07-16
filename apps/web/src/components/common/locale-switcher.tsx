@@ -23,7 +23,7 @@ export function LocaleSwitcher({
   const nextLocale = locales.find((locale) => locale !== currentLocale) ?? currentLocale;
   const segments = currentLocation.pathname.split("/").filter(Boolean);
   if (locales.includes(segments[0] as (typeof locales)[number])) segments.shift();
-  const unlocalizedPath = `/${segments.join("/")}`;
+  const unlocalizedPath = segments.length === 0 ? "" : `/${segments.join("/")}`;
   const nextPath = nextLocale === baseLocale ? unlocalizedPath : `/${nextLocale}${unlocalizedPath}`;
 
   return (

@@ -32,7 +32,7 @@ export function StorefrontShell({
         <div className="mx-auto flex min-h-14 w-full max-w-7xl flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:gap-4 sm:px-6 sm:py-0">
           <Link
             aria-label={organizationName}
-            className="-m-2 min-w-0 rounded-lg p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring sm:mr-2"
+            className="-m-2 min-w-0 rounded-lg p-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring sm:mr-2"
             params={{ organizationSlug }}
             to="/$organizationSlug/catalog"
           >
@@ -44,7 +44,7 @@ export function StorefrontShell({
           >
             <Link
               activeProps={{ className: "bg-primary text-primary-foreground" }}
-              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-hidden hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
               to="/$organizationSlug/catalog"
             >
@@ -52,7 +52,7 @@ export function StorefrontShell({
             </Link>
             <Link
               activeProps={{ className: "bg-primary text-primary-foreground" }}
-              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-hidden hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
               to="/$organizationSlug/drafts"
             >
@@ -60,7 +60,7 @@ export function StorefrontShell({
             </Link>
             <Link
               activeProps={{ className: "bg-primary text-primary-foreground" }}
-              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-hidden hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
               to="/$organizationSlug/orders"
             >
