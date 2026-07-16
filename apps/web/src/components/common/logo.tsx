@@ -14,9 +14,9 @@ export function LogoIcon(props: React.SVGProps<SVGSVGElement> & { className?: st
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <path d="M124.734 19.8461H284.111L166.937 247.808H7.56006L124.734 19.8461Z" fill="#EC4E02" />
+      <path d="M124.73 19.85H284.11L166.94 247.81H7.56L124.73 19.85Z" fill="#EC4E02" />
       <path
-        d="M131.714 268.935L86.3296 357.231H253.266L370.44 129.269H247.231L175.441 268.935H131.714Z"
+        d="M131.71 268.94L86.33 357.23H253.27L370.44 129.27H247.23L175.44 268.94H131.71Z"
         fill="#93370A"
       />
     </svg>
@@ -34,12 +34,9 @@ export function LogoWordmark({ className, ...props }: React.ComponentProps<"div"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
+        <path d="M124.73 19.85H284.11L166.94 247.81H7.56L124.73 19.85Z" fill="#EC4E02" />
         <path
-          d="M124.734 19.8461H284.111L166.937 247.808H7.56006L124.734 19.8461Z"
-          fill="#EC4E02"
-        />
-        <path
-          d="M131.714 268.935L86.3296 357.231H253.266L370.44 129.269H247.231L175.441 268.935H131.714Z"
+          d="M131.71 268.94L86.33 357.23H253.27L370.44 129.27H247.23L175.44 268.94H131.71Z"
           fill="#93370A"
         />
       </svg>

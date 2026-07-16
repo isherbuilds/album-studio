@@ -4,7 +4,7 @@ import { resolvePublicAssetUrl } from "@tsu-stack/core/assets";
 import { m } from "@tsu-stack/i18n/messages";
 import { type LinkProps } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
-import { Button } from "@tsu-stack/ui/components/button";
+import { buttonVariants } from "@tsu-stack/ui/components/button";
 import { Image } from "@tsu-stack/ui/components/image";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
@@ -16,8 +16,6 @@ type FooterLink =
   | { label: () => string; href?: never; to: LinkProps["to"] };
 
 const navLinks: FooterLink[] = [
-  { label: () => m.footer__playground(), to: "/playground" },
-  { label: () => m.footer__dashboard(), to: "/dashboard" },
   { label: () => m.footer__privacy_policy(), to: "/privacy-policy" },
   { label: () => m.footer__terms_of_service(), to: "/terms-of-service" }
 ];
@@ -54,11 +52,14 @@ export function Footer({
               const labelText = label();
 
               return (
-                <Button asChild key={href} size="icon-sm" variant="ghost">
-                  <Link aria-label={labelText} href={href}>
-                    {icon}
-                  </Link>
-                </Button>
+                <Link
+                  className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+                  key={href}
+                  aria-label={labelText}
+                  href={href}
+                >
+                  {icon}
+                </Link>
               );
             })}
           </div>
