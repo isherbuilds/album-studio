@@ -11,7 +11,7 @@ import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { type OrderStatus } from "@tsu-stack/contract/order";
+import { nextOrderStatus, type OrderStatus } from "@tsu-stack/contract/order";
 import { type OrganizationRole } from "@tsu-stack/contract/organization";
 import { type OfflinePaymentMethod, OfflinePaymentMethodSchema } from "@tsu-stack/contract/payment";
 import { m } from "@tsu-stack/i18n/messages";
@@ -41,14 +41,15 @@ import { Separator } from "@tsu-stack/ui/components/separator";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
 import { WorkspacePage, WorkspacePageHeader } from "@/components/admin/workspace";
-import { formatMinorAmount, parseMajorAmount } from "@/components/catalog/format";
 import {
-  nextOrderStatus,
+  formatOrderDate,
+  formatOrderDateTime,
   orderStatusConfig,
   orderStatusLabel
 } from "@/components/orders/order-format";
 import { useOrderActions, useOrderByNumberQuery } from "@/hooks/use-orders";
 import { usePaymentActions, usePaymentLedgerQuery } from "@/hooks/use-payments";
+import { formatMinorAmount, parseMajorAmount } from "@/lib/money";
 
 const productionSteps: OrderStatus[] = ["placed", "confirmed", "in_production", "completed"];
 const recordPaymentSchema = z.object({
@@ -97,16 +98,9 @@ export function OrderDetailPage({
   if (!order || !ledger) return null;
 
   const currency = order.snapshot.orderTotal.currency;
-  const maximumFractionDigits = new Intl.NumberFormat(locale, {
-    currency,
-    style: "currency"
-  }).resolvedOptions().maximumFractionDigits;
-  if (maximumFractionDigits === undefined) {
-    throw new Error(`Currency fraction digits unavailable: ${currency}`);
-  }
-  const fractionDigits = maximumFractionDigits;
   const format = (amountMinor: number) => formatMinorAmount(amountMinor, currency, locale);
   const staff = organizationRole === "owner" || organizationRole === "manager";
+  const ordersPath = "/$organizationSlug/orders";
   const next = nextOrderStatus(order.status);
   const busy =
     !isHydrated ||
@@ -124,7 +118,9 @@ export function OrderDetailPage({
       toast.error(m.payments__invalid_amount());
       return;
     }
-    const amountMinor = parseMajorAmount(parsed.data.amount, fractionDigits, locale);
+    const amountMinor = parseMajorAmount(parsed.data.amount, currency, locale, {
+      minimumMinor: 1
+    });
     if (!amountMinor) {
       toast.error(m.payments__invalid_amount());
       return;
@@ -143,9 +139,9 @@ export function OrderDetailPage({
   return (
     <WorkspacePage className="max-w-6xl">
       <Link
-        className="flex w-fit items-center gap-1 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-fit items-center gap-1 rounded-lg text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         params={{ organizationSlug }}
-        to="/org/$organizationSlug/orders"
+        to={ordersPath}
       >
         <ChevronLeft />
         {m.orders__back()}
@@ -161,18 +157,15 @@ export function OrderDetailPage({
             {orderStatusLabel(order.status)}
           </Badge>
         }
-        description={`${order.number} · ${new Date(order.createdAt).toLocaleDateString(locale, {
-          dateStyle: "medium"
-        })}`}
-        eyebrow={order.snapshot.product.name}
+        description={`${order.number} · ${formatOrderDate(order.createdAt, locale)}`}
         title={order.projectName ?? order.snapshot.product.name}
       />
 
       <section
         aria-label={m.orders__job_ticket()}
-        className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-[1fr_auto_1fr]"
+        className="grid overflow-hidden rounded-lg border bg-card sm:grid-cols-[1fr_auto_1fr]"
       >
-        <div className="flex flex-col gap-3 p-5">
+        <div className="flex flex-col gap-3 p-4 sm:p-6">
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {m.orders__production_status()}
           </span>
@@ -202,7 +195,7 @@ export function OrderDetailPage({
           )}
         </div>
         <Separator className="hidden h-full sm:block" orientation="vertical" />
-        <div className="flex items-end justify-between gap-6 border-t p-5 sm:border-t-0">
+        <div className="flex items-end justify-between gap-6 border-t p-4 sm:border-t-0 sm:p-6">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
               {m.payments__balance()}
@@ -285,8 +278,7 @@ export function OrderDetailPage({
                             {payment.reversalOfId ? m.payments__reversal() : m.payments__receipt()}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {payment.actorName} ·{" "}
-                            {new Date(payment.createdAt).toLocaleString(locale)}
+                            {payment.actorName} · {formatOrderDateTime(payment.createdAt, locale)}
                           </span>
                           {payment.note ? (
                             <span className="text-sm text-muted-foreground">{payment.note}</span>
@@ -298,7 +290,7 @@ export function OrderDetailPage({
                       </div>
                       {staff && payment.amount.amountMinor > 0 ? (
                         <details>
-                          <summary className="w-fit cursor-pointer rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                          <summary className="w-fit cursor-pointer rounded-lg text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
                             {m.payments__reverse_receipt()}
                           </summary>
                           <form
@@ -316,8 +308,9 @@ export function OrderDetailPage({
                               }
                               const amountMinor = parseMajorAmount(
                                 parsed.data.amount,
-                                fractionDigits,
-                                locale
+                                currency,
+                                locale,
+                                { minimumMinor: 1 }
                               );
                               if (!amountMinor) {
                                 toast.error(m.payments__invalid_amount());
@@ -362,7 +355,7 @@ export function OrderDetailPage({
                               variant="outline"
                             >
                               {paymentActions.reverse.isPending ? (
-                                <Spinner />
+                                <Spinner aria-label={m.common__loading()} />
                               ) : (
                                 <RotateCcw data-icon="inline-start" />
                               )}
@@ -388,14 +381,14 @@ export function OrderDetailPage({
                 </CardTitle>
                 <CardDescription>{m.orders__operations_description()}</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-5">
+              <CardContent className="flex flex-col gap-4 sm:gap-6">
                 {next && order.cancellationStatus !== "pending" ? (
                   <Button
                     disabled={busy}
                     onClick={() => actions.transition.mutate({ status: next })}
                   >
                     {actions.transition.isPending ? (
-                      <Spinner />
+                      <Spinner aria-label={m.common__loading()} />
                     ) : (
                       <ArrowRight data-icon="inline-end" />
                     )}
@@ -472,14 +465,14 @@ export function OrderDetailPage({
                       onSuccess: (result) =>
                         navigate({
                           params: { draftId: result.draft.id, organizationSlug },
-                          to: "/org/$organizationSlug/drafts/$draftId/configure"
+                          to: "/$organizationSlug/drafts/$draftId/configure"
                         })
                     });
                   }}
                   variant="outline"
                 >
                   {actions.duplicateToDraft.isPending ? (
-                    <Spinner />
+                    <Spinner aria-label={m.common__loading()} />
                   ) : (
                     <CopyPlus data-icon="inline-start" />
                   )}
@@ -540,7 +533,7 @@ export function OrderDetailPage({
                   </FieldGroup>
                   <Button disabled={!isHydrated || paymentActions.record.isPending} type="submit">
                     {paymentActions.record.isPending ? (
-                      <Spinner />
+                      <Spinner aria-label={m.common__loading()} />
                     ) : (
                       <ReceiptText data-icon="inline-start" />
                     )}

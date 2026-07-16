@@ -31,7 +31,9 @@ import {
 } from "@tsu-stack/ui/components/select";
 import { Separator } from "@tsu-stack/ui/components/separator";
 
-import { formatIssuePath, formatMinor } from "./format";
+import { formatMinorAmount } from "@/lib/money";
+
+import { formatIssuePath } from "./format";
 
 const NONE = "__none__";
 
@@ -214,8 +216,8 @@ function PreviewResult({
         <AlertTitle>{m.products__preview_incomplete()}</AlertTitle>
         <AlertDescription>
           <ul className="flex list-disc flex-col gap-1 pl-4">
-            {result.issues.map((issue, index) => (
-              <li key={`${formatIssuePath(issue.path)}-${index}`}>
+            {result.issues.map((issue) => (
+              <li key={JSON.stringify([issue.path, issue.message])}>
                 <span className="font-medium text-foreground">{formatIssuePath(issue.path)}</span>{" "}
                 {issue.message}
               </li>
@@ -239,13 +241,13 @@ function PreviewResult({
           <div className="rounded-lg bg-muted/50 p-3">
             <dt className="text-xs text-muted-foreground">{m.products__per_unit_total()}</dt>
             <dd className="text-lg font-semibold tabular-nums">
-              {formatMinor(evaluation.perUnitTotal.amountMinor, currency, locale)}
+              {formatMinorAmount(evaluation.perUnitTotal.amountMinor, currency, locale)}
             </dd>
           </div>
           <div className="rounded-lg bg-muted/50 p-3">
             <dt className="text-xs text-muted-foreground">{m.products__order_total()}</dt>
             <dd className="text-lg font-semibold tabular-nums">
-              {formatMinor(
+              {formatMinorAmount(
                 evaluation.orderTotal.amountMinor,
                 evaluation.orderTotal.currency,
                 locale
@@ -254,8 +256,8 @@ function PreviewResult({
           </div>
         </dl>
         <ul className="divide-y text-sm">
-          {evaluation.perUnitBreakdown.map((line, index) => (
-            <li className="flex justify-between gap-4 py-1.5" key={index}>
+          {evaluation.perUnitBreakdown.map((line) => (
+            <li className="flex justify-between gap-4 py-1.5" key={JSON.stringify(line)}>
               <span className="text-muted-foreground">
                 {line.kind === "base"
                   ? m.products__base_price()
@@ -264,7 +266,7 @@ function PreviewResult({
                     : `${groupLabel(line.groupKey)} · +${line.additionalUnits}`}
               </span>
               <span className="tabular-nums">
-                {formatMinor(line.amountMinor, currency, locale)}
+                {formatMinorAmount(line.amountMinor, currency, locale)}
               </span>
             </li>
           ))}
@@ -283,8 +285,8 @@ function PreviewResult({
         {m.products__preview_invalid()}
       </Badge>
       <ul className="flex flex-col gap-2">
-        {evaluation.issues.map((issue, index) => (
-          <li className="text-sm" key={`${issue.code}-${index}`}>
+        {evaluation.issues.map((issue) => (
+          <li className="text-sm" key={JSON.stringify(issue)}>
             <span className="font-medium">{issueCodeLabel[issue.code]()}</span>
             <span className="text-muted-foreground">
               {" — "}

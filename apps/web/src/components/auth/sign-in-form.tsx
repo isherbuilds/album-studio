@@ -1,8 +1,11 @@
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useHydrated } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { hasAdminRole } from "@tsu-stack/auth/access-control";
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
+import { type AuthQueryResult } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -18,18 +21,52 @@ import { TextField } from "@/components/form/text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
 import { appConfig } from "@/config/app.config";
 import { useSignInMutation } from "@/hooks/use-auth";
+import { listMyOrganizationsQueryOptions } from "@/hooks/use-organization";
 
 const signInFormSchema = z.object({
   email: z.email(m.auth__invalid_email()),
   password: z.string().min(8, m.auth__password_min_length())
 });
 
+async function navigateAfterSignIn(
+  navigate: ReturnType<typeof useNavigate>,
+  queryClient: QueryClient,
+  user: NonNullable<AuthQueryResult>,
+  redirectTo?: NavigateTo
+) {
+  if (redirectTo) {
+    await navigate({ to: redirectTo });
+    return;
+  }
+
+  if (hasAdminRole(user.role)) {
+    await navigate({ to: "/admin" });
+    return;
+  }
+
+  const memberships = await queryClient.fetchQuery({
+    ...listMyOrganizationsQueryOptions(),
+    staleTime: 0
+  });
+  const [membership] = memberships;
+  if (memberships.length !== 1 || !membership) {
+    await navigate({ to: "/select-organization" });
+    return;
+  }
+
+  await navigate({
+    params: { organizationSlug: membership.slug },
+    to: "/$organizationSlug/dashboard"
+  });
+}
+
 export function SignInForm({
-  redirectTo = "/",
+  redirectTo,
   className,
   ...props
 }: React.ComponentProps<"div"> & { redirectTo?: NavigateTo }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isPending } = useAuth();
   const isHydrated = useHydrated();
 
@@ -43,15 +80,18 @@ export function SignInForm({
   });
   const onSubmit = form.handleSubmit((value) => {
     signInMutation.mutate(value, {
-      onSuccess: async () => {
-        await navigate({ to: redirectTo });
-        toast.success(m.auth__sign_in_successful());
+      onSuccess: (session) => {
+        void navigateAfterSignIn(navigate, queryClient, session.user, redirectTo)
+          .then(() => toast.success(m.auth__sign_in_successful()))
+          .catch((error: unknown) =>
+            toast.error(error instanceof Error ? error.message : m.auth__sign_in_failed())
+          );
       }
     });
   });
 
   if (isPending) {
-    return <Spinner />;
+    return <Spinner aria-label={m.common__loading()} />;
   }
 
   return (
@@ -60,10 +100,10 @@ export function SignInForm({
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <Link href="/" className="flex flex-col items-center gap-2 font-medium">
-              <LogoIcon className="flex size-8 items-center justify-center rounded-md" />
+              <LogoIcon className="flex size-8 items-center justify-center rounded-lg" />
               <span className="sr-only">{appConfig.site.shortName}</span>
             </Link>
-            <h1 className="text-xl font-bold">{m.auth__sign_in_title()}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{m.auth__sign_in_title()}</h1>
           </div>
 
           <TextField
@@ -89,7 +129,6 @@ export function SignInForm({
           <Field>
             <Button
               type="submit"
-              light="skeuomorphic"
               disabled={!isHydrated || signInMutation.isPending || signInMutation.isSuccess}
             >
               {signInMutation.isPending ? m.auth__signing_in() : m.auth__sign_in()}

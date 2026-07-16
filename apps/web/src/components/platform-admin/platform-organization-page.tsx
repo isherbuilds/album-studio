@@ -14,13 +14,9 @@ export function PlatformOrganizationPage({ slug }: { slug: string }) {
           {m.platform_admin__organization_load_failed()}
         </p>
       ) : organization.data ? (
-        <WorkspacePageHeader
-          description={`/${slug}`}
-          eyebrow={m.platform_admin__eyebrow()}
-          title={organization.data.name}
-        />
+        <WorkspacePageHeader description={`/${slug}`} title={organization.data.name} />
       ) : (
-        <div className="flex flex-col gap-3 border-b pb-6">
+        <div className="flex flex-col gap-3">
           <Skeleton className="h-3 w-36" />
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-4 w-32" />

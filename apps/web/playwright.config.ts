@@ -24,7 +24,7 @@ export default defineConfig({
     }
   ],
   use: {
-    baseURL: "http://localhost:3000/web/",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry"
   },
   webServer: [
@@ -38,7 +38,7 @@ export default defineConfig({
     {
       command: "exec vp dev",
       cwd: webRoot,
-      url: "http://localhost:3000/web/",
+      url: "http://localhost:3000",
       timeout: 120_000,
       reuseExistingServer: !process.env.CI
     }

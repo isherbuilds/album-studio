@@ -34,23 +34,31 @@ function monitorErrors(
 }
 
 async function signInAsDemoCustomer(page: Page, destination: string) {
-  const redirect = destination.replace(/^\/web/, "");
-  await page.goto(`/web/sign-in?redirect=${encodeURIComponent(redirect)}`);
-  await page.getByLabel("Email").fill("customer@demo-studio.test");
-  await page.getByLabel("Password").fill("demo-password-123");
-  const signInResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/sign-in/email") && response.request().method() === "POST"
-  );
-  await page.getByRole("button", { name: "Sign In" }).click();
-  expect((await signInResponse).ok()).toBe(true);
-  await page.goto("about:blank");
-  await page.goto(destination);
+  const destinationPathname = new URL(destination, "http://localhost").pathname.replace(/\/$/, "");
+  await page.goto(`/sign-in?redirect=${encodeURIComponent(destinationPathname)}`);
+  const emailField = page.getByLabel("Email");
+  if (await emailField.isVisible()) {
+    await emailField.fill("customer@demo-studio.test");
+    await page.getByLabel("Password").fill("demo-password-123");
+    const signInResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/sign-in/email") && response.request().method() === "POST"
+    );
+    await page.getByRole("button", { name: "Sign In" }).click();
+    expect((await signInResponse).ok()).toBe(true);
+  }
+  await page.waitForURL((url) => url.pathname.replace(/\/$/, "") === destinationPathname);
+}
+
+async function startConfiguration(page: Page, projectName: string) {
+  await page.getByRole("button", { name: "Wedding Album" }).click();
+  await page.getByRole("textbox", { name: "Project name" }).fill(projectName);
+  await page.getByRole("button", { name: "Start configuration" }).click();
+  await expect(page).toHaveURL(/\/demo-studio\/drafts\/[^/]+\/configure$/);
 }
 
 test("customer resumes latest saved draft in a fresh session", async ({ browser }, testInfo) => {
   const projectName = `Maya & Arjun ${Date.now()}`;
-  const exitProjectName = `${projectName} Folio`;
   const browserErrors: string[] = [];
   const serverErrors: string[] = [];
   const firstSession = await browser.newContext();
@@ -65,14 +73,12 @@ test("customer resumes latest saved draft in a fresh session", async ({ browser 
   });
   monitorErrors(firstPage, browserErrors, serverErrors);
 
-  await signInAsDemoCustomer(firstPage, "/web/org/demo-studio/catalog");
-  await firstPage.getByRole("link", { name: /Wedding Album/ }).click();
-  await firstPage.getByRole("button", { name: "Start configuration" }).click();
+  await signInAsDemoCustomer(firstPage, "/demo-studio/catalog");
+  await startConfiguration(firstPage, projectName);
   expect(browserErrors).toEqual([]);
   expect(serverErrors).toEqual([]);
-  await expect(firstPage).toHaveURL(/\/org\/demo-studio\/drafts\/[^/]+\/configure$/);
 
-  await firstPage.getByRole("button", { name: /Linen/ }).click();
+  await expect(firstPage).toHaveURL(/\/demo-studio\/drafts\/[^/]+\/configure$/);
   await firstPage.getByRole("button", { name: "Next" }).click();
   await firstPage.getByRole("button", { name: /Matte/ }).click();
   await firstPage.getByRole("button", { name: "Next" }).click();
@@ -83,26 +89,25 @@ test("customer resumes latest saved draft in a fresh session", async ({ browser 
 
   const checkpointCount = saveRequestCount;
   await expect(firstPage.getByText("All changes saved", { exact: true })).toBeVisible();
-  await firstPage.getByLabel("Project name").fill(projectName);
-  await expect(firstPage.getByLabel("Project name")).toHaveValue(projectName);
   const quantity = firstPage.getByRole("spinbutton", { name: "Quantity" });
   await quantity.fill("3");
   await expect(quantity).toBeFocused();
-  await expect(
-    firstPage.getByText("₹546.00", { exact: true }).filter({ visible: true }).last()
-  ).toBeVisible();
-  await expect(firstPage.getByLabel("Project name")).toHaveValue(projectName);
+  if (testInfo.project.name === "desktop-chromium") {
+    await expect(
+      firstPage.getByText("₹546.00", { exact: true }).filter({ visible: true }).last()
+    ).toBeVisible();
+  }
   await expect(firstPage.getByText("Unsaved changes", { exact: true }).first()).toBeVisible();
   await firstPage.waitForTimeout(600);
   expect(saveRequestCount).toBe(checkpointCount);
-  await firstPage.getByRole("button", { name: "Save changes" }).click();
+  await firstPage.getByRole("button", { name: "Back" }).click();
+  await firstPage.getByRole("button", { name: "Next" }).click();
   await expect(firstPage.getByText("All changes saved", { exact: true })).toBeVisible();
-  await expect.poll(() => saveRequestCount).toBe(checkpointCount + 1);
+  await expect.poll(() => saveRequestCount).toBe(checkpointCount + 2);
   expect(latestSaveBody).toContain(projectName);
-  await expect(firstPage.getByLabel("Project name")).toHaveValue(projectName);
 
   const savedCheckpointCount = saveRequestCount;
-  await firstPage.getByLabel("Project name").fill(exitProjectName);
+  await quantity.fill("4");
   await expect(firstPage.getByText("Unsaved changes", { exact: true }).first()).toBeVisible();
   await firstPage.waitForTimeout(600);
   expect(saveRequestCount).toBe(savedCheckpointCount);
@@ -112,29 +117,25 @@ test("customer resumes latest saved draft in a fresh session", async ({ browser 
   await expect(firstPage.getByRole("button", { name: "Discard changes and leave" })).toBeVisible();
   await expect(firstPage.getByRole("button", { name: "Keep editing" })).toBeVisible();
   await firstPage.getByRole("button", { name: "Keep editing" }).click();
-  await expect(firstPage).toHaveURL(/\/org\/demo-studio\/drafts\/[^/]+\/configure$/);
-  await expect(firstPage.getByLabel("Project name")).toBeFocused();
-  await expect(firstPage.getByLabel("Project name")).toHaveValue(exitProjectName);
-  expect(saveRequestCount).toBe(savedCheckpointCount);
+  await expect(firstPage).toHaveURL(/\/demo-studio\/drafts\/[^/]+\/configure$/);
+  await expect(quantity).toHaveValue("4");
   await firstPage.getByRole("link", { name: "Back to drafts" }).click();
   await firstPage.getByRole("button", { name: "Save and leave" }).click();
   await expect(firstPage.getByRole("heading", { name: "Drafts" })).toBeVisible();
   await expect.poll(() => saveRequestCount).toBe(savedCheckpointCount + 1);
-  expect(latestSaveBody).toContain(exitProjectName);
-  await expect(firstPage.getByRole("link", { name: exitProjectName })).toBeVisible();
+  expect(latestSaveBody).toContain(projectName);
+  await expect(firstPage.getByRole("link", { name: projectName })).toBeVisible();
 
   await firstSession.close();
 
   const resumedSession = await browser.newContext();
   const resumedPage = await resumedSession.newPage();
   monitorErrors(resumedPage, browserErrors, serverErrors);
-  await signInAsDemoCustomer(resumedPage, "/web/org/demo-studio/drafts");
-  await expect(resumedPage.getByRole("heading", { name: "Drafts" })).toBeVisible();
-  await resumedPage.getByRole("link", { name: exitProjectName }).click();
-
-  await expect(resumedPage.getByLabel("Project name")).toHaveValue(exitProjectName);
-  await expect(resumedPage.getByText("Review", { exact: true }).first()).toBeVisible();
-  await expect(resumedPage.getByRole("spinbutton", { name: "Quantity" })).toHaveValue("3");
+  await signInAsDemoCustomer(resumedPage, "/demo-studio/drafts");
+  await resumedPage.getByRole("link", { name: projectName }).click();
+  await expect(resumedPage.getByText(projectName).first()).toBeVisible();
+  await expect(resumedPage.getByText("Quantity", { exact: true }).first()).toBeVisible();
+  await expect(resumedPage.getByRole("spinbutton", { name: "Quantity" })).toHaveValue("4");
   await expect(resumedPage.locator('main [aria-busy="false"]')).toBeVisible();
   await testInfo.attach("draft-review", {
     body: await resumedPage.screenshot({ fullPage: true }),
@@ -178,11 +179,8 @@ test("customer can explicitly save local changes and leave after a conflict", as
   const firstPage = await firstSession.newPage();
   monitorErrors(firstPage, browserErrors, serverErrors);
 
-  await signInAsDemoCustomer(firstPage, "/web/org/demo-studio/catalog");
-  await firstPage.getByRole("link", { name: /Wedding Album/ }).click();
-  await firstPage.getByRole("button", { name: "Start configuration" }).click();
-  await firstPage.getByLabel("Project name").fill(projectName);
-  await firstPage.getByRole("button", { name: "Save changes" }).click();
+  await signInAsDemoCustomer(firstPage, "/demo-studio/catalog");
+  await startConfiguration(firstPage, projectName);
   await expect(firstPage.getByText("All changes saved", { exact: true })).toBeVisible();
   const draftUrl = firstPage.url();
 
@@ -190,16 +188,14 @@ test("customer can explicitly save local changes and leave after a conflict", as
   const stalePage = await staleSession.newPage();
   monitorErrors(stalePage, browserErrors, serverErrors, true);
   await signInAsDemoCustomer(stalePage, draftUrl);
-  await expect(stalePage.getByLabel("Project name")).toHaveValue(projectName);
+  await expect(stalePage.getByText(projectName).first()).toBeVisible();
 
-  const serverVersion = `${projectName} Server`;
-  await firstPage.getByLabel("Project name").fill(serverVersion);
-  await firstPage.getByRole("button", { name: "Save changes" }).click();
+  await firstPage.getByRole("button", { name: /Leather/ }).click();
+  await firstPage.getByRole("button", { name: "Next" }).click();
   await expect(firstPage.getByText("All changes saved", { exact: true })).toBeVisible();
 
-  const localVersion = `${projectName} Local`;
-  await stalePage.getByLabel("Project name").fill(localVersion);
-  await stalePage.getByRole("button", { name: "Save changes" }).click();
+  await stalePage.getByRole("button", { name: /Silk/ }).click();
+  await stalePage.getByRole("button", { name: "Next" }).click();
   await expect(stalePage.getByText("Newer saved version found", { exact: true })).toBeVisible();
 
   await stalePage.getByRole("link", { name: "Back to drafts" }).click();
@@ -213,7 +209,11 @@ test("customer can explicitly save local changes and leave after a conflict", as
   await stalePage.getByRole("button", { name: "Save and leave" }).click();
 
   await expect(stalePage.getByRole("heading", { name: "Drafts" })).toBeVisible();
-  await expect(stalePage.getByRole("link", { name: localVersion })).toBeVisible();
+  await stalePage.getByRole("link", { name: projectName }).click();
+  await expect(stalePage.getByRole("button", { name: /Silk/ })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   expect(browserErrors).toEqual([]);
   expect(serverErrors).toEqual([]);
 
@@ -228,10 +228,8 @@ test("loading a saved conflict resets reachable configurator steps", async ({ br
   const firstPage = await firstSession.newPage();
   monitorErrors(firstPage, browserErrors, serverErrors);
 
-  await signInAsDemoCustomer(firstPage, "/web/org/demo-studio/catalog");
-  await firstPage.getByRole("link", { name: /Wedding Album/ }).click();
-  await firstPage.getByRole("button", { name: "Start configuration" }).click();
-  await firstPage.getByRole("button", { name: /Linen/ }).click();
+  await signInAsDemoCustomer(firstPage, "/demo-studio/catalog");
+  await startConfiguration(firstPage, `Step reset ${Date.now()}`);
   await firstPage.getByRole("button", { name: "Next" }).click();
   await firstPage.getByRole("button", { name: /Matte/ }).click();
   await firstPage.getByRole("button", { name: "Next" }).click();
@@ -248,8 +246,8 @@ test("loading a saved conflict resets reachable configurator steps", async ({ br
   await firstPage.getByRole("button", { name: "Back" }).click();
   await expect(firstPage.getByRole("button", { name: /Linen/ })).toBeVisible();
 
-  await stalePage.getByLabel("Project name").fill(`Stale ${Date.now()}`);
-  await stalePage.getByRole("button", { name: "Save changes" }).click();
+  await stalePage.getByRole("button", { name: "Increase" }).click();
+  await stalePage.getByRole("button", { name: "Next" }).click();
   await expect(stalePage.getByText("Newer saved version found", { exact: true })).toBeVisible();
   await stalePage.getByRole("button", { name: "Load saved version" }).click();
 

@@ -1,5 +1,5 @@
 import { Building2, Search, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Controller } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -8,7 +8,6 @@ import { PlatformCreateOrganizationInputSchema } from "@tsu-stack/contract/organ
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Button } from "@tsu-stack/ui/components/button";
-import { Card, CardContent } from "@tsu-stack/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,7 @@ import {
 } from "@tsu-stack/ui/components/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
+import { Spinner } from "@tsu-stack/ui/components/spinner";
 import {
   Table,
   TableBody,
@@ -29,6 +29,7 @@ import {
 } from "@tsu-stack/ui/components/table";
 
 import { WorkspacePage, WorkspacePageHeader, WorkspaceToolbar } from "@/components/admin/workspace";
+import { DataPagination } from "@/components/common/data-pagination";
 import { TextField } from "@/components/form/text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
 import {
@@ -36,11 +37,118 @@ import {
   useListOrganizationsQuery
 } from "@/hooks/use-platform-admin";
 
-export function PlatformOrganizationsPage() {
+const ORGANIZATIONS_PER_PAGE = 20;
+
+function OrganizationsTable() {
   const organizations = useListOrganizationsQuery();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  if (organizations.isError) throw organizations.error;
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredOrganizations =
+    normalizedSearch === ""
+      ? (organizations.data ?? [])
+      : (organizations.data ?? []).filter(
+          (item) =>
+            item.name.toLowerCase().includes(normalizedSearch) ||
+            item.slug.toLowerCase().includes(normalizedSearch)
+        );
+  const pageCount = Math.ceil(filteredOrganizations.length / ORGANIZATIONS_PER_PAGE);
+  const currentPage = Math.min(page, Math.max(pageCount, 1));
+  const visibleOrganizations = filteredOrganizations.slice(
+    (currentPage - 1) * ORGANIZATIONS_PER_PAGE,
+    currentPage * ORGANIZATIONS_PER_PAGE
+  );
+
+  return (
+    <div className="overflow-hidden rounded-lg border bg-card">
+      <WorkspaceToolbar>
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            aria-label={m.platform_admin__search_organizations()}
+            className="pl-9"
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder={m.platform_admin__search_placeholder()}
+            type="search"
+            value={search}
+          />
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {m.platform_admin__registry_description()}
+        </span>
+      </WorkspaceToolbar>
+      <div className="overflow-x-auto">
+        <Table className="min-w-160">
+          <TableHeader>
+            <TableRow>
+              <TableHead>{m.platform_admin__organization()}</TableHead>
+              <TableHead>{m.platform_admin__workspace_url()}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {organizations.isPending ? (
+              <TableRow>
+                <TableCell className="h-32" colSpan={2}>
+                  <output
+                    aria-label={m.platform_admin__organizations_title()}
+                    className="grid place-items-center"
+                  >
+                    <Spinner aria-label={m.platform_admin__organizations()} />
+                  </output>
+                </TableCell>
+              </TableRow>
+            ) : visibleOrganizations.length > 0 ? (
+              visibleOrganizations.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="max-w-80">
+                    <Link
+                      className="block truncate rounded-md font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                      params={{ organizationSlug: item.slug }}
+                      to="/admin/organizations/$organizationSlug"
+                    >
+                      {item.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-72 font-mono text-xs text-muted-foreground">
+                    <span className="block truncate" title={`/${item.slug}`}>
+                      /{item.slug}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell className="h-28 text-center text-muted-foreground" colSpan={2}>
+                  {search.trim()
+                    ? m.platform_admin__no_search_results()
+                    : m.platform_admin__empty()}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <DataPagination
+        isFetching={organizations.isFetching}
+        onPageChange={setPage}
+        page={currentPage}
+        pageCount={pageCount}
+      />
+    </div>
+  );
+}
+
+export function PlatformOrganizationsPage() {
   const createOrganization = useCreateOrganizationMutation();
   const [createOpen, setCreateOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const currencyErrorId = useId();
   const form = useZodForm(PlatformCreateOrganizationInputSchema, {
     defaultValues: {
       currency: DEFAULT_ORGANIZATION_CURRENCY,
@@ -60,15 +168,6 @@ export function PlatformOrganizationsPage() {
       }
     });
   });
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredOrganizations =
-    normalizedSearch === ""
-      ? (organizations.data ?? [])
-      : (organizations.data ?? []).filter(
-          (item) =>
-            item.name.toLowerCase().includes(normalizedSearch) ||
-            item.slug.toLowerCase().includes(normalizedSearch)
-        );
 
   return (
     <WorkspacePage>
@@ -79,7 +178,7 @@ export function PlatformOrganizationsPage() {
               <Building2 data-icon="inline-start" />
               {m.platform_admin__create_title()}
             </DialogTrigger>
-            <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+            <DialogContent className="max-h-[calc(100dvh-2rem)] min-h-0 overflow-y-auto sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>{m.platform_admin__create_title()}</DialogTitle>
                 <DialogDescription>{m.platform_admin__create_description()}</DialogDescription>
@@ -116,6 +215,8 @@ export function PlatformOrganizationsPage() {
                         </FieldLabel>
                         <Input
                           {...field}
+                          aria-describedby={fieldState.invalid ? currencyErrorId : undefined}
+                          aria-errormessage={fieldState.invalid ? currencyErrorId : undefined}
                           aria-invalid={fieldState.invalid || undefined}
                           id={field.name}
                           maxLength={3}
@@ -124,7 +225,9 @@ export function PlatformOrganizationsPage() {
                           placeholder={DEFAULT_ORGANIZATION_CURRENCY}
                           required
                         />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} id={currencyErrorId} />
+                        )}
                       </Field>
                     )}
                   />
@@ -176,80 +279,10 @@ export function PlatformOrganizationsPage() {
           </Dialog>
         }
         description={m.platform_admin__organizations_description()}
-        eyebrow={m.platform_admin__eyebrow()}
         title={m.platform_admin__organizations_title()}
       />
 
-      <Card className="overflow-hidden py-0" size="sm">
-        <WorkspaceToolbar>
-          <div className="relative min-w-0 flex-1 sm:max-w-sm">
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              aria-label={m.platform_admin__search_organizations()}
-              className="pl-9"
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={m.platform_admin__search_placeholder()}
-              type="search"
-              value={search}
-            />
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {m.platform_admin__registry_description()}
-          </span>
-        </WorkspaceToolbar>
-        <CardContent className="px-0">
-          <div className="overflow-x-auto">
-            <Table className="min-w-160">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{m.platform_admin__organization()}</TableHead>
-                  <TableHead>{m.platform_admin__workspace_url()}</TableHead>
-                  <TableHead className="w-24 text-right">{m.platform_admin__access()}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {organizations.isPending ? (
-                  <TableRow>
-                    <TableCell className="h-24 text-center text-muted-foreground" colSpan={3}>
-                      <span className="inline-block h-4 w-32 animate-pulse rounded bg-muted" />
-                    </TableCell>
-                  </TableRow>
-                ) : filteredOrganizations.length > 0 ? (
-                  filteredOrganizations.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        /{item.slug}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link
-                            params={{ organizationSlug: item.slug }}
-                            to="/admin/organizations/$organizationSlug"
-                          >
-                            {m.platform_admin__open()}
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell className="h-28 text-center text-muted-foreground" colSpan={3}>
-                      {search.trim()
-                        ? m.platform_admin__no_search_results()
-                        : m.platform_admin__empty()}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <OrganizationsTable />
     </WorkspacePage>
   );
 }

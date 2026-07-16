@@ -24,7 +24,13 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@tsu-stack/ui/components/dialog";
-import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "@tsu-stack/ui/components/empty";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyMedia,
+  EmptyTitle
+} from "@tsu-stack/ui/components/empty";
 import { Field, FieldGroup, FieldLabel } from "@tsu-stack/ui/components/field";
 import { Input } from "@tsu-stack/ui/components/input";
 import {
@@ -50,6 +56,7 @@ import {
   getInventoryMovementsQueryOptions,
   useInventoryActions
 } from "@/hooks/use-inventory";
+import { getDateTimeFormatter, getNumberFormatter } from "@/lib/intl";
 
 const statusConfig: Record<ComponentAvailabilityStatus, { dotClass: string; label: () => string }> =
   {
@@ -174,14 +181,28 @@ function ComponentInspector({
   organizationSlug: string;
 }) {
   const { locale } = useLocale();
-  const movements = useQuery(getInventoryMovementsQueryOptions(organizationSlug, component.id));
+  const [activeTab, setActiveTab] = useState("movement");
+  const movements = useQuery({
+    ...getInventoryMovementsQueryOptions(organizationSlug, component.id),
+    enabled: activeTab === "history"
+  });
+  const movementDateFormatter = getDateTimeFormatter(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC"
+  });
+  const quantityFormatter = getNumberFormatter(locale, { maximumFractionDigits: 4 });
+  const signedQuantityFormatter = getNumberFormatter(locale, {
+    maximumFractionDigits: 4,
+    signDisplay: "always"
+  });
 
   return (
     <Card size="sm">
       <CardHeader className="border-b">
         <div className="flex items-start justify-between gap-4">
-          <CardTitle>
-            <h2>{component.name}</h2>
+          <CardTitle className="min-w-0">
+            <h2 className="break-words">{component.name}</h2>
           </CardTitle>
           <StatusBadge status={component.effectiveAvailability} />
         </div>
@@ -189,26 +210,27 @@ function ComponentInspector({
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {m.inventory__on_hand()}
           </span>
-          <strong className="text-xl tabular-nums">
-            {component.quantity} {component.unit}
+          <strong className="min-w-0 text-right text-xl tabular-nums">
+            {quantityFormatter.format(Number(component.quantity))}{" "}
+            <span className="break-all">{component.unit}</span>
           </strong>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Tabs defaultValue="movement">
-          <TabsList className="h-auto w-full justify-start rounded-none border-b bg-muted/20 p-2">
-            <TabsTrigger className="min-h-9 flex-1 px-2" value="movement">
+        <Tabs onValueChange={setActiveTab} value={activeTab}>
+          <TabsList className="grid h-auto w-full grid-cols-3 rounded-none bg-muted/20 p-2">
+            <TabsTrigger className="min-h-9 min-w-0 px-2 whitespace-normal" value="movement">
               {m.inventory__movement_tab()}
             </TabsTrigger>
-            <TabsTrigger className="min-h-9 flex-1 px-2" value="details">
+            <TabsTrigger className="min-h-9 min-w-0 px-2 whitespace-normal" value="details">
               {m.inventory__details()}
             </TabsTrigger>
-            <TabsTrigger className="min-h-9 flex-1 px-2" value="history">
+            <TabsTrigger className="min-h-9 min-w-0 px-2 whitespace-normal" value="history">
               {m.inventory__history_tab()}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent className="flex flex-col gap-4 p-4 sm:p-5" value="movement">
+          <TabsContent className="flex flex-col gap-4 p-4 sm:p-6" keepMounted value="movement">
             <div>
               <h3 className="font-medium">{m.inventory__movement_title()}</h3>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -268,7 +290,11 @@ function ComponentInspector({
             </form>
           </TabsContent>
 
-          <TabsContent className="flex flex-col gap-5 p-4 sm:p-5" value="details">
+          <TabsContent
+            className="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6"
+            keepMounted
+            value="details"
+          >
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -379,7 +405,7 @@ function ComponentInspector({
             </form>
           </TabsContent>
 
-          <TabsContent className="flex flex-col gap-3 p-4 sm:p-5" value="history">
+          <TabsContent className="flex flex-col gap-3 p-4 sm:p-6" keepMounted value="history">
             <div>
               <h3 className="font-medium">{m.inventory__history()}</h3>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -388,7 +414,7 @@ function ComponentInspector({
             </div>
             {movements.isPending ? (
               <div className="grid min-h-20 place-items-center">
-                <Spinner />
+                <Spinner aria-label={m.inventory__components()} />
               </div>
             ) : movements.isError ? (
               <p className="text-sm text-destructive" role="alert">
@@ -399,13 +425,14 @@ function ComponentInspector({
                 {movements.data.map((movement) => (
                   <li className="flex items-start justify-between gap-4 py-3" key={movement.id}>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">{movement.reason}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {movement.actorName} · {new Date(movement.createdAt).toLocaleString(locale)}
+                      <p className="text-sm font-medium break-words">{movement.reason}</p>
+                      <p className="text-xs break-words text-muted-foreground">
+                        {movement.actorName} ·{" "}
+                        {movementDateFormatter.format(new Date(movement.createdAt))}
                       </p>
                     </div>
                     <strong className="shrink-0 tabular-nums">
-                      {movement.delta.startsWith("-") ? movement.delta : `+${movement.delta}`}
+                      {signedQuantityFormatter.format(Number(movement.delta))}
                     </strong>
                   </li>
                 ))}
@@ -434,6 +461,8 @@ export function InventoryPage({ organizationSlug }: { organizationSlug: string }
     low: components.filter((component) => component.effectiveAvailability === "low").length,
     out: components.filter((component) => component.effectiveAvailability === "out").length
   };
+  const { locale } = useLocale();
+  const quantityFormatter = getNumberFormatter(locale, { maximumFractionDigits: 4 });
 
   return (
     <WorkspacePage>
@@ -460,25 +489,27 @@ export function InventoryPage({ organizationSlug }: { organizationSlug: string }
           </Dialog>
         }
         description={m.inventory__description()}
-        eyebrow={m.app_shell__production_workspace()}
         title={m.inventory__title()}
       />
 
       <WorkspaceStatStrip
         label={m.inventory__availability()}
         stats={[
-          { label: m.inventory__components(), value: components.length },
+          { id: "components", label: m.inventory__components(), value: components.length },
           {
+            id: "available",
             label: m.inventory__available(),
             markerClassName: statusConfig.available.dotClass,
             value: counts.available
           },
           {
+            id: "low",
             label: m.inventory__low(),
             markerClassName: statusConfig.low.dotClass,
             value: counts.low
           },
           {
+            id: "out",
             label: m.inventory__out(),
             markerClassName: statusConfig.out.dotClass,
             value: counts.out
@@ -501,9 +532,21 @@ export function InventoryPage({ organizationSlug }: { organizationSlug: string }
           </CardHeader>
           <CardContent className="px-0">
             {componentsQuery.isPending ? (
-              <div className="grid min-h-48 place-items-center">
-                <Spinner />
-              </div>
+              <output className="grid min-h-48 place-items-center">
+                <Spinner aria-label={m.inventory__components()} />
+              </output>
+            ) : componentsQuery.isError ? (
+              <Empty className="py-14" role="alert">
+                <EmptyMedia variant="icon">
+                  <Boxes />
+                </EmptyMedia>
+                <EmptyTitle>{m.inventory__update_failed()}</EmptyTitle>
+                <EmptyContent>
+                  <Button onClick={() => void componentsQuery.refetch()} variant="outline">
+                    {m.error_500__try_again()}
+                  </Button>
+                </EmptyContent>
+              </Empty>
             ) : components.length === 0 ? (
               <Empty className="py-14">
                 <EmptyMedia variant="icon">
@@ -521,23 +564,25 @@ export function InventoryPage({ organizationSlug }: { organizationSlug: string }
                       <button
                         aria-label={`${component.name}, ${config.label()}, ${component.quantity} ${component.unit}`}
                         aria-current={selected?.id === component.id ? "true" : undefined}
-                        className="grid min-h-18 w-full grid-cols-[0.25rem_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 text-left transition-colors outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset aria-current:bg-muted/60 sm:px-5"
+                        className="grid min-h-18 w-full grid-cols-[0.25rem_minmax(0,1fr)_minmax(0,6rem)] items-center gap-4 px-4 py-3 text-left transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset aria-current:bg-accent sm:px-6"
                         onClick={() => setSelectedId(component.id)}
                         type="button"
                       >
                         <span aria-hidden className={cn("h-10 rounded-full", config.dotClass)} />
                         <span className="min-w-0">
                           <strong className="block truncate">{component.name}</strong>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="block truncate text-xs text-muted-foreground">
                             {config.label()} · {m.inventory__low_stock_threshold()}{" "}
-                            {component.lowStockThreshold}
+                            {quantityFormatter.format(Number(component.lowStockThreshold))}
                           </span>
                         </span>
-                        <span className="text-right">
-                          <strong className="block text-base tabular-nums">
-                            {component.quantity}
+                        <span className="min-w-0 text-right">
+                          <strong className="block truncate text-base tabular-nums">
+                            {quantityFormatter.format(Number(component.quantity))}
                           </strong>
-                          <span className="text-xs text-muted-foreground">{component.unit}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {component.unit}
+                          </span>
                         </span>
                       </button>
                     </li>
