@@ -36,7 +36,7 @@ packages/auth/src/index.ts                 Better Auth organization plugin
 packages/api/src/routers/organizations/    slug-scoped product surface
 apps/web/src/hooks/use-organization.ts     reads, mutations, invalidation
 apps/web/src/components/organization/      member and invitation UI
-apps/web/src/routes/.../org/                guards, preload, composition
+apps/web/src/routes/.../$organizationSlug/  guards, preload, composition
 ```
 
 The repeated `organization` key is the navigation rule. Do not create generic
