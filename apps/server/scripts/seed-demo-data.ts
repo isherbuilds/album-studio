@@ -686,67 +686,14 @@ await db.transaction(async (tx) => {
     productIdBySlug.set(fixture.slug, productId);
   }
 
-  const existingFixtureAssociations = await tx
-    .select({
-      componentId: optionValueComponent.componentId,
-      groupKey: optionGroup.key,
-      productId: optionValue.productId,
-      valuePosition: optionValue.position
-    })
-    .from(optionValueComponent)
-    .innerJoin(
-      optionValue,
-      and(
-        eq(optionValueComponent.optionValueId, optionValue.id),
-        eq(optionValueComponent.organizationId, optionValue.organizationId)
-      )
-    )
-    .innerJoin(
-      optionGroup,
-      and(
-        eq(optionValue.optionGroupId, optionGroup.id),
-        eq(optionValue.productId, optionGroup.productId)
-      )
-    )
-    .where(inArray(optionValue.productId, [...productIdBySlug.values()]));
-  const existingComponentIdsByValue = new Map<string, string[]>();
-  for (const association of existingFixtureAssociations) {
-    const associationKey = `${association.productId}:${association.groupKey}:${association.valuePosition}`;
-    const componentIds = existingComponentIdsByValue.get(associationKey) ?? [];
-    componentIds.push(association.componentId);
-    existingComponentIdsByValue.set(associationKey, componentIds);
-  }
   const componentIdByFixtureKey = new Map<string, string>();
   for (const fixture of CATALOG_FIXTURES) {
-    const productId = productIdBySlug.get(fixture.slug);
-    if (!productId) throw new Error(`Missing seeded product ID for ${fixture.slug}`);
-    for (const groupFixture of fixture.optionGroups) {
-      if (groupFixture.type === "number") continue;
-      for (const [valuePosition, valueFixture] of groupFixture.values.entries()) {
-        const associationKey = `${productId}:${groupFixture.key}:${valuePosition}`;
-        const existingComponentIds = existingComponentIdsByValue.get(associationKey) ?? [];
-        for (const [componentPosition, componentKey] of (
-          valueFixture.componentKeys ?? []
-        ).entries()) {
-          const fixtureKey = `${fixture.slug}:${componentKey}`;
-          if (!componentIdByFixtureKey.has(fixtureKey)) {
-            componentIdByFixtureKey.set(
-              fixtureKey,
-              existingComponentIds[componentPosition] ??
-                fixtureId(fixture.slug, "component", componentKey)
-            );
-          }
-        }
-      }
-    }
     for (const componentFixture of fixture.components) {
       const fixtureKey = `${fixture.slug}:${componentFixture.key}`;
-      if (!componentIdByFixtureKey.has(fixtureKey)) {
-        componentIdByFixtureKey.set(
-          fixtureKey,
-          fixtureId(fixture.slug, "component", componentFixture.key)
-        );
-      }
+      componentIdByFixtureKey.set(
+        fixtureKey,
+        fixtureId(fixture.slug, "component", componentFixture.key)
+      );
     }
   }
   const getFixtureComponentId = (productSlug: string, componentKey: string): string => {

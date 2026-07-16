@@ -8,6 +8,13 @@ import {
   organization
 } from "@tsu-stack/db/schema";
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required");
+
+if (!["localhost", "127.0.0.1", "::1"].includes(new URL(databaseUrl).hostname)) {
+  throw new Error("E2E reset refuses to modify a non-local database");
+}
+
 const organizations = await db
   .select({ id: organization.id })
   .from(organization)

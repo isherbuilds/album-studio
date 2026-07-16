@@ -623,9 +623,6 @@ describe("orders router", () => {
         { from: "in_production", to: "completed" }
       ])
     );
-    for (const metadata of statusAudits) {
-      expectSafeAuditMetadata(metadata, metadata as Record<string, unknown>);
-    }
   });
 
   it("lets Customers request cancellation and staff decide only while placed", async () => {

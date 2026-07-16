@@ -27,8 +27,8 @@ services:
         - "SOURCE_COMMIT=${SOURCE_COMMIT}"
         - "VITE_SERVER_URL=${SERVICE_URL_SERVER}"
         - "VITE_WEB_URL=${SERVICE_URL_WEB}"
-        - "DATABASE_URL=postgresql://${SERVICE_USER_POSTGRESQL}:${SERVICE_PASSWORD_POSTGRESQL}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-        - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before deployment}"
+        - "DATABASE_URL=postgresql://postgres:build-only@localhost:5432/build"
+        - "BETTER_AUTH_SECRET=build_only_secret_0000000000000000"
     environment:
       - SERVICE_URL_SERVER_5000
       - "VITE_SERVER_URL=${SERVICE_URL_SERVER}"
@@ -61,8 +61,8 @@ services:
         - "VITE_WEB_URL=${SERVICE_URL_WEB}"
         - "VITE_IMGPROXY_URL=${VITE_IMGPROXY_URL:-}"
         - "VITE_IMGPROXY_SIGNATURE=${VITE_IMGPROXY_SIGNATURE:-_}"
-        - "DATABASE_URL=postgresql://${SERVICE_USER_POSTGRESQL}:${SERVICE_PASSWORD_POSTGRESQL}@postgres:5432/${POSTGRES_DB:-tsu-stack}"
-        - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Generate BETTER_AUTH_SECRET before deployment}"
+        - "DATABASE_URL=postgresql://postgres:build-only@localhost:5432/build"
+        - "BETTER_AUTH_SECRET=build_only_secret_0000000000000000"
     environment:
       - SERVICE_URL_WEB_3000
       - "VITE_SERVER_URL=${SERVICE_URL_SERVER}"
