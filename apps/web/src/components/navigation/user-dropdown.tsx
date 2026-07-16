@@ -1,4 +1,4 @@
-import { FileText, BarChart2, Lock, LogOut, UserSquare } from "lucide-react";
+import { Building2, FileText, Lock, LogOut, UserSquare } from "lucide-react";
 
 import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { m } from "@tsu-stack/i18n/messages";
@@ -28,48 +28,46 @@ export function UserDropdown() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button aria-label="Open account menu" size="icon" variant="ghost">
-          <UserSquare aria-hidden="true" />
-        </Button>
+      <DropdownMenuTrigger
+        render={<Button aria-label={m.user_dropdown__open_menu()} size="icon" variant="ghost" />}
+      >
+        <UserSquare aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-w-sm min-w-fit">
-        <DropdownMenuLabel className="flex items-start gap-3">
-          <NavbarAvatar avatarImgSrc={user.image} name={user.name} email={user.email} />
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to="/dashboard">
-              <BarChart2 aria-hidden="true" className="opacity-60" size={16} />
-              <span>{m.user_dropdown__dashboard()}</span>
-            </Link>
+          <DropdownMenuLabel className="flex items-start gap-3">
+            <NavbarAvatar avatarImgSrc={user.image} email={user.email} name={user.name} />
+          </DropdownMenuLabel>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            nativeButton={false}
+            render={<Link to="/select-organization" />}
+          >
+            <Building2 aria-hidden="true" className="opacity-60" />
+            <span>{m.organization__selector_title()}</span>
           </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to="/privacy-policy">
-              <Lock aria-hidden="true" className="opacity-60" size={16} />
-              <span>{m.user_dropdown__privacy_policy()}</span>
-            </Link>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            nativeButton={false}
+            render={<Link to="/privacy-policy" />}
+          >
+            <Lock aria-hidden="true" className="opacity-60" size={16} />
+            <span>{m.user_dropdown__privacy_policy()}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to="/terms-of-service">
-              <FileText aria-hidden="true" className="opacity-60" size={16} />
-              <span>{m.user_dropdown__terms_of_service()}</span>
-            </Link>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            nativeButton={false}
+            render={<Link to="/terms-of-service" />}
+          >
+            <FileText aria-hidden="true" className="opacity-60" size={16} />
+            <span>{m.user_dropdown__terms_of_service()}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer"
           variant="destructive"
-          onSelect={(event) => {
-            // Keep the menu open until sign-out resolves: success invalidates routing and
-            // redirects (unmounting this), failure surfaces a toast so the user can retry
-            // instead of the menu silently closing on a still-authenticated session.
-            event.preventDefault();
+          onClick={() => {
             void handleSignOut();
           }}
         >

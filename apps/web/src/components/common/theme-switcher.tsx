@@ -1,6 +1,8 @@
+import { useHydrated } from "@tanstack/react-router";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { m } from "@tsu-stack/i18n/messages";
 import { type ButtonProps } from "@tsu-stack/ui/components/button";
 import { Button } from "@tsu-stack/ui/components/button";
 export { ThemeProvider } from "next-themes";
@@ -10,32 +12,29 @@ type ThemeSwitcherProps = {
 } & ButtonProps;
 
 export function ThemeSwitcher({ variant = "ghost", size = "icon", className }: ThemeSwitcherProps) {
-  const { theme, setTheme } = useTheme();
-
-  const changeThemeValue =
-    theme === "dark"
-      ? "light"
-      : theme === "light"
-        ? "dark"
-        : typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "light"
-          : "dark";
+  const { resolvedTheme, setTheme } = useTheme();
+  const isHydrated = useHydrated();
+  const nextTheme = isHydrated && resolvedTheme === "dark" ? "light" : "dark";
 
   return (
     <Button
       variant={variant}
       size={size}
-      onClick={() => setTheme(changeThemeValue)}
-      aria-label="Toggle theme"
+      onClick={() => setTheme(nextTheme)}
+      aria-label={
+        nextTheme === "light"
+          ? m.preferences__switch_to_light_theme()
+          : m.preferences__switch_to_dark_theme()
+      }
       className={className}
     >
       <Sun
-        className="absolute scale-100 rotate-0 transition-all duration-50 dark:scale-0 dark:rotate-90"
+        className="absolute scale-100 rotate-0 dark:scale-0 dark:rotate-90"
         size={18}
         strokeWidth={2}
       />
       <Moon
-        className="absolute scale-0 rotate-90 transition-all duration-50 dark:scale-100 dark:rotate-0"
+        className="absolute scale-0 rotate-90 dark:scale-100 dark:rotate-0"
         size={18}
         strokeWidth={2}
       />

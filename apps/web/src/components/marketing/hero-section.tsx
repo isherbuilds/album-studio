@@ -82,8 +82,7 @@ export function HeroSection() {
 
             <Link
               className="group relative inline-flex h-14 items-center justify-center gap-3 overflow-hidden rounded-full bg-foreground px-12! text-base font-medium text-background transition-all duration-300 hover:scale-105 hover:opacity-90 active:scale-95"
-              href="https://github.com/tsu-moe/tsu-stack"
-              target="_blank"
+              to="/sign-in"
             >
               <span className="relative z-10">{m.home_page__hero_cta()}</span>
               <ArrowRight

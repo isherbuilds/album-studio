@@ -1,6 +1,7 @@
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 
+import { LocaleSwitcher } from "@/components/common/locale-switcher";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { UserDropdown } from "@/components/navigation/user-dropdown";
 
@@ -17,7 +18,7 @@ export function StorefrontShell({
     <span className="flex items-center gap-2.5">
       <span
         aria-hidden
-        className="grid size-6 place-items-center rounded-md bg-foreground text-[0.625rem] font-semibold text-background"
+        className="grid size-6 place-items-center rounded-lg bg-foreground text-[0.625rem] font-semibold text-background"
       >
         AS
       </span>
@@ -28,45 +29,46 @@ export function StorefrontShell({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="mx-auto flex min-h-14 w-full max-w-7xl flex-wrap items-center gap-2 px-5 py-2 sm:flex-nowrap sm:gap-4 sm:px-8 sm:py-0">
+        <div className="mx-auto flex min-h-14 w-full max-w-7xl flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:gap-4 sm:px-6 sm:py-0">
           <Link
             aria-label={organizationName}
-            className="-m-2 min-w-0 rounded-md p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring sm:mr-2"
+            className="-m-2 min-w-0 rounded-lg p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring sm:mr-2"
             params={{ organizationSlug }}
-            to="/org/$organizationSlug/catalog"
+            to="/$organizationSlug/catalog"
           >
             {brand}
           </Link>
-          <nav className="order-3 flex w-full items-center gap-1 sm:order-0 sm:w-auto">
+          <nav
+            aria-label={m.navbar__navigation()}
+            className="order-3 flex w-full items-center gap-1 sm:order-0 sm:w-auto"
+          >
             <Link
-              activeProps={{ className: "bg-muted text-foreground" }}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              activeProps={{ className: "bg-primary text-primary-foreground" }}
+              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/catalog"
+              to="/$organizationSlug/catalog"
             >
               {m.storefront__catalog()}
             </Link>
             <Link
-              activeProps={{ className: "bg-muted text-foreground" }}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              activeProps={{ className: "bg-primary text-primary-foreground" }}
+              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/drafts"
+              to="/$organizationSlug/drafts"
             >
               {m.storefront__drafts()}
             </Link>
             <Link
-              activeProps={{
-                className:
-                  "rounded-md bg-muted px-3 py-1.5 text-sm text-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              }}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              activeProps={{ className: "bg-primary text-primary-foreground" }}
+              className="rounded-lg px-4 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/orders"
+              to="/$organizationSlug/orders"
             >
               {m.storefront__orders()}
             </Link>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            <LocaleSwitcher size="icon-sm" variant="ghost" />
             <ThemeSwitcher size="icon-sm" variant="ghost" />
             <UserDropdown />
           </div>
