@@ -12,6 +12,8 @@ import { m } from "@tsu-stack/i18n/messages";
 
 export type InventoryComponent = Awaited<ReturnType<typeof client.inventory.createComponent>>;
 
+const showInventoryError = () => toast.error(m.inventory__update_failed());
+
 export function getInventoryListQueryOptions(organizationSlug: string) {
   return orpc.inventory.list.queryOptions({ input: { organizationSlug } });
 }
@@ -37,16 +39,14 @@ export function useInventoryActions(organizationSlug: string) {
     }
     await Promise.all(refreshes);
   };
-  const onError = () => toast.error(m.inventory__update_failed());
-
   const createComponent = useMutation({
-    ...orpc.inventory.createComponent.mutationOptions({ onError }),
+    ...orpc.inventory.createComponent.mutationOptions({ onError: showInventoryError }),
     mutationFn: (input: Omit<InventoryCreateComponentInput, "organizationSlug">) =>
       orpc.inventory.createComponent.call({ ...input, organizationSlug }),
     onSuccess: () => refresh()
   });
   const editComponent = useMutation({
-    ...orpc.inventory.editComponent.mutationOptions({ onError }),
+    ...orpc.inventory.editComponent.mutationOptions({ onError: showInventoryError }),
     mutationFn: (input: Omit<InventoryEditComponentInput, "organizationSlug">) =>
       orpc.inventory.editComponent.call({ ...input, organizationSlug }),
     onSuccess: (component) => refresh(component.id)
@@ -66,7 +66,7 @@ export function useInventoryActions(organizationSlug: string) {
     onSuccess: ({ component }) => refresh(component.id)
   });
   const setAvailability = useMutation({
-    ...orpc.inventory.setAvailability.mutationOptions({ onError }),
+    ...orpc.inventory.setAvailability.mutationOptions({ onError: showInventoryError }),
     mutationFn: (input: Omit<InventorySetAvailabilityInput, "organizationSlug">) =>
       orpc.inventory.setAvailability.call({ ...input, organizationSlug }),
     onSuccess: (component) => refresh(component.id)
