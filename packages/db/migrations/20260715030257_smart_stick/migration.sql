@@ -6,7 +6,7 @@ CREATE TYPE "offline_payment_method" AS ENUM('cash', 'bank_transfer', 'upi', 'ch
 CREATE TYPE "option_group_type" AS ENUM('single', 'boolean', 'number');--> statement-breakpoint
 CREATE TYPE "order_status" AS ENUM('placed', 'confirmed', 'in_production', 'completed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "product_status" AS ENUM('draft', 'published', 'archived');--> statement-breakpoint
-CREATE SEQUENCE "public"."customer_order_number_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 99999999999 START WITH 1 CACHE 1;--> statement-breakpoint
+CREATE SEQUENCE "customer_order_number_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 99999999999 START WITH 1 CACHE 1;--> statement-breakpoint
 CREATE TABLE "account" (
 	"access_token" text,
 	"access_token_expires_at" timestamp,

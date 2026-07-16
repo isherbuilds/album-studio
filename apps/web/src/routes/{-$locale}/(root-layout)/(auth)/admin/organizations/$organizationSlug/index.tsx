@@ -6,7 +6,7 @@ import { getOrganizationQueryOptions } from "@/hooks/use-platform-admin";
 export const Route = createFileRoute(
   "/{-$locale}/(root-layout)/(auth)/admin/organizations/$organizationSlug/"
 )({
-  beforeLoad: ({ context, params }) =>
+  loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(getOrganizationQueryOptions(params.organizationSlug)),
   component: RouteComponent
 });

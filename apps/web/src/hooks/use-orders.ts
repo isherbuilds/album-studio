@@ -10,22 +10,40 @@ import {
   type OrderDetail,
   type OrderPlaceInput,
   type OrderPriceChange,
+  type OrderSort,
+  type OrderStatus,
   type OrderTransitionInput
 } from "@tsu-stack/contract/order";
 import { m } from "@tsu-stack/i18n/messages";
 
 import { getDraftByIdQueryOptions, getDraftListQueryOptions } from "@/hooks/use-drafts";
 
-export function getOrderListQueryOptions(organizationSlug: string) {
-  return orpc.orders.list.queryOptions({ input: { organizationSlug } });
+export type OrderListParams = {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  sort?: OrderSort;
+  status?: OrderStatus;
+};
+
+export function getOrderListQueryOptions(
+  organizationSlug: string,
+  { page = 1, pageSize = 20, query = "", sort = "date-desc", status }: OrderListParams = {}
+) {
+  return orpc.orders.list.queryOptions({
+    input: {
+      organizationSlug,
+      page,
+      pageSize,
+      query,
+      sort,
+      ...(status ? { status } : {})
+    }
+  });
 }
 
 export function getOrderByNumberQueryOptions(organizationSlug: string, orderNumber: string) {
   return orpc.orders.byNumber.queryOptions({ input: { orderNumber, organizationSlug } });
-}
-
-export function useOrderListQuery(organizationSlug: string) {
-  return useQuery(getOrderListQueryOptions(organizationSlug));
 }
 
 export function useOrderByNumberQuery(organizationSlug: string, orderNumber: string) {
@@ -43,7 +61,9 @@ export function useOrderActions(organizationSlug: string, orderNumber: string) {
       getOrderByNumberQueryOptions(organizationSlug, orderNumber).queryKey,
       order
     );
-    await queryClient.invalidateQueries(getOrderListQueryOptions(organizationSlug));
+    await queryClient.invalidateQueries({
+      queryKey: orpc.orders.list.key({ input: { organizationSlug } })
+    });
   };
 
   const transition = useMutation({
@@ -141,7 +161,9 @@ export function usePlaceOrderMutation(
       );
       await Promise.all([
         queryClient.invalidateQueries(getDraftListQueryOptions(organizationSlug)),
-        queryClient.invalidateQueries(getOrderListQueryOptions(organizationSlug))
+        queryClient.invalidateQueries({
+          queryKey: orpc.orders.list.key({ input: { organizationSlug } })
+        })
       ]);
       handlers.onPlaced(order);
     }

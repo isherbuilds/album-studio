@@ -13,9 +13,27 @@ export function orderStatusLabel(status: OrderStatus) {
   return orderStatusConfig[status].label();
 }
 
-export function nextOrderStatus(status: OrderStatus): OrderStatus | undefined {
-  if (status === "placed") return "confirmed";
-  if (status === "confirmed") return "in_production";
-  if (status === "in_production") return "completed";
-  return undefined;
+const mediumDateFormatters = new Map<string, Intl.DateTimeFormat>();
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+export function formatOrderDate(value: string, locale: string): string {
+  let formatter = mediumDateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" });
+    mediumDateFormatters.set(locale, formatter);
+  }
+  return formatter.format(new Date(value));
+}
+
+export function formatOrderDateTime(value: string, locale: string): string {
+  let formatter = dateTimeFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC"
+    });
+    dateTimeFormatters.set(locale, formatter);
+  }
+  return formatter.format(new Date(value));
 }

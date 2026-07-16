@@ -11,3 +11,7 @@
     */
   --navbar-height: 68px;
 }
+
+html {
+  scrollbar-gutter: stable;
+}

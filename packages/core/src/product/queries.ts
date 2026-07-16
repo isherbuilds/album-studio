@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 import {
   type ComponentAvailability,
@@ -9,7 +9,9 @@ import {
   type ProductDefinitionValidationIssue,
   type ProductEditor,
   ProductEditorSchema,
-  type ProductListItem
+  type ProductListInput,
+  type ProductListItem,
+  type ProductListResult
 } from "@tsu-stack/contract/product";
 import { type DatabaseOrTransaction } from "@tsu-stack/db";
 import {
@@ -26,31 +28,70 @@ import { computeEffectiveAvailability } from "#@/inventory/queries";
 
 export async function listProducts(
   db: DatabaseOrTransaction,
-  input: { organizationId: string }
-): Promise<ProductListItem[]> {
-  const rows = await db
-    .select({
-      basePriceMinor: product.basePriceMinor,
-      imageUrls: product.imageUrls,
-      name: product.name,
-      revision: product.revision,
-      slug: product.slug,
-      status: product.status
-    })
-    .from(product)
-    .where(eq(product.organizationId, input.organizationId))
-    .orderBy(asc(product.name), asc(product.slug));
+  input: Omit<ProductListInput, "organizationSlug"> & { organizationId: string }
+): Promise<ProductListResult> {
+  const organizationFilter = eq(product.organizationId, input.organizationId);
+  const escapedQuery = input.query
+    .replaceAll("\\", "\\\\")
+    .replaceAll("%", "\\%")
+    .replaceAll("_", "\\_");
+  const queryPattern = `%${escapedQuery}%`;
+  const listFilter = and(
+    organizationFilter,
+    input.status ? eq(product.status, input.status) : undefined,
+    input.query
+      ? or(ilike(product.name, queryPattern), ilike(product.slug, queryPattern))
+      : undefined
+  );
+  const offset = (input.page - 1) * input.pageSize;
 
-  return rows.map((row) => {
-    return {
-      basePriceMinor: row.basePriceMinor,
-      name: row.name,
-      revision: row.revision,
-      slug: row.slug,
-      status: row.status,
-      thumbnailUrl: row.imageUrls[0] ?? null
-    };
-  });
+  const [rows, totalRows, countRows] = await Promise.all([
+    db
+      .select({
+        basePriceMinor: product.basePriceMinor,
+        imageUrls: product.imageUrls,
+        name: product.name,
+        revision: product.revision,
+        slug: product.slug,
+        status: product.status
+      })
+      .from(product)
+      .where(listFilter)
+      .orderBy(asc(product.name), asc(product.slug))
+      .limit(input.pageSize)
+      .offset(offset),
+    db
+      .select({ value: sql<number>`count(*)::int` })
+      .from(product)
+      .where(listFilter),
+    db
+      .select({ status: product.status, value: sql<number>`count(*)::int` })
+      .from(product)
+      .where(organizationFilter)
+      .groupBy(product.status)
+  ]);
+
+  const counts = { archived: 0, draft: 0, published: 0 };
+  for (const row of countRows) counts[row.status] = row.value;
+  const total = totalRows[0]?.value ?? 0;
+
+  return {
+    counts,
+    items: rows.map((row): ProductListItem => {
+      return {
+        basePriceMinor: row.basePriceMinor,
+        name: row.name,
+        revision: row.revision,
+        slug: row.slug,
+        status: row.status,
+        thumbnailUrl: row.imageUrls[0] ?? null
+      };
+    }),
+    page: input.page,
+    pageCount: Math.ceil(total / input.pageSize),
+    pageSize: input.pageSize,
+    total
+  };
 }
 
 export async function loadProductEditor(

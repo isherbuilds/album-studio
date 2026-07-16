@@ -10,7 +10,7 @@ import {
   ProductEditPricingInputSchema,
   ProductEditorSchema,
   ProductListInputSchema,
-  ProductListItemSchema,
+  ProductListResultSchema,
   ProductPreviewInputSchema,
   ProductPreviewResultSchema,
   ProductPublishInputSchema,
@@ -192,9 +192,15 @@ export const productsRouter = {
     }),
   list: organizationActionProcedure(ProductListInputSchema, "product.manage")
     .route({ description: "List Products for editing", method: "GET" })
-    .output(z.array(ProductListItemSchema))
-    .handler(({ context }) =>
-      listProducts(context.db, { organizationId: context.organization.id })
+    .output(ProductListResultSchema)
+    .handler(({ context, input }) =>
+      listProducts(context.db, {
+        organizationId: context.organization.id,
+        page: input.page,
+        pageSize: input.pageSize,
+        query: input.query,
+        status: input.status
+      })
     ),
   preview: organizationActionProcedure(ProductPreviewInputSchema, "product.manage")
     .route({ description: "Preview a Product with the customer evaluator", method: "POST" })

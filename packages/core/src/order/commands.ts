@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { type ConfigurationEvaluation } from "@tsu-stack/contract/configuration";
 import {
+  canTransitionOrder,
   OrderPriceComparisonSchema,
   type CancellationRequestStatus,
   type OrderDetail,
@@ -19,14 +20,6 @@ import { runRepeatableReadTransaction } from "#@/database/run-repeatable-read-tr
 import { parseConfigurationDraftDetail } from "#@/draft/queries";
 import { createConfigurationDraftSnapshot } from "#@/draft/snapshot";
 import { parseOrderDetail } from "#@/order/queries";
-
-const validTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
-  cancelled: [],
-  completed: [],
-  confirmed: ["in_production", "cancelled"],
-  in_production: ["completed", "cancelled"],
-  placed: ["confirmed", "cancelled"]
-};
 
 async function loadOrderForUpdate(
   tx: DatabaseOrTransaction,
@@ -258,10 +251,7 @@ export async function transitionOrder(
   return runRepeatableReadTransaction(db, async (tx) => {
     const order = await loadOrderForUpdate(tx, input);
     if (!order) return { kind: "not_found" };
-    if (
-      !validTransitions[order.status].includes(input.status) ||
-      order.cancellationStatus === "pending"
-    ) {
+    if (!canTransitionOrder(order.status, input.status) || order.cancellationStatus === "pending") {
       return { kind: "invalid_transition" };
     }
 
@@ -316,7 +306,7 @@ export async function correctOrderProjectName(
       action: "order.project_name_corrected",
       actorUserId: input.actorUserId,
       entityId: order.id,
-      metadata: { from: order.projectName, to: input.projectName },
+      metadata: {},
       organizationId: input.organizationId
     });
     return parseOrderDetail(updated);

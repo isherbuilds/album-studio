@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { type OrganizationRole, OrganizationRoleSchema } from "@tsu-stack/contract/organization";
 import { type DatabaseOrTransaction } from "@tsu-stack/db";
@@ -17,6 +17,39 @@ export type GetOrganizationMembershipForAccessInput = {
   organizationSlug: string;
   userId: string;
 };
+
+export type OrganizationMembershipSummary = {
+  createdAt: Date;
+  id: string;
+  name: string;
+  organizationSlug: string;
+  role: OrganizationRole;
+};
+
+export async function listOrganizationMembershipsForUser(
+  db: DatabaseOrTransaction,
+  userId: string
+): Promise<OrganizationMembershipSummary[]> {
+  const rows = await db
+    .select({
+      createdAt: organization.createdAt,
+      id: organization.id,
+      name: organization.name,
+      organizationSlug: organization.slug,
+      role: member.role
+    })
+    .from(member)
+    .innerJoin(organization, eq(organization.id, member.organizationId))
+    .where(eq(member.userId, userId))
+    .orderBy(asc(member.createdAt), asc(organization.slug), asc(organization.id), asc(member.id));
+
+  return rows.map((row) => {
+    return {
+      ...row,
+      role: OrganizationRoleSchema.parse(row.role)
+    };
+  });
+}
 
 /**
  * Resolves the caller's membership in one organization by slug. Returns

@@ -6,12 +6,12 @@ import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 import { m } from "@tsu-stack/i18n/messages";
 
 export const platformAdminQueryKeys = {
-  dashboard: () => orpc.platform.dashboard.key(),
+  dashboard: () => orpc.dashboards.platform.key(),
   organizations: () => orpc.platform.organizations.list.key()
 };
 
 export function getPlatformDashboardQueryOptions() {
-  return orpc.platform.dashboard.queryOptions();
+  return orpc.dashboards.platform.queryOptions();
 }
 
 export function useGetPlatformDashboardQuery() {

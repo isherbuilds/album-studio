@@ -5,7 +5,11 @@ export function normalizeConfigurationDraftStep(
   step: ConfigurationDraftStep,
   product: ProductDefinition
 ): ConfigurationDraftStep {
-  if (step.kind === "review" || product.groups.some((group) => group.key === step.groupKey)) {
+  if (
+    step.kind === "review" ||
+    step.kind === "summary" ||
+    product.groups.some((group) => group.key === step.groupKey)
+  ) {
     return step;
   }
 

@@ -4,7 +4,6 @@ import { PlatformAdminPage } from "@/components/platform-admin/platform-admin-pa
 import { getPlatformDashboardQueryOptions } from "@/hooks/use-platform-admin";
 
 export const Route = createFileRoute("/{-$locale}/(root-layout)/(auth)/admin/")({
-  beforeLoad: ({ context }) =>
-    context.queryClient.ensureQueryData(getPlatformDashboardQueryOptions()),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getPlatformDashboardQueryOptions()),
   component: PlatformAdminPage
 });

@@ -9,6 +9,7 @@ import {
   OrganizationRoleSchema,
   OrgSlugInputSchema
 } from "@tsu-stack/contract/organization";
+import { listOrganizationMembershipsForUser } from "@tsu-stack/core/organization";
 import { auditEvent, invitation, member, organization, user } from "@tsu-stack/db/schema";
 
 import {
@@ -148,22 +149,15 @@ export const organizationsRouter = {
     .input(z.void())
     .output(z.array(organizationMembershipSchema))
     .handler(async ({ context }) => {
-      const rows = await context.db
-        .select({
-          createdAt: organization.createdAt,
-          id: organization.id,
-          name: organization.name,
-          role: member.role,
-          slug: organization.slug
-        })
-        .from(member)
-        .innerJoin(organization, eq(organization.id, member.organizationId))
-        .where(eq(member.userId, context.authSession.user.id));
-      return rows.map((row) => {
+      const memberships = await listOrganizationMembershipsForUser(
+        context.db,
+        context.authSession.user.id
+      );
+      return memberships.map(({ organizationSlug, ...membership }) => {
         return {
-          ...row,
-          createdAt: row.createdAt.toISOString(),
-          role: OrganizationRoleSchema.parse(row.role)
+          ...membership,
+          createdAt: membership.createdAt.toISOString(),
+          slug: organizationSlug
         };
       });
     }),
@@ -212,11 +206,6 @@ export const organizationsRouter = {
           throw new ORPCError("NOT_FOUND", { message: "Member not found" });
         }
 
-        // TODO(mvp-hardening): Better Auth commits this mutation before the audit insert,
-        // and its directly mounted update-member-role endpoint can bypass this wrapper.
-        // The trusted-operator MVP accepts that gap; make this the sole durable mutation
-        // path (or audit through a reliable Better Auth hook/outbox) before audit fidelity
-        // becomes a compliance or multi-operator requirement.
         try {
           await auth.api.updateMemberRole({
             body: {

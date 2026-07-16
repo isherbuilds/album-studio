@@ -5,7 +5,6 @@ import { cn } from "@tsu-stack/ui/lib/utils";
 type WorkspacePageHeaderProps = {
   actions?: ReactNode;
   description: ReactNode;
-  eyebrow?: ReactNode;
   title: ReactNode;
 };
 
@@ -17,26 +16,18 @@ export function WorkspacePage({
   className?: string;
 }) {
   return (
-    <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-6 p-5 sm:p-8", className)}>
+    <div
+      className={cn("mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 sm:gap-6 sm:p-6", className)}
+    >
       {children}
     </div>
   );
 }
 
-export function WorkspacePageHeader({
-  actions,
-  description,
-  eyebrow,
-  title
-}: WorkspacePageHeaderProps) {
+export function WorkspacePageHeader({ actions, description, title }: WorkspacePageHeaderProps) {
   return (
-    <header className="flex flex-col gap-5 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        {eyebrow ? (
-          <p className="mb-2 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-            {eyebrow}
-          </p>
-        ) : null}
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
@@ -47,6 +38,7 @@ export function WorkspacePageHeader({
 
 type WorkspaceStat = {
   detail?: ReactNode;
+  id: string;
   label: ReactNode;
   markerClassName?: string;
   value: ReactNode;
@@ -56,16 +48,16 @@ export function WorkspaceStatStrip({ label, stats }: { label: string; stats: Wor
   return (
     <section
       aria-label={label}
-      className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-[repeat(var(--stat-count),minmax(0,1fr))]"
+      className="grid overflow-hidden rounded-lg border bg-card sm:grid-cols-[repeat(var(--stat-count),minmax(0,1fr))]"
       style={{ "--stat-count": stats.length } as CSSProperties}
     >
       {stats.map((stat, index) => (
         <div
           className={cn(
-            "flex min-w-0 items-center justify-between gap-4 p-4 sm:block sm:p-5",
+            "flex min-w-0 items-center justify-between gap-4 p-4 sm:block sm:p-6",
             index > 0 && "border-t sm:border-t-0 sm:border-l"
           )}
-          key={index}
+          key={stat.id}
         >
           <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-muted-foreground">
             {stat.markerClassName ? (
@@ -90,7 +82,7 @@ export function WorkspaceStatStrip({ label, stats }: { label: string; stats: Wor
 
 export function WorkspaceToolbar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-b bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 border-b bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
       {children}
     </div>
   );
