@@ -43,7 +43,7 @@ export async function createComponent(
       actorUserId: input.actorUserId,
       entityId: row.id,
       entityType: "component",
-      metadata: { lowStockThreshold: row.lowStockThreshold, name: row.name, unit: row.unit },
+      metadata: { lowStockThreshold: row.lowStockThreshold },
       organizationId: input.organizationId
     });
     return row;
@@ -80,7 +80,7 @@ export async function editComponent(
       actorUserId: input.actorUserId,
       entityId: row.id,
       entityType: "component",
-      metadata: { lowStockThreshold: row.lowStockThreshold, name: row.name, unit: row.unit },
+      metadata: { lowStockThreshold: row.lowStockThreshold },
       organizationId: input.organizationId
     });
     return row;

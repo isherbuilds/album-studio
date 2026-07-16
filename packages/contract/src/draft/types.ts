@@ -22,7 +22,8 @@ export const ConfigurationDraftSelectionsSchema = ConfigurationSelectionsSchema.
 
 export const ConfigurationDraftStepSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("group"), groupKey: OptionGroupKeySchema }),
-  z.object({ kind: z.literal("review") })
+  z.object({ kind: z.literal("review") }),
+  z.object({ kind: z.literal("summary") })
 ]);
 
 export const ConfigurationDraftProjectNameSchema = z

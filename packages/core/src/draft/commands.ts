@@ -1,5 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 
+import { type PublicProductDefinition } from "@tsu-stack/contract/catalog";
 import { type ConfigurationSelections } from "@tsu-stack/contract/configuration";
 import {
   type ConfigurationDraftEditor,
@@ -10,9 +11,46 @@ import { type Database, type DatabaseOrTransaction } from "@tsu-stack/db";
 import { configurationDraft } from "@tsu-stack/db/schema";
 
 import { loadPublicProductDefinition } from "#@/catalog/queries";
+import { evaluateConfiguration } from "#@/configuration/evaluate-configuration";
 import { runRepeatableReadTransaction } from "#@/database/run-repeatable-read-transaction";
 import { loadConfigurationDraftReference, parseConfigurationDraftDetail } from "#@/draft/queries";
 import { createConfigurationDraftSnapshot } from "#@/draft/snapshot";
+
+function createInitialSelections(product: PublicProductDefinition): ConfigurationSelections {
+  let selections: ConfigurationSelections = Object.fromEntries(
+    product.definition.groups.flatMap((group) =>
+      group.type === "number" ? [[group.key, group.included]] : []
+    )
+  );
+
+  for (const group of product.definition.groups) {
+    if (group.type === "number" || !group.required) continue;
+
+    const evaluation = evaluateConfiguration({
+      availability: product.availability,
+      currency: product.currency,
+      product: product.definition,
+      quantity: 1,
+      selections
+    });
+    selections = evaluation.normalizedSelections;
+    const defaultValue = group.values.find((value) =>
+      evaluation.disabledExplanations.every(
+        (explanation) =>
+          explanation.groupKey !== group.key || explanation.optionValueId !== value.id
+      )
+    );
+    if (defaultValue) selections[group.key] = defaultValue.id;
+  }
+
+  return evaluateConfiguration({
+    availability: product.availability,
+    currency: product.currency,
+    product: product.definition,
+    quantity: 1,
+    selections
+  }).normalizedSelections;
+}
 
 export async function createConfigurationDraft(
   db: Pick<Database, "transaction">,
@@ -31,11 +69,7 @@ export async function createConfigurationDraft(
     });
     if (!productDefinition) return undefined;
 
-    const selections: ConfigurationSelections = Object.fromEntries(
-      productDefinition.definition.groups.flatMap((group) =>
-        group.type === "number" ? [[group.key, group.included]] : []
-      )
-    );
+    const selections = createInitialSelections(productDefinition);
     const firstGroup = productDefinition.definition.groups[0];
     const state: ConfigurationDraftState = {
       projectName: input.projectName ?? null,

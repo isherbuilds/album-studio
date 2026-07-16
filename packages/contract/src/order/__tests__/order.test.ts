@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  canTransitionOrder,
+  nextOrderStatus,
   OrderDetailSchema,
   OrderPlaceInputSchema,
   OrderSnapshotSchema
@@ -83,5 +85,14 @@ describe("Order contract", () => {
 
     expect(detail.projectName).toBe("Corrected name");
     expect(detail.snapshot.projectName).toBe("Maya & Arjun");
+  });
+
+  it("owns production and cancellation transition policy", () => {
+    expect(nextOrderStatus("placed")).toBe("confirmed");
+    expect(nextOrderStatus("confirmed")).toBe("in_production");
+    expect(nextOrderStatus("in_production")).toBe("completed");
+    expect(nextOrderStatus("completed")).toBeUndefined();
+    expect(canTransitionOrder("placed", "cancelled")).toBe(true);
+    expect(canTransitionOrder("completed", "cancelled")).toBe(false);
   });
 });

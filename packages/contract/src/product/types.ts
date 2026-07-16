@@ -16,7 +16,12 @@ const IdSchema = z.string().min(1);
 const ProductNameSchema = z.string().trim().min(1).max(200);
 const ProductDescriptionSchema = z.string().trim().max(5_000).nullable();
 const ProductImageUrlSchema = z.string().trim().min(1).max(2_048);
-const ProductImageUrlsSchema = z.array(ProductImageUrlSchema).max(20);
+const ProductImageUrlsSchema = z
+  .array(ProductImageUrlSchema)
+  .max(20)
+  .refine((imageUrls) => new Set(imageUrls).size === imageUrls.length, {
+    message: "Product image URLs must be unique"
+  });
 const ProductLabelSchema = z.string().trim().min(1).max(200);
 
 export const ProductSlugSchema = z
@@ -223,7 +228,12 @@ const VersionedProductLocatorSchema = ProductLocatorSchema.extend({
   expectedRevision: ProductRevisionSchema
 }).strict();
 
-export const ProductListInputSchema = OrgSlugInputSchema.strict();
+export const ProductListInputSchema = OrgSlugInputSchema.extend({
+  page: z.number().int().positive().default(1),
+  pageSize: z.number().int().min(1).max(100).default(20),
+  query: z.string().trim().max(200).default(""),
+  status: ProductStatusSchema.optional()
+}).strict();
 export const ProductBySlugInputSchema = ProductLocatorSchema;
 export const ProductCreateInputSchema = OrgSlugInputSchema.extend(
   ProductContentSchema.shape
@@ -330,6 +340,19 @@ export const ProductListItemSchema = z.object({
   thumbnailUrl: ProductImageUrlSchema.nullable()
 });
 
+export const ProductListResultSchema = z.object({
+  counts: z.object({
+    archived: z.number().int().nonnegative(),
+    draft: z.number().int().nonnegative(),
+    published: z.number().int().nonnegative()
+  }),
+  items: z.array(ProductListItemSchema),
+  page: z.number().int().positive(),
+  pageCount: z.number().int().nonnegative(),
+  pageSize: z.number().int().positive(),
+  total: z.number().int().nonnegative()
+});
+
 export const ProductEditorSchema = z.object({
   basePriceMinor: MinorUnitAmountSchema.nonnegative().nullable(),
   currency: CurrencyCodeSchema,
@@ -374,6 +397,7 @@ export type ProductArchiveInput = z.infer<typeof ProductArchiveInputSchema>;
 export type ProductRemoveInput = z.infer<typeof ProductRemoveInputSchema>;
 export type ProductRemoveResult = z.infer<typeof ProductRemoveResultSchema>;
 export type ProductListItem = z.infer<typeof ProductListItemSchema>;
+export type ProductListResult = z.infer<typeof ProductListResultSchema>;
 export type ProductEditor = z.infer<typeof ProductEditorSchema>;
 export type ProductDefinitionValidationIssue = z.infer<
   typeof ProductDefinitionValidationIssueSchema
