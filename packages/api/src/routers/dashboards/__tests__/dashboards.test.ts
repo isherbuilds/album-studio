@@ -424,6 +424,15 @@ beforeAll(async () => {
     },
     {
       actorUserId: fixture.ownerId,
+      amountMinor: 10_000,
+      entryType: "receipt",
+      method: "cash",
+      mutationId: crypto.randomUUID(),
+      orderId: orders[1]!.id,
+      organizationId: fixture.organizationId
+    },
+    {
+      actorUserId: fixture.ownerId,
       amountMinor: 7_000,
       entryType: "receipt",
       id: confirmedReceiptId,
@@ -549,7 +558,7 @@ describe("dashboards router", () => {
         placed: 2
       },
       stock: { low: 2, out: 2 },
-      unpaidTotal: { amountMinor: 97_000, currency: "EUR" }
+      unpaidTotal: { amountMinor: 92_000, currency: "EUR" }
     });
     expect(managerResult).toEqual({
       orders: { confirmed: 1, inProduction: 1, placed: 2 },
