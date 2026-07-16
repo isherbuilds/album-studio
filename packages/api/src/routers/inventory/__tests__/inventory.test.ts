@@ -25,6 +25,11 @@ const fixture = {
   ownerId: crypto.randomUUID()
 };
 
+function expectSafeAuditMetadata(metadata: unknown, expected: Record<string, unknown>) {
+  expect(metadata).toEqual(expected);
+  expect(JSON.stringify(metadata)).not.toMatch(/password|token|secret|session|cookie/i);
+}
+
 function clientFor(userId: string) {
   return createRouterClient(appRouter, {
     context: {
@@ -166,23 +171,23 @@ describe("inventory router", () => {
     const manager = clientFor(fixture.managerId);
     const created = await manager.inventory.createComponent({
       lowStockThreshold: "2",
-      name: "Board",
+      name: "password token secret session cookie",
       organizationSlug: fixture.organizationSlug,
-      unit: "sheet"
+      unit: "password token"
     });
 
     const edited = await manager.inventory.editComponent({
       componentId: created.id,
       lowStockThreshold: "4.25",
-      name: "Grey board",
+      name: "updated password token secret session cookie",
       organizationSlug: fixture.organizationSlug,
-      unit: "board"
+      unit: "secret session cookie"
     });
     expect(edited).toMatchObject({
       effectiveAvailability: "out",
       lowStockThreshold: "4.2500",
-      name: "Grey board",
-      unit: "board"
+      name: "updated password token secret session cookie",
+      unit: "secret session cookie"
     });
 
     await expect(
@@ -196,6 +201,24 @@ describe("inventory router", () => {
       effectiveAvailability: "available",
       id: created.id,
       quantity: "0.0000"
+    });
+
+    const events = await db
+      .select({ action: auditEvent.action, metadata: auditEvent.metadata })
+      .from(auditEvent)
+      .where(eq(auditEvent.entityId, created.id));
+    const createdAudit = events.find((event) => event.action === "inventory.component_created");
+    expectSafeAuditMetadata(createdAudit?.metadata, {
+      lowStockThreshold: "2.0000"
+    });
+    const editedAudit = events.find((event) => event.action === "inventory.component_edited");
+    expectSafeAuditMetadata(editedAudit?.metadata, {
+      lowStockThreshold: "4.2500"
+    });
+    const availabilityAudit = events.find((event) => event.action === "inventory.availability_set");
+    expectSafeAuditMetadata(availabilityAudit?.metadata, {
+      from: "automatic",
+      to: "available"
     });
   });
 

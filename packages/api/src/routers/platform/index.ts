@@ -1,9 +1,9 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@tsu-stack/auth/index";
 import { PlatformCreateOrganizationInputSchema } from "@tsu-stack/contract/organization";
-import { member, organization, user } from "@tsu-stack/db/schema";
+import { organization, user } from "@tsu-stack/db/schema";
 
 import { platformAdminProcedure } from "#@/lib/procedures/factory";
 
@@ -15,43 +15,6 @@ const organizationSummarySchema = z.object({
 });
 
 export const platformRouter = {
-  dashboard: platformAdminProcedure
-    .route({ description: "Get installation-wide organization and user counts", method: "GET" })
-    .input(z.void())
-    .output(
-      z.object({
-        organizations: z.number().int().nonnegative(),
-        roles: z.object({
-          customers: z.number().int().nonnegative(),
-          managers: z.number().int().nonnegative(),
-          owners: z.number().int().nonnegative()
-        }),
-        users: z.number().int().nonnegative()
-      })
-    )
-    .handler(async ({ context }) => {
-      const [stats] = await context.db
-        .select({
-          customers: sql<number>`count(*) filter (where ${member.role} = 'customer')::int`,
-          managers: sql<number>`count(*) filter (where ${member.role} = 'manager')::int`,
-          organizations: sql<number>`(select count(*)::int from ${organization})`,
-          owners: sql<number>`count(*) filter (where ${member.role} = 'owner')::int`,
-          users: sql<number>`(select count(*)::int from ${user})`
-        })
-        .from(member);
-
-      if (!stats) throw new Error("Dashboard aggregate query returned no row");
-
-      return {
-        organizations: stats.organizations,
-        roles: {
-          customers: stats.customers,
-          managers: stats.managers,
-          owners: stats.owners
-        },
-        users: stats.users
-      };
-    }),
   organizations: {
     list: platformAdminProcedure
       .route({ description: "List organizations", method: "GET" })

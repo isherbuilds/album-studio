@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { auth } from "@tsu-stack/auth/index";
+import { PlatformCreateOrganizationInputSchema } from "@tsu-stack/contract/organization";
 import { db } from "@tsu-stack/db";
 import { account, member, organization, user } from "@tsu-stack/db/schema";
 import { createLogger } from "@tsu-stack/logger/server";
@@ -13,11 +14,9 @@ let adminId = "";
 const ownerId = crypto.randomUUID();
 const ownerEmail = `${ownerId}@example.com`;
 const adminEmail = `${crypto.randomUUID()}@example.com`;
-const nonAdminEmail = `${crypto.randomUUID()}@example.com`;
 const provisionedOwnerEmail = `${crypto.randomUUID()}@example.com`;
 const testPassword = "platform-test-password";
 let adminHeaders = new Headers();
-let nonAdminHeaders = new Headers();
 
 function createContext(headers: Headers, role: string | null = null) {
   const authSession = {
@@ -52,24 +51,14 @@ function createContext(headers: Headers, role: string | null = null) {
 }
 
 beforeAll(async () => {
-  const [adminUser] = await Promise.all([
-    auth.api.createUser({
-      body: {
-        email: adminEmail,
-        name: "Admin",
-        password: testPassword,
-        role: "admin"
-      }
-    }),
-    auth.api.createUser({
-      body: {
-        email: nonAdminEmail,
-        name: "Non-admin",
-        password: testPassword,
-        role: "user"
-      }
-    })
-  ]);
+  const adminUser = await auth.api.createUser({
+    body: {
+      email: adminEmail,
+      name: "Admin",
+      password: testPassword,
+      role: "admin"
+    }
+  });
   adminId = adminUser.user.id;
   await db.insert(user).values({
     email: ownerEmail,
@@ -79,16 +68,10 @@ beforeAll(async () => {
     role: "user"
   });
 
-  const [adminSignIn, nonAdminSignIn] = await Promise.all([
-    auth.api.signInEmail({
-      body: { email: adminEmail, password: testPassword },
-      returnHeaders: true
-    }),
-    auth.api.signInEmail({
-      body: { email: nonAdminEmail, password: testPassword },
-      returnHeaders: true
-    })
-  ]);
+  const adminSignIn = await auth.api.signInEmail({
+    body: { email: adminEmail, password: testPassword },
+    returnHeaders: true
+  });
   const toRequestHeaders = (headers: Headers) =>
     new Headers({
       cookie: headers
@@ -97,12 +80,10 @@ beforeAll(async () => {
         .join("; ")
     });
   adminHeaders = toRequestHeaders(adminSignIn.headers);
-  nonAdminHeaders = toRequestHeaders(nonAdminSignIn.headers);
 });
 
 afterAll(async () => {
   await db.delete(user).where(eq(user.email, provisionedOwnerEmail));
-  await db.delete(user).where(eq(user.email, nonAdminEmail));
   await db.delete(user).where(eq(user.id, adminId));
   await db.delete(user).where(eq(user.id, ownerId));
 });
@@ -131,33 +112,33 @@ describe("platform router authorization", () => {
     }
   });
 
-  it("rejects a signed-in non-admin even when the request context contains a stale admin role", async () => {
-    const client = createRouterClient(platformRouter, {
-      context: createContext(nonAdminHeaders, "admin")
+  it.each([
+    "admin",
+    "select-organization",
+    "sign-in",
+    "accept-invitation",
+    "privacy-policy",
+    "terms-of-service",
+    "en",
+    "te"
+  ])("rejects the reserved organization slug %s at the public contract", (slug) => {
+    const result = PlatformCreateOrganizationInputSchema.safeParse({
+      currency: "INR",
+      name: "Reserved Slug Organization",
+      ownerEmail: "owner@example.com",
+      ownerName: "Reserved Slug Owner",
+      ownerPassword: "a-secure-temporary-password",
+      slug
     });
 
-    await expect(client.dashboard()).rejects.toMatchObject({
-      code: "FORBIDDEN"
-    });
-  });
-
-  it("rejects an unauthenticated request", async () => {
-    const client = createRouterClient(platformRouter, {
-      context: createContext(new Headers())
-    });
-
-    await expect(client.dashboard()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-  });
-
-  it("allows a platform admin", async () => {
-    const client = createRouterClient(platformRouter, {
-      context: createContext(adminHeaders, "admin")
-    });
-
-    await expect(client.dashboard()).resolves.toMatchObject({
-      organizations: expect.any(Number),
-      users: expect.any(Number)
-    });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues).toContainEqual(
+      expect.objectContaining({
+        message: "Organization slug is reserved",
+        path: ["slug"]
+      })
+    );
   });
 
   it("programmatically creates a missing user and appoints them as initial owner", async () => {
