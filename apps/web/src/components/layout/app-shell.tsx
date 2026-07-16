@@ -2,7 +2,6 @@ import { useRouterState } from "@tanstack/react-router";
 import {
   Boxes,
   Building2,
-  Images,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -14,9 +13,10 @@ import {
 import { useState } from "react";
 
 import { can } from "@tsu-stack/auth/access-control";
+import { type OrganizationRole } from "@tsu-stack/contract/organization";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
-import { Button } from "@tsu-stack/ui/components/button";
+import { Button, buttonVariants } from "@tsu-stack/ui/components/button";
 import { Separator } from "@tsu-stack/ui/components/separator";
 import {
   Sheet,
@@ -27,34 +27,36 @@ import {
   SheetTrigger
 } from "@tsu-stack/ui/components/sheet";
 
+import { LocaleSwitcher } from "@/components/common/locale-switcher";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { NavbarAvatar } from "@/components/navigation/navbar-avatar";
 import { useSignOut } from "@/hooks/use-auth";
 
+type WorkspaceNavigationTarget =
+  | { kind: "none" }
+  | { kind: "platform" }
+  | { kind: "organization"; organizationSlug: string; role: OrganizationRole };
+
 type WorkspaceNavigationProps = {
-  organizationSlug?: string;
-  showInventoryNavigation: boolean;
-  showMemberNavigation: boolean;
-  showProductNavigation: boolean;
+  target: WorkspaceNavigationTarget;
   onNavigate?: () => void;
-  showPlatformNavigation: boolean;
 };
 
-function WorkspaceNavigation({
-  onNavigate,
-  organizationSlug,
-  showInventoryNavigation,
-  showMemberNavigation,
-  showProductNavigation,
-  showPlatformNavigation
-}: WorkspaceNavigationProps) {
+function WorkspaceNavigation({ onNavigate, target }: WorkspaceNavigationProps) {
   const itemClass =
-    "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-  const activeProps = { className: "bg-muted text-foreground" };
+    "flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const activeProps = { className: "bg-accent text-foreground" };
+  const organizationSlug = target.kind === "organization" ? target.organizationSlug : undefined;
+  const showInventoryNavigation =
+    target.kind === "organization" && can("inventory.manage", { role: target.role });
+  const showMemberNavigation =
+    target.kind === "organization" && can("member.read", { role: target.role });
+  const showProductNavigation =
+    target.kind === "organization" && can("product.manage", { role: target.role });
 
   return (
     <nav aria-label={m.app_shell__workspace()} className="flex flex-col gap-1">
-      {showPlatformNavigation ? (
+      {target.kind === "platform" ? (
         <>
           <Link
             activeOptions={{ exact: true }}
@@ -85,10 +87,10 @@ function WorkspaceNavigation({
             className={itemClass}
             onClick={onNavigate}
             params={{ organizationSlug }}
-            to="/org/$organizationSlug"
+            to="/$organizationSlug/dashboard"
           >
-            <Images />
-            {m.app_shell__studio_overview()}
+            <LayoutDashboard />
+            {m.app_shell__overview()}
           </Link>
           {showProductNavigation ? (
             <Link
@@ -96,7 +98,7 @@ function WorkspaceNavigation({
               className={itemClass}
               onClick={onNavigate}
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/products"
+              to="/$organizationSlug/admin/products"
             >
               <Package />
               {m.products__title()}
@@ -107,7 +109,7 @@ function WorkspaceNavigation({
             className={itemClass}
             onClick={onNavigate}
             params={{ organizationSlug }}
-            to="/org/$organizationSlug/orders"
+            to="/$organizationSlug/orders"
           >
             <PackageCheck />
             {m.orders__title()}
@@ -117,7 +119,7 @@ function WorkspaceNavigation({
             className={itemClass}
             onClick={onNavigate}
             params={{ organizationSlug }}
-            to="/org/$organizationSlug/payments"
+            to="/$organizationSlug/admin/payments"
           >
             <ReceiptText />
             {m.payments__title()}
@@ -128,7 +130,7 @@ function WorkspaceNavigation({
               className={itemClass}
               onClick={onNavigate}
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/inventory"
+              to="/$organizationSlug/admin/inventory"
             >
               <Boxes />
               {m.inventory__title()}
@@ -140,7 +142,7 @@ function WorkspaceNavigation({
               className={itemClass}
               onClick={onNavigate}
               params={{ organizationSlug }}
-              to="/org/$organizationSlug/members"
+              to="/$organizationSlug/admin/members"
             >
               <Users />
               {m.organization__members()}
@@ -162,43 +164,60 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     membershipMatch && membership && "organizationSlug" in membershipMatch.params
       ? membershipMatch.params.organizationSlug
       : undefined;
-  const showMemberNavigation = membership ? can("member.read", { role: membership.role }) : false;
-  const showInventoryNavigation = membership
-    ? can("inventory.manage", { role: membership.role })
-    : false;
-  const showProductNavigation = membership
-    ? can("product.manage", { role: membership.role })
-    : false;
   const showPlatformNavigation = matches.some((match) => match.routeId.includes("/(auth)/admin"));
+  const navigationTarget: WorkspaceNavigationTarget = showPlatformNavigation
+    ? { kind: "platform" }
+    : membership && organizationSlug
+      ? { kind: "organization", organizationSlug, role: membership.role }
+      : { kind: "none" };
+
+  const brand = (
+    <>
+      <span className="grid size-8 place-items-center rounded-lg bg-foreground text-sm font-semibold text-background">
+        AS
+      </span>
+      <span className="leading-tight">
+        <strong className="block text-sm">Album Studio</strong>
+        <span className="text-xs text-muted-foreground">{m.app_shell__production_workspace()}</span>
+      </span>
+    </>
+  );
 
   return (
     <div className="flex h-full flex-col p-3">
-      <Link className="flex h-12 items-center gap-3 px-2" onClick={onNavigate} to="/dashboard">
-        <span className="grid size-8 place-items-center rounded-lg bg-foreground text-sm font-semibold text-background">
-          AS
-        </span>
-        <span className="leading-tight">
-          <strong className="block text-sm">Album Studio</strong>
-          <span className="text-xs text-muted-foreground">
-            {m.app_shell__production_workspace()}
-          </span>
-        </span>
-      </Link>
+      {organizationSlug ? (
+        <Link
+          className="flex h-12 items-center gap-3 px-2"
+          onClick={onNavigate}
+          params={{ organizationSlug }}
+          to="/$organizationSlug/dashboard"
+        >
+          {brand}
+        </Link>
+      ) : (
+        <Link className="flex h-12 items-center gap-3 px-2" onClick={onNavigate} to="/admin">
+          {brand}
+        </Link>
+      )}
       <Separator className="my-3" />
-      <WorkspaceNavigation
-        onNavigate={onNavigate}
-        organizationSlug={organizationSlug}
-        showInventoryNavigation={showInventoryNavigation}
-        showMemberNavigation={showMemberNavigation}
-        showProductNavigation={showProductNavigation}
-        showPlatformNavigation={showPlatformNavigation}
-      />
+      <WorkspaceNavigation onNavigate={onNavigate} target={navigationTarget} />
       <div className="mt-auto flex flex-col gap-3">
         <Separator />
         <div className="flex items-center justify-between gap-3 px-2">
           <NavbarAvatar avatarImgSrc={user?.image} email={user?.email} name={user?.name} />
+          <LocaleSwitcher size="icon-sm" variant="ghost" />
           <ThemeSwitcher size="icon-sm" variant="ghost" />
         </div>
+        <Button
+          className="w-full justify-start"
+          nativeButton={false}
+          onClick={onNavigate}
+          render={<Link to="/select-organization" />}
+          variant="ghost"
+        >
+          <Building2 data-icon="inline-start" />
+          {m.organization__selector_title()}
+        </Button>
         <Button
           className="w-full justify-start"
           onClick={async () => {
@@ -224,12 +243,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="lg:col-start-2">
         <header className="sticky top-0 flex h-14 items-center border-b bg-background px-4 lg:hidden">
           <Sheet onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>
-            <SheetTrigger asChild>
-              <Button aria-label={m.app_shell__open_navigation()} size="icon" variant="ghost">
-                <Menu />
-              </Button>
+            <SheetTrigger
+              aria-label={m.app_shell__open_navigation()}
+              className={buttonVariants({ size: "icon", variant: "ghost" })}
+            >
+              <Menu />
             </SheetTrigger>
-            <SheetContent className="w-72 p-0" side="left">
+            <SheetContent className="w-72 p-0" closeButtonLabel={m.common__close()} side="left">
               <SheetHeader className="sr-only">
                 <SheetTitle>{m.app_shell__navigation_title()}</SheetTitle>
                 <SheetDescription>{m.app_shell__navigation_description()}</SheetDescription>

@@ -1,13 +1,17 @@
-import { useRouterState } from "@tanstack/react-router";
 import { LogOut, Menu, X } from "lucide-react";
 import React, { Suspense } from "react";
 
 import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
-import { Button } from "@tsu-stack/ui/components/button";
-import { Portal, PortalBackdrop } from "@tsu-stack/ui/components/portal";
-import { cn } from "@tsu-stack/ui/lib/utils";
+import { Button, buttonVariants } from "@tsu-stack/ui/components/button";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger
+} from "@tsu-stack/ui/components/sheet";
 
 import { LocaleSwitcher } from "@/components/common/locale-switcher";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
@@ -23,75 +27,82 @@ export function MobileNav() {
     <div className="flex items-center gap-2 md:hidden">
       <LocaleSwitcher variant="outline" size="icon" />
       <ThemeSwitcher className="md:hidden" variant="outline" />
-      <Button
-        aria-controls="mobile-menu"
-        aria-expanded={open}
-        aria-label="Toggle menu"
-        className="md:hidden"
-        onClick={() => setOpen(!open)}
-        size="icon"
-        variant="outline"
-      >
-        {open ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
-      </Button>
-      {open && (
-        <Portal className="top-(--navbar-height)" id="mobile-menu">
-          <PortalBackdrop className="bg-background!" />
-          <div
-            className={cn(
-              "ease-out data-[slot=open]:animate-in data-[slot=open]:zoom-in-97",
-              "size-full p-4"
-            )}
-            data-slot={open ? "open" : "closed"}
+      <Sheet onOpenChange={setOpen} open={open}>
+        <SheetTrigger
+          aria-controls="mobile-menu"
+          aria-label={m.navbar__open_menu()}
+          className={buttonVariants({ className: "md:hidden", size: "icon", variant: "outline" })}
+        >
+          <Menu />
+        </SheetTrigger>
+        <SheetContent
+          className="inset-x-0 bottom-0 h-auto w-full overflow-y-auto p-4 data-[side=top]:top-(--navbar-height) sm:max-w-none"
+          id="mobile-menu"
+          showCloseButton={false}
+          side="top"
+        >
+          <SheetTitle className="sr-only">{m.navbar__navigation()}</SheetTitle>
+          <SheetClose
+            render={
+              <Button
+                aria-label={m.navbar__close_menu()}
+                className="absolute top-4 right-4"
+                size="icon-sm"
+                variant="ghost"
+              />
+            }
           >
-            <div className="grid gap-y-2">
+            <X />
+          </SheetClose>
+          <nav aria-label={m.navbar__navigation()} className="mt-10">
+            <div className="grid gap-2">
               {navLinks.map((link) => {
                 const label = link.label();
 
                 return (
-                  <Button
+                  <Link
+                    className={buttonVariants({
+                      className: "w-full justify-start",
+                      variant: "ghost"
+                    })}
                     onClick={onNavigate}
-                    asChild
-                    className="w-full justify-start"
                     key={link.href ?? link.to}
-                    variant="ghost"
+                    {...(link.href ? { href: link.href } : { to: link.to })}
                   >
-                    <Link {...(link.href ? { href: link.href } : { to: link.to })}>
-                      <span className="max-sm:-ms-2">{label}</span>
-                    </Link>
-                  </Button>
+                    <span className="max-sm:-ms-2">{label}</span>
+                  </Link>
                 );
               })}
             </div>
-            <Suspense fallback={null}>
-              <MobileNavAuth onNavigate={onNavigate} />
-            </Suspense>
-          </div>
-        </Portal>
-      )}
+          </nav>
+          <Suspense fallback={null}>
+            <MobileNavAuth onNavigate={onNavigate} />
+          </Suspense>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
 
 function MobileNavAuth({ onNavigate }: { onNavigate: () => void }) {
-  const routerState = useRouterState();
   const { user } = useAuthSuspense();
   const signOut = useSignOut();
 
-  const redirect = routerState.location.search?.redirect;
-
-  const handleSignOut = async () => {
-    if (await signOut()) onNavigate();
+  const handleSignOut = () => {
+    onNavigate();
+    void signOut();
   };
 
   if (!user) {
     return (
       <div className="mt-12 flex flex-col gap-2">
-        <Button onClick={onNavigate} asChild className="w-full" variant="outline">
-          <Link to="/sign-in" search={redirect ? { redirect } : undefined}>
-            {m.navbar__sign_in()}
-          </Link>
-        </Button>
+        <Link
+          className={buttonVariants({ className: "w-full", variant: "outline" })}
+          onClick={onNavigate}
+          to="/sign-in"
+        >
+          {m.navbar__sign_in()}
+        </Link>
       </div>
     );
   }

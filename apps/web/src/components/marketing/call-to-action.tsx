@@ -1,8 +1,6 @@
-import { FaGithub } from "react-icons/fa";
-
 import { m } from "@tsu-stack/i18n/messages";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
-import { Button } from "@tsu-stack/ui/components/button";
+import { buttonVariants } from "@tsu-stack/ui/components/button";
 import { DecorIcon } from "@tsu-stack/ui/components/decor-icon";
 
 export function CallToAction() {
@@ -24,18 +22,10 @@ export function CallToAction() {
           {m.home_page__cta_description()}
         </p>
 
-        <div className="flex items-center justify-center gap-2">
-          <Button asChild variant="outline">
-            <Link target="_blank" href="https://github.com/tsu-moe/tsu-stack">
-              <FaGithub />
-              {m.home_page__cta_github()}
-            </Link>
-          </Button>
-          <Button asChild light="skeuomorphic">
-            <Link target="_blank" href="https://github.com/tsu-moe/tsu-stack/wiki">
-              {m.home_page__cta_documentation()}
-            </Link>
-          </Button>
+        <div className="flex items-center justify-center">
+          <Link className={buttonVariants()} to="/sign-in">
+            {m.navbar__sign_in()}
+          </Link>
         </div>
       </div>
     </section>
