@@ -11,12 +11,31 @@ import {
   type ProductEditor,
   type ProductPreviewInput,
   type ProductPublishInput,
+  type ProductStatus,
   type ProductRemoveInput
 } from "@tsu-stack/contract/product";
 import { m } from "@tsu-stack/i18n/messages";
 
-export function getProductsQueryOptions(organizationSlug: string) {
-  return orpc.products.list.queryOptions({ input: { organizationSlug } });
+export type ProductListParams = {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  status?: ProductStatus;
+};
+
+export function getProductsQueryOptions(
+  organizationSlug: string,
+  { page = 1, pageSize = 20, query = "", status }: ProductListParams = {}
+) {
+  return orpc.products.list.queryOptions({
+    input: {
+      organizationSlug,
+      page,
+      pageSize,
+      query,
+      ...(status ? { status } : {})
+    }
+  });
 }
 
 export function getProductQueryOptions(organizationSlug: string, productSlug: string) {
@@ -60,10 +79,9 @@ async function refreshEditor(
     queryClient.removeQueries(getProductQueryOptions(organizationSlug, previousSlug));
   }
   queryClient.setQueryData(getProductQueryOptions(organizationSlug, editor.slug).queryKey, editor);
-  await Promise.all([
-    queryClient.invalidateQueries(getProductsQueryOptions(organizationSlug)),
-    queryClient.invalidateQueries(getProductQueryOptions(organizationSlug, editor.slug))
-  ]);
+  await queryClient.invalidateQueries({
+    queryKey: orpc.products.list.key({ input: { organizationSlug } })
+  });
 }
 
 export function useProductActions(organizationSlug: string) {
@@ -139,10 +157,19 @@ export function useProductActions(organizationSlug: string) {
     ...orpc.products.remove.mutationOptions({ onError: showProductError }),
     mutationFn: (input: Omit<ProductRemoveInput, "organizationSlug">) =>
       orpc.products.remove.call({ ...input, organizationSlug }),
-    onSuccess: (result, input) => {
+    onSuccess: async (result, input) => {
       toast.success(result.result === "deleted" ? m.products__removed() : m.products__archived());
-      queryClient.removeQueries(getProductsQueryOptions(organizationSlug));
-      queryClient.removeQueries(getProductQueryOptions(organizationSlug, input.productSlug));
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: orpc.products.list.key({ input: { organizationSlug } }),
+          refetchType: "all"
+        }),
+        queryClient.invalidateQueries({
+          exact: true,
+          queryKey: getProductQueryOptions(organizationSlug, input.productSlug).queryKey,
+          refetchType: "none"
+        })
+      ]);
     }
   });
 

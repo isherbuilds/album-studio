@@ -82,7 +82,6 @@ function RootDocumentInner({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {/* We place the progress provider here otherwise we will get "Cannot render a <style> outside the main document" error */}
         <ThemeProvider attribute="class" defaultTheme="dark">
           <ProgressProvider>
             <Fragment key={locale}>{children}</Fragment>

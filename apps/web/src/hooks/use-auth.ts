@@ -18,12 +18,7 @@ export function useSignInMutation() {
       return result.data;
     },
     onError: (error) => toast.error(error.message || m.auth__sign_in_failed()),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        exact: true,
-        queryKey: authQueryKeys.user,
-        refetchType: "active"
-      })
+    onSuccess: (session) => queryClient.setQueryData(authQueryKeys.user, session.user)
   });
 }
 
@@ -32,13 +27,17 @@ export function useSignOut() {
   const router = useRouter();
 
   return async () => {
-    const { error } = await authClient.signOut();
-    if (error) {
-      toast.error(m.auth__sign_out_failed());
-      return false;
-    }
-    queryClient.clear();
-    await router.invalidate();
-    return true;
+    const result = await authClient.signOut({
+      fetchOptions: {
+        onError: () => {
+          toast.error(m.auth__sign_out_failed());
+        },
+        onSuccess: () => {
+          queryClient.clear();
+          void router.navigate({ search: {}, to: "/sign-in" });
+        }
+      }
+    });
+    return result.error === null;
   };
 }

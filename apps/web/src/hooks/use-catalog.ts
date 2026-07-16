@@ -14,6 +14,13 @@ export function getCatalogBySlugQueryOptions(organizationSlug: string, productSl
   return orpc.catalog.bySlug.queryOptions({ input: { organizationSlug, productSlug } });
 }
 
-export function useCatalogBySlugQuery(organizationSlug: string, productSlug: string) {
-  return useQuery(getCatalogBySlugQueryOptions(organizationSlug, productSlug));
+export function useCatalogBySlugQuery(
+  organizationSlug: string,
+  productSlug: string,
+  enabled = true
+) {
+  return useQuery({
+    ...getCatalogBySlugQueryOptions(organizationSlug, productSlug),
+    enabled
+  });
 }
