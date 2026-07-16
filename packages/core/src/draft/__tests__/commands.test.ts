@@ -22,6 +22,7 @@ const fixture = {
   productSlug: `draft-defaults-${crypto.randomUUID()}`,
   coverGroupId: crypto.randomUUID(),
   disabledCoverId: crypto.randomUUID(),
+  strandingCoverId: crypto.randomUUID(),
   availableCoverId: crypto.randomUUID(),
   styleGroupId: crypto.randomUUID(),
   incompatibleStyleId: crypto.randomUUID(),
@@ -121,11 +122,20 @@ beforeAll(async () => {
       productId: fixture.productId
     },
     {
+      id: fixture.strandingCoverId,
+      label: "Available cover without compatible styles",
+      optionGroupId: fixture.coverGroupId,
+      organizationId: fixture.organizationId,
+      position: 1,
+      priceAdjustmentMinor: 0,
+      productId: fixture.productId
+    },
+    {
       id: fixture.availableCoverId,
       label: "Available cover",
       optionGroupId: fixture.coverGroupId,
       organizationId: fixture.organizationId,
-      position: 1,
+      position: 2,
       priceAdjustmentMinor: 0,
       productId: fixture.productId
     },

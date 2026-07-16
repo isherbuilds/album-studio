@@ -21,8 +21,8 @@ Dialog content has viewport-relative max height and vertical scrolling while pre
 
 ## Steps
 
-1. Add `max-h-[calc(100vh-2rem)] overflow-y-auto` to dialog content.
-2. Ensure image/grid min-size constraints do not force overflow.
+1. Add `max-h-[calc(100dvh-2rem)] overflow-y-auto` to dialog content.
+2. Add `min-h-0` to the grid scroll container and ensure image constraints do not force overflow.
 3. Verify keyboard access at 400% zoom/mobile viewport.
 
 ## Boundaries

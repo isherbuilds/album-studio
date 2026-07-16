@@ -47,7 +47,7 @@ export const PlatformCreateOrganizationInputSchema = z.object({
     .max(80)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .refine((slug) => !RESERVED_ORGANIZATION_SLUGS[slug], {
-      message: "Organization slug is reserved"
+      error: "Organization slug is reserved"
     })
 });
 

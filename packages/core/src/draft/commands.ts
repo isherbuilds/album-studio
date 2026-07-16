@@ -17,38 +17,58 @@ import { loadConfigurationDraftReference, parseConfigurationDraftDetail } from "
 import { createConfigurationDraftSnapshot } from "#@/draft/snapshot";
 
 function createInitialSelections(product: PublicProductDefinition): ConfigurationSelections {
-  let selections: ConfigurationSelections = Object.fromEntries(
+  const selections: ConfigurationSelections = Object.fromEntries(
     product.definition.groups.flatMap((group) =>
       group.type === "number" ? [[group.key, group.included]] : []
     )
   );
-
-  for (const group of product.definition.groups) {
-    if (group.type === "number" || !group.required) continue;
-
-    const evaluation = evaluateConfiguration({
-      availability: product.availability,
-      currency: product.currency,
-      product: product.definition,
-      quantity: 1,
-      selections
-    });
-    selections = evaluation.normalizedSelections;
-    const defaultValue = group.values.find((value) =>
-      evaluation.disabledExplanations.every(
-        (explanation) =>
-          explanation.groupKey !== group.key || explanation.optionValueId !== value.id
-      )
-    );
-    if (defaultValue) selections[group.key] = defaultValue.id;
+  const groups = product.definition.groups;
+  const remainingRequiredCounts = Array.from({ length: groups.length + 1 }, () => 0);
+  for (let groupIndex = groups.length - 1; groupIndex >= 0; groupIndex -= 1) {
+    const group = groups[groupIndex];
+    remainingRequiredCounts[groupIndex] =
+      (remainingRequiredCounts[groupIndex + 1] ?? 0) +
+      (group?.type !== "number" && group?.required ? 1 : 0);
   }
+  let bestSelections = selections;
+  let bestCount = 0;
+
+  function search(groupIndex: number, current: ConfigurationSelections, selectedCount: number) {
+    if (selectedCount + (remainingRequiredCounts[groupIndex] ?? 0) <= bestCount) return;
+    const group = groups[groupIndex];
+    if (!group) {
+      bestSelections = current;
+      bestCount = selectedCount;
+      return;
+    }
+    if (group.type === "number" || !group.required) {
+      search(groupIndex + 1, current, selectedCount);
+      return;
+    }
+
+    for (const value of group.values) {
+      const evaluation = evaluateConfiguration({
+        availability: product.availability,
+        currency: product.currency,
+        product: product.definition,
+        quantity: 1,
+        selections: { ...current, [group.key]: value.id }
+      });
+      if (evaluation.normalizedSelections[group.key] !== value.id) continue;
+      search(groupIndex + 1, evaluation.normalizedSelections, selectedCount + 1);
+    }
+
+    search(groupIndex + 1, current, selectedCount);
+  }
+
+  search(0, selections, 0);
 
   return evaluateConfiguration({
     availability: product.availability,
     currency: product.currency,
     product: product.definition,
     quantity: 1,
-    selections
+    selections: bestSelections
   }).normalizedSelections;
 }
 

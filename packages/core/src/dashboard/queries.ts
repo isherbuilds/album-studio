@@ -82,7 +82,7 @@ function loadOwnerOrderSummary(db: DatabaseOrTransaction, organizationId: string
         Number
       ),
       unpaidAmountMinor: sql<number>`coalesce(
-        sum(${orderAmountMinor} - coalesce(${paymentLedger.amountMinor}, 0))
+        sum(greatest(${orderAmountMinor} - coalesce(${paymentLedger.amountMinor}, 0), 0::bigint))
           filter (where ${customerOrder.status} <> 'cancelled'),
         0
       )::bigint`.mapWith(Number)
