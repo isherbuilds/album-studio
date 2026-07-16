@@ -241,7 +241,7 @@ function ProductsTablePanel({
       <div>
         {productsQuery.isPending || result === undefined ? (
           <output aria-label={m.products__loading()} className="grid min-h-56 place-items-center">
-            <Spinner />
+            <Spinner aria-label={m.products__loading()} />
           </output>
         ) : (
           <div className="overflow-x-auto">
@@ -389,7 +389,7 @@ export function ProductsPage({
       {productsQuery.isPending || result === undefined ? (
         <Card>
           <output aria-label={m.products__loading()} className="grid min-h-56 place-items-center">
-            <Spinner />
+            <Spinner aria-label={m.products__loading()} />
           </output>
         </Card>
       ) : totalProducts === 0 ? (

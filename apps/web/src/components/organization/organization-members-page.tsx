@@ -158,7 +158,7 @@ function MembersTable({
                       aria-label={m.organization__members()}
                       className="grid place-items-center"
                     >
-                      <Spinner />
+                      <Spinner aria-label={m.organization__members()} />
                     </output>
                   </TableCell>
                 </TableRow>
@@ -380,7 +380,7 @@ export function OrganizationMembersPage({
               aria-label={m.organization__pending_invitations()}
               className="grid min-h-32 place-items-center"
             >
-              <Spinner />
+              <Spinner aria-label={m.organization__members()} />
             </output>
           ) : invitationRows.length > 0 ? (
             <div className="divide-y">

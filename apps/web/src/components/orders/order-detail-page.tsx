@@ -355,7 +355,7 @@ export function OrderDetailPage({
                               variant="outline"
                             >
                               {paymentActions.reverse.isPending ? (
-                                <Spinner />
+                                <Spinner aria-label={m.common__loading()} />
                               ) : (
                                 <RotateCcw data-icon="inline-start" />
                               )}
@@ -388,7 +388,7 @@ export function OrderDetailPage({
                     onClick={() => actions.transition.mutate({ status: next })}
                   >
                     {actions.transition.isPending ? (
-                      <Spinner />
+                      <Spinner aria-label={m.common__loading()} />
                     ) : (
                       <ArrowRight data-icon="inline-end" />
                     )}
@@ -472,7 +472,7 @@ export function OrderDetailPage({
                   variant="outline"
                 >
                   {actions.duplicateToDraft.isPending ? (
-                    <Spinner />
+                    <Spinner aria-label={m.common__loading()} />
                   ) : (
                     <CopyPlus data-icon="inline-start" />
                   )}
@@ -533,7 +533,7 @@ export function OrderDetailPage({
                   </FieldGroup>
                   <Button disabled={!isHydrated || paymentActions.record.isPending} type="submit">
                     {paymentActions.record.isPending ? (
-                      <Spinner />
+                      <Spinner aria-label={m.common__loading()} />
                     ) : (
                       <ReceiptText data-icon="inline-start" />
                     )}

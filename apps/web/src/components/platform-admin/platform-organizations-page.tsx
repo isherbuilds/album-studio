@@ -100,7 +100,7 @@ function OrganizationsTable() {
                     aria-label={m.platform_admin__organizations_title()}
                     className="grid place-items-center"
                   >
-                    <Spinner />
+                    <Spinner aria-label={m.platform_admin__organizations()} />
                   </output>
                 </TableCell>
               </TableRow>

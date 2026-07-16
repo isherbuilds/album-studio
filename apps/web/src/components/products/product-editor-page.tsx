@@ -370,7 +370,7 @@ export function ProductEditorPage({
   if (productQuery.isPending) {
     return (
       <output className="grid min-h-64 place-items-center">
-        <Spinner />
+        <Spinner aria-label={m.common__loading()} />
         <span className="sr-only">{m.products__loading()}</span>
       </output>
     );

@@ -955,7 +955,11 @@ export function DraftConfigurator({
                     {orderTotalLabel}
                   </span>
                 </SheetTrigger>
-                <SheetContent className="max-h-[85vh] overflow-y-auto" side="bottom">
+                <SheetContent
+                  className="max-h-[85vh] overflow-y-auto"
+                  closeButtonLabel={m.common__close()}
+                  side="bottom"
+                >
                   <SheetHeader>
                     <SheetTitle>{m.catalog__summary_title()}</SheetTitle>
                     <SheetDescription>{m.catalog__summary_description()}</SheetDescription>
@@ -986,7 +990,9 @@ export function DraftConfigurator({
                   }}
                   type="button"
                 >
-                  {isPlacing ? <Spinner data-icon="inline-start" /> : null}
+                  {isPlacing ? (
+                    <Spinner aria-label={m.common__loading()} data-icon="inline-start" />
+                  ) : null}
                   {isPlacing
                     ? m.orders__placing()
                     : priceChange

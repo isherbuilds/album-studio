@@ -414,7 +414,7 @@ function ComponentInspector({
             </div>
             {movements.isPending ? (
               <div className="grid min-h-20 place-items-center">
-                <Spinner />
+                <Spinner aria-label={m.inventory__components()} />
               </div>
             ) : movements.isError ? (
               <p className="text-sm text-destructive" role="alert">

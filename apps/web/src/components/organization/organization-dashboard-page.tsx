@@ -54,7 +54,7 @@ function DashboardState({ failed }: { failed?: boolean }) {
       <EmptyHeader>
         {failed ? null : (
           <EmptyMedia variant="icon">
-            <Spinner />
+            <Spinner aria-label={m.organization_dashboard__loading()} />
           </EmptyMedia>
         )}
         <EmptyTitle>

@@ -141,12 +141,15 @@ function CatalogProductDialog({
               >
                 {detailQuery.isPending ? (
                   <>
-                    <Spinner data-icon="inline-start" />
+                    <Spinner aria-label={m.products__loading()} data-icon="inline-start" />
                     {m.products__loading()}
                   </>
                 ) : createDraft.isPending ? (
                   <>
-                    <Spinner data-icon="inline-start" />
+                    <Spinner
+                      aria-label={m.catalog__starting_configuration()}
+                      data-icon="inline-start"
+                    />
                     {m.catalog__starting_configuration()}
                   </>
                 ) : (

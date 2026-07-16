@@ -91,7 +91,7 @@ export function SignInForm({
   });
 
   if (isPending) {
-    return <Spinner />;
+    return <Spinner aria-label={m.common__loading()} />;
   }
 
   return (
